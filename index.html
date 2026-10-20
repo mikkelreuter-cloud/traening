@@ -7,11 +7,10 @@
 <meta name="theme-color" content="#0F1012" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:0}body{margin:0;font-size:14px}img{max-width:100%}</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px)}body{margin:0;font-size:14px}img{max-width:100%}</style>
 <title>Styrke & VO₂ Log</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap">
@@ -19,23 +18,23 @@
 /* Layout: soft grey canvas, white rounded cards with soft shadows, thin oversized numerals, orange accent, floating dark pill nav. */
 :root{
   --bg:#ECEDEF; --surface:#FFFFFF; --surface-2:#F3F3F5; --fg:#17181B; --muted:#7D8089; --line:#E3E4E8;
-  --accent:#F26A1B; --accent-2:#FF9A4D; --nav:#1C1D21; --nav-fg:#9C9EA6; --on-accent:#FFFFFF;
+  --accent:#F26A1B; --accent-2:#FF9A4D; --pill:#17181B; --pill-fg:#FFFFFF; --nav:#1C1D21; --nav-fg:#9C9EA6; --on-accent:#FFFFFF;
   --shadow:0 1px 2px rgb(20 20 30 / .04),0 8px 24px rgb(20 20 30 / .06);
-  --k-styrke:#F26A1B; --k-interval:#E5435A; --k-zone2:#1FA463; --k-hvile:#B3B5BC; --k-test:#E7A22E; --k-vaegt:#7666EA;
+  --k-styrke:#2F6FEB; --k-interval:#F26A1B; --k-zone2:#14A37A; --k-hvile:#B3B5BC; --k-test:#E3B11B; --k-vaegt:#8B5CF6;
   --font:"Outfit",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --display:var(--font); --body:var(--font);
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0F1012; --surface:#1B1C20; --surface-2:#25262B; --fg:#F2F2F4; --muted:#8E909A; --line:#2E3036;
-  --accent:#FF7A2E; --accent-2:#FFA766; --nav:#000000; --nav-fg:#8E909A; --on-accent:#FFFFFF;
+  --accent:#FF7A2E; --accent-2:#FFA766; --pill:#F2F2F4; --pill-fg:#111214; --nav:#000000; --nav-fg:#8E909A; --on-accent:#FFFFFF;
   --shadow:0 1px 2px rgb(0 0 0 / .3),0 8px 24px rgb(0 0 0 / .25);
-  --k-styrke:#FF7A2E; --k-interval:#FF5C72; --k-zone2:#39C982; --k-hvile:#6B6E77; --k-test:#F2B44B; --k-vaegt:#9A8CFF;
+  --k-styrke:#5B93FF; --k-interval:#FF8A3D; --k-zone2:#2FD3A0; --k-hvile:#6B6E77; --k-test:#F5CB45; --k-vaegt:#B394FF;
   color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0F1012; --surface:#1B1C20; --surface-2:#25262B; --fg:#F2F2F4; --muted:#8E909A; --line:#2E3036;
-  --accent:#FF7A2E; --accent-2:#FFA766; --nav:#000000; --nav-fg:#8E909A; --on-accent:#FFFFFF;
+  --accent:#FF7A2E; --accent-2:#FFA766; --pill:#F2F2F4; --pill-fg:#111214; --nav:#000000; --nav-fg:#8E909A; --on-accent:#FFFFFF;
   --shadow:0 1px 2px rgb(0 0 0 / .3),0 8px 24px rgb(0 0 0 / .25);
-  --k-styrke:#FF7A2E; --k-interval:#FF5C72; --k-zone2:#39C982; --k-hvile:#6B6E77; --k-test:#F2B44B; --k-vaegt:#9A8CFF;
+  --k-styrke:#5B93FF; --k-interval:#FF8A3D; --k-zone2:#2FD3A0; --k-hvile:#6B6E77; --k-test:#F5CB45; --k-vaegt:#B394FF;
   color-scheme:dark}
 
 *{box-sizing:border-box}
@@ -65,7 +64,7 @@ section{display:flex;flex-direction:column;gap:12px}
 .k-styrke{--k:var(--k-styrke)} .k-interval{--k:var(--k-interval)} .k-zone2{--k:var(--k-zone2)}
 .k-hvile{--k:var(--k-hvile)} .k-test{--k:var(--k-test)} .k-vaegt{--k:var(--k-vaegt)}
 .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--fg);white-space:nowrap;background:var(--surface-2);padding:5px 10px 5px 8px;border-radius:999px}
-.chip i{width:8px;height:8px;border-radius:50%;background:var(--k)}
+.chip i{width:9px;height:9px;border-radius:50%;border:2px solid var(--k)}
 
 .ex{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .ex li{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:12px 14px;background:var(--surface-2);border-radius:16px;align-items:baseline}
@@ -93,10 +92,15 @@ section{display:flex;flex-direction:column;gap:12px}
 .week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .wd{appearance:none;border:0;background:transparent;padding:2px 0;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--fg);font:inherit;cursor:pointer;min-width:0}
 .wd .dl{font-size:12px;font-weight:400;color:var(--muted);text-transform:capitalize}
-.wd .dn{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:500;font-size:15px;background:var(--surface-2)}
-.wd.is-today .dn{background:var(--nav);color:#fff}
-.bar{width:6px;height:6px;border-radius:50%;background:var(--k)}
-.ok{font-size:11px;color:var(--k-zone2);font-weight:700;height:12px;line-height:12px}
+.wd{border-radius:999px;padding:8px 0 10px}
+.wd .dn{font-weight:500;font-size:16px;line-height:1}
+.wd.is-today{background:var(--pill);color:var(--pill-fg)}
+.wd.is-today .dl{color:inherit;opacity:.7}
+.wd.is-today .bar{border-color:var(--pill-fg)}
+.wd.is-today.is-done .bar{background:var(--pill-fg)}
+.bar{width:10px;height:10px;border-radius:50%;border:2.5px solid var(--k);background:transparent;flex:none}
+.is-done .bar{background:var(--k)}
+.k-hvile .bar{border-width:0;width:4px;height:4px;background:var(--k-hvile);margin:3px}
 .dial{position:relative;width:100%;max-width:300px;margin:0 auto}
 .dial svg{width:100%;max-width:300px;height:auto;display:block}
 .dial rect{stroke:none} .dial .seg-off{fill:var(--surface-2)} .dial .seg-on{fill:var(--accent)}
@@ -123,15 +127,17 @@ section{display:flex;flex-direction:column;gap:12px}
 .month{font-weight:500;font-size:22px;margin:0;text-transform:capitalize;letter-spacing:-.01em}
 .icon-btn{appearance:none;border:0;background:var(--surface);color:var(--fg);width:44px;height:44px;border-radius:50%;font-size:22px;line-height:1;cursor:pointer;flex:none;box-shadow:var(--shadow);display:grid;place-items:center}
 .cal-card{padding:16px 12px}
-.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px 2px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px 0}
 .cw{text-align:center;font-size:12px;font-weight:400;color:var(--muted);padding-bottom:4px}
-.cd{appearance:none;border:0;background:transparent;padding:0;display:flex;flex-direction:column;align-items:center;gap:3px;font:inherit;color:var(--fg);cursor:pointer;position:relative;min-width:0}
-.cd .dn{width:38px;height:38px;max-width:100%;border-radius:50%;display:grid;place-items:center;font-weight:500;font-size:14px;background:var(--surface-2)}
+.cd{appearance:none;border:0;background:transparent;padding:9px 0 10px;width:44px;max-width:100%;justify-self:center;border-radius:999px;display:flex;flex-direction:column;align-items:center;gap:7px;font:inherit;color:var(--fg);cursor:pointer;min-width:0}
+.cd .dn{font-weight:500;font-size:15px;line-height:1}
 .cd.empty{cursor:default}
-.cd.is-today .dn{box-shadow:inset 0 0 0 2px var(--accent)}
-.cd.is-sel .dn{background:var(--nav);color:#fff;box-shadow:none}
-.cd .dot{position:absolute;top:-2px;right:calc(50% - 22px);width:15px;height:15px;border-radius:50%;background:var(--k-zone2);color:#fff;font-size:9px;font-weight:700;display:grid;place-items:center}
-.cd.is-sel .dot{color:#fff}
+.cd.is-today .dn{color:var(--accent);font-weight:700}
+.cd.is-sel{background:var(--pill);color:var(--pill-fg)}
+.cd.is-sel .dn{color:inherit}
+.cd.is-sel .bar{border-color:var(--pill-fg)}
+.cd.is-sel.is-done .bar{background:var(--pill-fg)}
+.cd.past:not(.is-done):not(.is-sel) .bar{opacity:.35}
 .legend{display:flex;flex-wrap:wrap;gap:8px}
 
 .seg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--surface);border-radius:999px;padding:5px;gap:4px;box-shadow:var(--shadow)}
@@ -416,8 +422,8 @@ function nextSession(from){const d=pd(from);for(let i=1;i<=7;i++){const n=ds(new
 const daysSince=d=>Math.round((pd(TODAY)-pd(d))/864e5);
 function weekCell(d){
   const s=sessFor(d),dt=pd(d);
-  return `<button class="wd k-${s.kind}${d===TODAY?' is-today':''}" data-act="calday" data-date="${d}" aria-label="${niceDate(d)}: ${s.name}">
-    <span class="dl">${DAYS[dt.getDay()].slice(0,2)}</span><span class="dn num">${dt.getDate()}</span><span class="bar"></span><span class="ok">${isDone(d)?'✓':''}</span></button>`;
+  return `<button class="wd k-${s.kind}${d===TODAY?' is-today':''}${isDone(d)?' is-done':''}" data-act="calday" data-date="${d}" aria-label="${niceDate(d)}: ${s.name}">
+    <span class="dl">${DAYS[dt.getDay()].slice(0,2)}</span><span class="dn num">${dt.getDate()}</span><span class="bar"></span></button>`;
 }
 function viewToday(){
   const s=sessFor(TODAY),done=isDone(TODAY),wk=weekDates(TODAY);
@@ -472,11 +478,12 @@ function viewCal(){
   const y=ui.calY,m=ui.calM,first=new Date(y,m,1),start=(first.getDay()+6)%7,n=new Date(y,m+1,0).getDate();
   let cells='';for(let i=0;i<start;i++)cells+='<span class="cd empty"></span>';
   for(let d=1;d<=n;d++){const s=ds(new Date(y,m,d)),se=sessFor(s),done=logsOn(s).length>0;
-    cells+=`<button class="cd k-${se.kind}${s===TODAY?' is-today':''}${s===ui.sel?' is-sel':''}" data-act="sel" data-date="${s}" aria-label="${niceDate(s)}: ${se.name}"><span class="dn num">${d}</span><span class="bar"></span>${done?'<span class="dot">✓</span>':''}</button>`}
+    cells+=`<button class="cd k-${se.kind}${s===TODAY?' is-today':''}${s===ui.sel?' is-sel':''}${done?' is-done':''}${s<TODAY?' past':''}" data-act="sel" data-date="${s}" aria-label="${niceDate(s)}: ${se.name}"><span class="dn num">${d}</span><span class="bar"></span></button>`}
   const sel=ui.sel,se=sessFor(sel),L=logsOn(sel).sort(byDate);
   return `<div class="cal-head"><button class="icon-btn" data-act="mprev" aria-label="Forrige måned">‹</button><h2 class="month">${MONTHS[m]} ${y}</h2><button class="icon-btn" data-act="mnext" aria-label="Næste måned">›</button></div>
   <div class="card cal-card"><div class="cal-grid">${['Ma','Ti','On','To','Fr','Lø','Sø'].map(x=>`<span class="cw">${x}</span>`).join('')}${cells}</div></div>
   <div class="legend">${['styrke','interval','zone2','hvile'].map(k=>chip(k,KIND_LABEL[k])).join('')}</div>
+  <p class="hint">Tom ring = planlagt · udfyldt ring = gennemført</p>
   <section class="card">
     <p class="eyebrow">${cap(niceDate(sel))}${sel===TODAY?' · i dag':''}</p>
     <div class="row-between"><h2 class="sess">${esc(se.name)}</h2>${chip(se.kind,KIND_LABEL[se.kind])}</div>
@@ -836,8 +843,6 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(timer&
 
 render();
 </script>
-<script>
-if('serviceWorker' in navigator){addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
-</script>
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}</script>
 </body>
 </html>
