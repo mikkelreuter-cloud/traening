@@ -20,7 +20,7 @@
   --bg:#ECEDEF; --surface:#FFFFFF; --surface-2:#F3F3F5; --fg:#17181B; --muted:#7D8089; --line:#E3E4E8;
   --accent:#F26A1B; --accent-2:#FF9A4D; --pill:#17181B; --pill-fg:#FFFFFF; --nav:#1C1D21; --nav-fg:#9C9EA6; --on-accent:#FFFFFF;
   --shadow:0 1px 2px rgb(20 20 30 / .04),0 8px 24px rgb(20 20 30 / .06);
-  --k-styrke:#2F6FEB; --k-interval:#F26A1B; --k-zone2:#14A37A; --k-hvile:#B3B5BC; --k-test:#E3B11B; --k-vaegt:#8B5CF6;
+  --k-styrke:#2F6FEB; --k-interval:#F26A1B; --k-zone2:#14A37A; --k-hvile:#B3B5BC; --k-test:#E3B11B; --k-vaegt:#8B5CF6; --k-mobilitet:#D9468F;
   --font:"Outfit",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --display:var(--font); --body:var(--font);
 }
@@ -28,13 +28,13 @@
   --bg:#0F1012; --surface:#1B1C20; --surface-2:#25262B; --fg:#F2F2F4; --muted:#8E909A; --line:#2E3036;
   --accent:#FF7A2E; --accent-2:#FFA766; --pill:#F2F2F4; --pill-fg:#111214; --nav:#000000; --nav-fg:#8E909A; --on-accent:#FFFFFF;
   --shadow:0 1px 2px rgb(0 0 0 / .3),0 8px 24px rgb(0 0 0 / .25);
-  --k-styrke:#5B93FF; --k-interval:#FF8A3D; --k-zone2:#2FD3A0; --k-hvile:#6B6E77; --k-test:#F5CB45; --k-vaegt:#B394FF;
+  --k-styrke:#5B93FF; --k-interval:#FF8A3D; --k-zone2:#2FD3A0; --k-hvile:#6B6E77; --k-test:#F5CB45; --k-vaegt:#B394FF; --k-mobilitet:#FF79B8;
   color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0F1012; --surface:#1B1C20; --surface-2:#25262B; --fg:#F2F2F4; --muted:#8E909A; --line:#2E3036;
   --accent:#FF7A2E; --accent-2:#FFA766; --pill:#F2F2F4; --pill-fg:#111214; --nav:#000000; --nav-fg:#8E909A; --on-accent:#FFFFFF;
   --shadow:0 1px 2px rgb(0 0 0 / .3),0 8px 24px rgb(0 0 0 / .25);
-  --k-styrke:#5B93FF; --k-interval:#FF8A3D; --k-zone2:#2FD3A0; --k-hvile:#6B6E77; --k-test:#F5CB45; --k-vaegt:#B394FF;
+  --k-styrke:#5B93FF; --k-interval:#FF8A3D; --k-zone2:#2FD3A0; --k-hvile:#6B6E77; --k-test:#F5CB45; --k-vaegt:#B394FF; --k-mobilitet:#FF79B8;
   color-scheme:dark}
 
 *{box-sizing:border-box}
@@ -62,7 +62,7 @@ section{display:flex;flex-direction:column;gap:12px}
 .row-between{display:flex;justify-content:space-between;align-items:center;gap:10px}
 
 .k-styrke{--k:var(--k-styrke)} .k-interval{--k:var(--k-interval)} .k-zone2{--k:var(--k-zone2)}
-.k-hvile{--k:var(--k-hvile)} .k-test{--k:var(--k-test)} .k-vaegt{--k:var(--k-vaegt)}
+.k-hvile{--k:var(--k-hvile)} .k-test{--k:var(--k-test)} .k-vaegt{--k:var(--k-vaegt)} .k-mobilitet{--k:var(--k-mobilitet)}
 .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--fg);white-space:nowrap;background:var(--surface-2);padding:5px 10px 5px 8px;border-radius:999px}
 .chip i{width:9px;height:9px;border-radius:50%;border:2px solid var(--k)}
 
@@ -117,6 +117,19 @@ section{display:flex;flex-direction:column;gap:12px}
 .stat .meter i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--k-zone2))}
 .stat em{font-style:normal;font-size:12px;color:var(--muted)}
 .delta{display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px;vertical-align:middle;margin-left:6px;background:var(--surface-2);color:var(--muted)}
+.goals{display:flex;flex-direction:column;gap:12px}
+.goal{display:grid;grid-template-columns:1fr auto;gap:5px 10px;align-items:baseline}
+.goal .gl{font-size:14px}
+.goal .gv{font-size:14px;color:var(--muted)} .goal .gv b{color:var(--fg);font-weight:600}
+.goal .gb{grid-column:1/-1;height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.goal .gb i{display:block;height:100%;border-radius:3px;background:var(--k)}
+.goal.met .gv b{color:var(--k-zone2)}
+.big-h{font-weight:300;font-size:44px;letter-spacing:-.03em;line-height:1}
+.big-h small{font-size:16px;color:var(--muted);font-weight:400;margin-left:4px}
+.progsw{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.progsw button{appearance:none;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);border-radius:16px;padding:14px 12px;font:500 14px/1.3 var(--font);cursor:pointer;text-align:left}
+.progsw button.on{background:var(--pill);color:var(--pill-fg);border-color:var(--pill)}
+.progsw small{display:block;font-weight:400;font-size:12px;opacity:.7;margin-top:2px}
 .banner{display:flex;gap:12px;align-items:flex-start;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:var(--on-accent);border-radius:22px;padding:16px 18px;box-shadow:var(--shadow)}
 .banner .bi{flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid currentColor;display:grid;place-items:center;font-size:13px;font-weight:600;margin-top:1px}
 .banner p{margin:0;font-size:14px;line-height:1.45}
@@ -265,7 +278,7 @@ textarea{resize:vertical}
 const KEY='styrke-vo2-log.v1';
 const DAYS=['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'];
 const MONTHS=['januar','februar','marts','april','maj','juni','juli','august','september','oktober','november','december'];
-const KIND_LABEL={styrke:'Styrke',interval:'Intervaller',zone2:'Zone 2',hvile:'Hvile'};
+const KIND_LABEL={styrke:'Styrke',interval:'Intervaller',zone2:'Zone 2',hvile:'Hvile',mobilitet:'Mobilitet'};
 const LOGTYPE={styrke:'Styrke',kondition:'Kondition',vaegt:'Vægt',test:'Test'};
 const TESTS=['3 km løb','5 km løb','Cooper 12 min','1RM squat','1RM bænkpres','1RM dødløft','Max pull-ups','VO₂max (ur)'];
 
@@ -285,9 +298,28 @@ const SESS={
   Z2:{name:'Zone 2',kind:'zone2',dur:'45–60 min',
      steps:['45–60 min roligt løb, cykel eller ro','60–70 % af maks puls','Du skal kunne tale i hele sætninger'],
      note:'Bygger den aerobe base og hjælper restitutionen. Den kan springes over, hvis tiden er knap.'},
+  I5:{name:'Intervaller 5×4',kind:'interval',dur:'ca. 47 min',
+     steps:['10 min opvarmning, roligt','5 × 4 min hårdt ved 90–95 % af maks puls (RPE 9)','3 min aktiv pause mellem hvert interval','5 min nedvarmning'],
+     note:'Et ekstra interval i forhold til 4×4. Det giver flere hårde minutter mod Blueprints 75 min om ugen.'},
+  I30B:{name:'Korte intervaller 30/15 · 4 serier',kind:'interval',dur:'ca. 50 min',
+     steps:['10 min opvarmning','4 serier × 10 × (30 sek hårdt / 15 sek let)','3 min pause mellem serierne','5 min nedvarmning'],
+     note:'Fjerde serie giver flere hårde minutter, så du rammer Blueprints 75 min hård træning om ugen.'},
+  Z2L:{name:'Zone 2 · 60 min',kind:'zone2',dur:'60 min',
+     steps:['60 min roligt løb, cykel, ro eller rask gang med oppakning','60–70 % af maks puls','Du skal kunne tale i hele sætninger'],
+     note:'To lange zone 2-pas plus opvarmning og nedvarmning på intervaldagene giver 150 min om ugen.'},
+  MOB:{name:'Mobilitet',kind:'mobilitet',dur:'10 min',min:10,
+     steps:['90/90 hofteskift · 1 min','Verdens bedste stræk · 5 pr. side','Åben bog (brystryg-rotation) · 8 pr. side','Dyb squat-hold · 1 min','Couch stretch · 45 sek pr. side','Dead hang · 2 × 30 sek'],
+     note:'Lige efter styrkepasset, mens du er varm.'},
+  BAL:{name:'Balance og mobilitet',kind:'mobilitet',dur:'15 min',min:15,
+     steps:['Etbensstand med lukkede øjne · 3 × 30 sek pr. ben','Etbens rumænsk dødløft · 2 × 8 pr. ben','Kosakker-squat · 2 × 6 pr. side','Tå-gang og hæl-gang · 2 × 20 m','Hoftebøjer- og baglårsstræk · 1 min pr. side','Rolig vejrtrækning på ryggen · 2 min'],
+     note:'Balance holder ankler, knæ og hofter skadefri.'},
   R:{name:'Hvile',kind:'hvile',dur:'',steps:['Gåtur eller let mobilitet','Søvn og mad er dagens træning'],note:''}
 };
 const DEFAULT_PLAN={0:'R',1:'A',2:'I4',3:'B',4:'Z2',5:'C',6:'I30'};
+/* Bryan Johnson Blueprint: 6 h/week, 3 strength + 3 cardio, 150 min zone 2, 75 min vigorous, mobility and balance */
+const BP_PLAN={0:'Z2L',1:'A',2:'I5',3:'B',4:'Z2L',5:'C',6:'I30B'};
+const BP_ADDONS={1:'MOB',3:'MOB',5:'MOB',0:'BAL'};
+const BP_GOALS={total:360,z2:150,vig:75,str:3,mob:45};
 
 /* ---------- helpers ---------- */
 const $=s=>document.querySelector(s);
@@ -311,8 +343,12 @@ const chip=(k,label)=>`<span class="chip k-${k}"><i></i>${label}</span>`;
 let storageOK=true;
 try{localStorage.setItem('__t','1');localStorage.removeItem('__t')}catch(e){storageOK=false}
 function load(){
-  try{const raw=localStorage.getItem(KEY);if(raw){const d=JSON.parse(raw);return {plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:Array.isArray(d.logs)?d.logs:[],lastBackup:d.lastBackup||null}}}catch(e){}
-  return {plan:{...DEFAULT_PLAN},logs:[]};
+  try{const raw=localStorage.getItem(KEY);if(raw){const d=JSON.parse(raw);
+    const st={plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:Array.isArray(d.logs)?d.logs:[],lastBackup:d.lastBackup||null,program:d.program,addons:d.addons||{}};
+    if(st.program==='blueprint'&&st.plan[2]==='I4'&&st.plan[0]==='Z2L')st.plan[2]='I5';
+    if(!st.program){const untouched=Object.keys(DEFAULT_PLAN).every(k=>st.plan[k]===DEFAULT_PLAN[k]);st.program='blueprint';if(untouched)st.plan={...BP_PLAN};st.addons={...BP_ADDONS}}
+    return st}}catch(e){}
+  return {plan:{...BP_PLAN},logs:[],program:'blueprint',addons:{...BP_ADDONS}};
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state));storageOK=true}catch(e){storageOK=false}}
 let state=load();
@@ -323,7 +359,22 @@ const sessFor=s=>SESS[sessKey(s)];
 const logsOn=s=>state.logs.filter(l=>l.date===s);
 const byDate=(a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.id<b.id?-1:1);
 const logsOf=t=>state.logs.filter(l=>l.type===t).sort(byDate);
-function isDone(s){const k=sessFor(s).kind,L=logsOn(s);if(k==='hvile')return false;return L.some(l=>l.type===(k==='styrke'?'styrke':'kondition'))}
+function isDone(s){const k=sessFor(s).kind,L=logsOn(s);if(k==='hvile')return false;return L.some(l=>l.type===(k==='styrke'?'styrke':k==='mobilitet'?'mobilitet':'kondition'))}
+const addonFor=s=>{const k=(state.addons||{})[pd(s).getDay()];return k&&SESS[k]?{key:k,s:SESS[k]}:null};
+const addonDone=(d,a)=>logsOn(d).some(l=>l.type==='mobilitet'&&l.name===a.s.name);
+const keyByName=n=>Object.keys(SESS).find(k=>SESS[k].name===n);
+/* Minutes this week toward the Blueprint targets */
+function weekStats(date){
+  const wk=weekDates(date),set=new Set(wk),o={total:0,z2:0,vig:0,str:0,mob:0};
+  state.logs.forEach(l=>{if(!set.has(l.date))return;
+    if(l.type==='styrke'){o.str++;o.total+=Math.round((l.dur||55*60)/60)}
+    else if(l.type==='mobilitet'){const m=Math.round((l.dur||600)/60);o.mob+=m;o.total+=m}
+    else if(l.type==='kondition'){const m=Math.round(l.dur/60),k=keyByName(l.name);o.total+=m;
+      if(k&&SESS[k].kind==='interval'){const P=buildPhases(k),hard=Math.round(P.filter(p=>p.type!=='easy').reduce((a,p)=>a+p.sec,0)/60),v=Math.min(m,hard);o.vig+=v;o.z2+=m-v}
+      else if(k&&SESS[k].kind==='zone2')o.z2+=m;
+      else if((l.rpe||0)>=8)o.vig+=m;else o.z2+=m}});
+  return o;
+}
 function weekDates(s){const d=pd(s);const off=(d.getDay()+6)%7;return Array.from({length:7},(_,i)=>ds(new Date(d.getFullYear(),d.getMonth(),d.getDate()-off+i)))}
 function lastSet(ex){
   if(!ex)return null;const L=logsOf('styrke');const k=ex.trim().toLowerCase();
@@ -389,11 +440,11 @@ function makeRow(ex,n,tReps,tRir){
 }
 function initRows(k){ui.rows=SESS[k].ex.map(([n,s,r,q])=>makeRow(n,s,r,q));saveDraft()}
 const DKEY='styrke-vo2-draft.v1';
-function saveDraft(){try{if(ui.logType==='styrke'&&ui.rows.some(r=>r.sets.some(s=>s.done)))localStorage.setItem(DKEY,JSON.stringify({date:ui.logDate,sess:ui.sess,rows:ui.rows}));else localStorage.removeItem(DKEY)}catch(e){}}
+function saveDraft(){try{if(ui.logType==='styrke'&&ui.rows.some(r=>r.sets.some(s=>s.done)))localStorage.setItem(DKEY,JSON.stringify({date:ui.logDate,sess:ui.sess,rows:ui.rows,wStart:ui.wStart}));else localStorage.removeItem(DKEY)}catch(e){}}
 function loadDraft(){try{const d=JSON.parse(localStorage.getItem(DKEY)||'null');if(d&&d.date===TODAY&&Array.isArray(d.rows))return d}catch(e){}return null}
 function clearDraft(){try{localStorage.removeItem(DKEY)}catch(e){}}
 function initStyrke(date){
-  const d=loadDraft();if(d&&d.date===date){ui.sess=d.sess;ui.rows=d.rows;return}
+  const d=loadDraft();if(d&&d.date===date){ui.sess=d.sess;ui.rows=d.rows;ui.wStart=d.wStart||null;return}
   const key=sessKey(date);ui.sess=['A','B','C'].includes(key)?key:(['A','B','C'].includes(ui.sess)?ui.sess:'A');initRows(ui.sess)}
 function openLog(date){
   ui.logDate=date;const key=sessKey(date),k=SESS[key].kind;
@@ -432,6 +483,7 @@ function viewToday(){
   let actions;
   if(s.kind==='styrke')actions=`<button class="btn accent" data-act="logday" data-date="${TODAY}">${loadDraft()?'Fortsæt træning':done?'Log mere':'Start træning'}</button>`;
   else if(s.kind==='hvile'){const n=nextSession(TODAY);actions=(n?`<p class="note">Næste pas: <b>${esc(n.s.name)}</b> ${n.i===1?'i morgen':'på '+DAYS[pd(n.d).getDay()]}.</p>`:'')}
+  else if(s.kind==='mobilitet')actions=done?'':`<button class="btn accent" data-act="mobdone" data-key="${key}">Færdig · ${s.min} min</button>`;
   else actions=`<div class="btns"><button class="btn accent" data-act="timer" data-key="${key}">${s.kind==='zone2'?'Start timer':'Start intervaltimer'}</button><button class="btn ghost" data-act="logday" data-date="${TODAY}">Log uden timer</button></div>`;
   const T=logsOf('test'),lastT=T.length?T[T.length-1].date:null,testDue=!lastT||daysSince(lastT)>=42;
   const backupDue=state.logs.length>=5&&(!state.lastBackup||daysSince(state.lastBackup)>=14);
@@ -445,6 +497,8 @@ function viewToday(){
     ${done?'<p class="done-msg">✓ Logget i dag</p>':''}
     ${actions}
   </section>
+  ${addonCard(TODAY)}
+  ${state.program==='blueprint'?goalsCard(TODAY):''}
   ${testDue?`<section class="banner"><span class="bi">!</span><div><b>${lastT?'Tid til en ny test':'Lav en baseline-test'}</b>
     <p>En 3 km løbetest eller Cooper-test hver 6. uge viser, om din VO₂max går frem. Tag den udhvilet.</p>
     <button data-act="logtest">Log test</button></div></section>`:''}
@@ -459,6 +513,27 @@ function viewToday(){
   </section>
   ${backupDue?`<section class="card"><p class="rt">Tag en backup</p><p class="hint">Dine logs ligger kun på denne telefon. Kopiér backuppen og gem den fx i Noter.</p>
     <button class="btn ghost" data-act="copy">Kopiér backup</button><textarea id="exp" readonly rows="3" hidden aria-label="Backup-tekst"></textarea></section>`:''}`;
+}
+function addonCard(d){
+  const a=addonFor(d);if(!a)return '';const dn=addonDone(d,a);
+  return `<section class="card k-mobilitet"><div class="row-between">${chip('mobilitet','Bagefter')}<span class="muted small">${a.s.dur}</span></div>
+    <h3 class="sess" style="font-size:22px">${esc(a.s.name)}</h3>${sessionBody(a.s)}${a.s.note?`<p class="note">${esc(a.s.note)}</p>`:''}
+    ${dn?'<p class="done-msg">✓ Gennemført</p>':`<button class="btn ghost" data-act="mobdone" data-key="${a.key}" data-date="${d}">Færdig · ${a.s.min} min</button>`}</section>`;
+}
+function goalsCard(d){
+  const o=weekStats(d),G=BP_GOALS;
+  const row=(k,label,v,goal,unit)=>{const pct=Math.min(100,Math.round(100*v/goal));return `<div class="goal k-${k}${v>=goal?' met':''}"><span class="gl">${label}</span><span class="gv num"><b>${v}</b> / ${goal} ${unit}</span><span class="gb"><i style="width:${pct}%"></i></span></div>`};
+  const h=Math.floor(o.total/60),m=o.total%60;
+  return `<section class="card"><div class="row-between"><h3 class="sec">Blueprint-uge</h3><span class="muted small">Mål 6 t</span></div>
+    <div class="big-h num">${h}<small>t</small> ${m}<small>min</small></div>
+    <div class="goals">
+      ${row('interval','I alt',o.total,G.total,'min')}
+      ${row('zone2','Zone 2',o.z2,G.z2,'min')}
+      ${row('interval','Hårdt (HIIT)',o.vig,G.vig,'min')}
+      ${row('styrke','Styrkepas',o.str,G.str,'')}
+      ${row('mobilitet','Mobilitet og balance',o.mob,G.mob,'min')}
+    </div>
+    <p class="hint">Bevæg dig 5–10 min efter hvert måltid og rejs dig hvert 30. minut.</p></section>`;
 }
 function bestLift(){
   const ex=loggedExercises();if(!ex.length)return null;
@@ -488,18 +563,20 @@ function viewCal(){
     <p class="eyebrow">${cap(niceDate(sel))}${sel===TODAY?' · i dag':''}</p>
     <div class="row-between"><h2 class="sess">${esc(se.name)}</h2>${chip(se.kind,KIND_LABEL[se.kind])}</div>
     ${sessionBody(se)}
+    ${addonFor(sel)?`<p class="note">+ ${esc(addonFor(sel).s.name)} (${addonFor(sel).s.dur}) bagefter</p>`:''}
     ${L.length?`<h3 class="sec">Logget</h3><div>${L.map(logItem).join('')}</div>`:''}
     <button class="btn primary" data-act="logday" data-date="${sel}">Log denne dag</button>
   </section>`;
 }
 function logItem(l){
-  const map={styrke:['styrke','Styrke'],kondition:['interval','Kondition'],vaegt:['vaegt','Vægt'],test:['test','Test']};
+  const map={styrke:['styrke','Styrke'],kondition:['interval','Kondition'],vaegt:['vaegt','Vægt'],test:['test','Test'],mobilitet:['mobilitet','Mobilitet']};
   const [k,lab]=map[l.type]||['hvile','Log'];let title='',detail='';
   if(l.type==='styrke'){title=esc(l.sess||'Styrke');
     const g=new Map();l.sets.forEach(s=>{const k=s.ex;if(!g.has(k))g.set(k,[]);g.get(k).push(s)});
     detail=[...g].map(([ex,ss])=>`${esc(ex)}: ${ss.map(s=>`${(s.saet||1)>1?s.saet+'×':''}${s.kg?fnum(s.kg,2):'kv'}×${s.reps}${s.rir!=null?'@'+s.rir:''}`).join(', ')}`).join('<br>')}
   else if(l.type==='kondition'){title=esc(l.name);const b=[fmtTime(l.dur)];if(l.dist){b.push(fnum(l.dist,2)+' km',fmtTime(l.dur/l.dist)+' /km')}if(l.hr)b.push(Math.round(l.hr)+' bpm');if(l.rpe)b.push('RPE '+l.rpe);detail=b.join(' · ')+(l.note?' · '+esc(l.note):'')}
   else if(l.type==='vaegt'){title=fnum(l.kg)+' kg'}
+  else if(l.type==='mobilitet'){title=esc(l.name);detail=Math.round(l.dur/60)+' min'}
   else{title=esc(l.name);detail=fmtVal(l.value,l.unit)}
   const armed=ui.pendingDel===l.id;
   return `<div class="log"><div class="meta">${chip(k,lab)}<span class="muted small num">${shortDate(l.date)}</span><button class="del${armed?' confirm':''}" data-act="del" data-id="${l.id}">${armed?'Bekræft slet':'Slet'}</button></div><p class="lt">${title}</p>${detail?`<p class="ld num">${detail}</p>`:''}</div>`;
@@ -542,7 +619,7 @@ function formStyrke(){
 }
 function formKond(){
   const k=ui.k;
-  return `<label class="field"><span>Pas</span><select id="k-sess" data-bind="k.sess">${['I4','I30','Z2'].map(x=>`<option value="${x}"${k.sess===x?' selected':''}>${SESS[x].name}</option>`).join('')}<option value="X"${k.sess==='X'?' selected':''}>Andet (løb, cykel, march)</option></select></label>
+  return `<label class="field"><span>Pas</span><select id="k-sess" data-bind="k.sess">${['I4','I5','I30','I30B','Z2','Z2L'].map(x=>`<option value="${x}"${k.sess===x?' selected':''}>${SESS[x].name}</option>`).join('')}<option value="X"${k.sess==='X'?' selected':''}>Andet (løb, cykel, march)</option></select></label>
   <div class="duo"><label><span>Tid · min</span><input id="k-min" inputmode="numeric" value="${esc(k.min)}" data-bind="k.min" placeholder="40"></label><label><span>Sek</span><input id="k-sek" inputmode="numeric" value="${esc(k.sek)}" data-bind="k.sek" placeholder="00"></label></div>
   <div class="trio"><label><span>Km</span><input id="k-dist" inputmode="decimal" value="${esc(k.dist)}" data-bind="k.dist" placeholder="8,2"></label><label><span>Puls snit</span><input id="k-hr" inputmode="numeric" value="${esc(k.hr)}" data-bind="k.hr" placeholder="155"></label><label><span>RPE</span><select id="k-rpe" data-bind="k.rpe"><option value="">–</option>${[5,6,7,8,9,10].map(n=>`<option${String(k.rpe)===String(n)?' selected':''}>${n}</option>`).join('')}</select></label></div>
   <label class="field"><span>Note</span><input id="k-note" value="${esc(k.note)}" data-bind="k.note" placeholder="Fx cykel, 4×4 på 280 W"></label>
@@ -620,6 +697,9 @@ function viewProg(){
 }
 function viewSettings(){
   return `<h2 class="h2">Plan og data</h2>
+  <section class="card"><h3 class="sec">Program</h3>
+    <div class="progsw"><button class="${state.program==='blueprint'?'on':''}" data-act="program" data-p="blueprint">Blueprint<small>Bryan Johnson · 6 t/uge</small></button><button class="${state.program!=='blueprint'?'on':''}" data-act="program" data-p="egen">Standard<small>Styrke og VO₂max</small></button></div>
+    ${state.program==='blueprint'?'<p class="hint">3 styrkepas, 2 intervalpas og 2 lange zone 2-pas. Mobilitet efter hvert styrkepas og balance om søndagen. Træning hver dag.</p>':''}</section>
   <section class="card"><h3 class="sec">Ugeplan</h3><p class="hint">Vælg hvilket pas der ligger på hver ugedag. Kalenderen følger med.</p>
     ${[1,2,3,4,5,6,0].map(d=>`<label class="field inline"><span>${cap(DAYS[d])}</span><select id="p-${d}" data-plan="${d}">${Object.entries(SESS).map(([k,s])=>`<option value="${k}"${state.plan[d]===k?' selected':''}>${s.name}</option>`).join('')}</select></label>`).join('')}
     <button class="btn ghost" data-act="resetplan">Gendan standardplan</button></section>
@@ -658,9 +738,10 @@ function buzz(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
 /* ---------- interval timer ---------- */
 function buildPhases(key){
   const P=[],add=(label,sec,type)=>P.push({label,sec,type});
-  if(key==='I4'){add('Opvarmning',600,'easy');for(let i=1;i<=4;i++){add(`Interval ${i} af 4 · hårdt`,240,'work');if(i<4)add('Aktiv pause',180,'rest')}add('Nedvarmning',300,'easy')}
+  if(key==='I4'||key==='I5'){const n=key==='I5'?5:4;add('Opvarmning',600,'easy');for(let i=1;i<=n;i++){add(`Interval ${i} af ${n} · hårdt`,240,'work');if(i<n)add('Aktiv pause',180,'rest')}add('Nedvarmning',300,'easy')}
   else if(key==='I30'){add('Opvarmning',600,'easy');for(let s=1;s<=3;s++){for(let r=1;r<=10;r++){add(`Serie ${s} · ${r}/10 · hårdt`,30,'work');if(r<10)add(`Serie ${s} · ${r}/10 · let`,15,'rest')}if(s<3)add('Seriepause',180,'rest')}add('Nedvarmning',300,'easy')}
-  else add('Zone 2 · roligt tempo',2700,'easy');
+  else if(key==='I30B'){add('Opvarmning',600,'easy');for(let s=1;s<=4;s++){for(let r=1;r<=10;r++){add(`Serie ${s} · ${r}/10 · hårdt`,30,'work');if(r<10)add(`Serie ${s} · ${r}/10 · let`,15,'rest')}if(s<4)add('Seriepause',180,'rest')}add('Nedvarmning',300,'easy')}
+  else add('Zone 2 · roligt tempo',key==='Z2L'?3600:2700,'easy');
   return P;
 }
 let timer=null,loop=null,wake=null,lastBeep=-1;
@@ -743,7 +824,8 @@ function doSave(){
       r.sets.forEach(s=>{if(anyDone&&!s.done)return;const reps=parseInt(s.reps)||0,q=parseInt(s.rir);if(reps<=0)return;
         sets.push({ex,kg:num(s.kg)??0,saet:1,reps,rir:isFinite(q)?q:null,tReps:r.tReps??(t?t.reps:null),tRir:r.tRir??(t?t.rir:null)})})});
     if(!sets.length)return toast('Udfyld mindst ét sæt med reps');
-    entry={id,date,type:'styrke',sess:ui.sess==='X'?'Styrke':SESS[ui.sess].name,sets};
+    const dur=ui.wStart?Math.min(150*60,Math.max(20*60,Math.round((Date.now()-ui.wStart)/1000))):55*60;
+    entry={id,date,type:'styrke',sess:ui.sess==='X'?'Styrke':SESS[ui.sess].name,sets,dur};ui.wStart=null;
   }else if(t==='kondition'){
     const dur=(num(ui.k.min)||0)*60+(num(ui.k.sek)||0);if(!dur)return toast('Skriv hvor lang tid du trænede');
     entry={id,date,type:'kondition',name:ui.k.sess==='X'?'Kondition':SESS[ui.k.sess].name,dur,dist:num(ui.k.dist),hr:num(ui.k.hr),rpe:num(ui.k.rpe),note:ui.k.note.trim()};
@@ -771,7 +853,7 @@ function doRestore(){
   let d;try{d=JSON.parse(ui.impText)}catch(e){d=null}
   if(!d||!Array.isArray(d.logs)){ui.pendingRestore=false;render();return toast('Teksten er ikke en gyldig backup')}
   if(!ui.pendingRestore){ui.pendingRestore=true;return render()}
-  state={plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);
+  state={plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:d.program||'blueprint',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS})};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);
 }
 function guessUnit(name){
   const prev=logsOf('test').filter(l=>l.name===name);if(prev.length)return prev[prev.length-1].unit;
@@ -790,7 +872,7 @@ document.addEventListener('click',e=>{
     case 'tstop':if(timer.stopArmed)finishTimer(false);else{timer.stopArmed=true;render()}break;
     case 'rest':beep(660,.04,.05);ui.rest={end:Date.now()+(+b.dataset.sec)*1000,done:false};$('#restbar').hidden=false;ensureLoop();tick();break;
     case 'reststop':ui.rest=null;$('#restbar').hidden=true;break;
-    case 'setdone':{const r=ui.rows[+b.dataset.i],s=r.sets[+b.dataset.j];
+    case 'setdone':{const r=ui.rows[+b.dataset.i],s=r.sets[+b.dataset.j];if(!ui.wStart)ui.wStart=Date.now()-60*1000;
       if(!s.done&&!(parseInt(s.reps)>0)){toast('Skriv reps først');break}
       s.done=!s.done;ui.dirty=true;saveDraft();
       if(s.done){beep(660,.04,.05);buzz(30);ui.rest={end:Date.now()+restSec(r.ex)*1000,done:false};$('#restbar').hidden=false;ensureLoop();tick()}
@@ -810,7 +892,9 @@ document.addEventListener('click',e=>{
     case 'rmrow':ui.rows.splice(+b.dataset.i,1);ui.dirty=true;saveDraft();render();break;
     case 'save':doSave();break;
     case 'del':if(ui.pendingDel===b.dataset.id){state.logs=state.logs.filter(l=>l.id!==b.dataset.id);save();ui.pendingDel=null;toast('Slettet')}else ui.pendingDel=b.dataset.id;render();break;
-    case 'resetplan':state.plan={...DEFAULT_PLAN};save();render();toast('Standardplan gendannet');break;
+    case 'resetplan':state.plan=state.program==='blueprint'?{...BP_PLAN}:{...DEFAULT_PLAN};save();render();toast('Plan gendannet');break;
+    case 'program':{const bp=b.dataset.p==='blueprint';state.program=bp?'blueprint':'egen';state.plan=bp?{...BP_PLAN}:{...DEFAULT_PLAN};state.addons=bp?{...BP_ADDONS}:{};save();render();toast(bp?'Blueprint-program valgt':'Standardplan valgt');break}
+    case 'mobdone':{const k=b.dataset.key,d=b.dataset.date||TODAY,S=SESS[k];state.logs.push({id:Date.now().toString(36),date:d,type:'mobilitet',name:S.name,dur:S.min*60});save();render();toast('Gemt');break}
     case 'copy':doCopy();break;
     case 'restore':doRestore();break;
     case 'wipe':if(ui.pendingWipe){state.logs=[];save();ui.pendingWipe=false;toast('Alle logs slettet')}else ui.pendingWipe=true;render();break;
@@ -829,7 +913,7 @@ document.addEventListener('change',e=>{
   const t=e.target;
   if(t.id==='f-date'){ui.logDate=t.value||TODAY;const key=sessKey(ui.logDate);
     if(ui.logType==='styrke'&&['A','B','C'].includes(key)&&key!==ui.sess){ui.sess=key;initRows(key)}
-    if(ui.logType==='kondition'&&['I4','I30','Z2'].includes(key))ui.k.sess=key;render()}
+    if(ui.logType==='kondition'&&['I4','I5','I30','I30B','Z2','Z2L'].includes(key))ui.k.sess=key;render()}
   else if(t.id==='f-sess'){ui.sess=t.value;if(t.value!=='X')initRows(t.value);else ui.rows=[makeRow('',3,8,2)];render()}
   else if(t.dataset.row!==undefined&&t.dataset.f==='ex'){const i=+t.dataset.row,r=ui.rows[i];
     if(r&&!r.sets.some(s=>s.done)){const tg=target(t.value);ui.rows[i]=makeRow(t.value.trim(),r.sets.length,tg?tg.reps:r.tReps,tg?tg.rir:r.tRir);render()}}
