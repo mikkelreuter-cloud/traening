@@ -20,7 +20,7 @@
   --bg:#ECEDEF; --surface:#FFFFFF; --surface-2:#F3F3F5; --fg:#17181B; --muted:#7D8089; --line:#E3E4E8;
   --accent:#F26A1B; --accent-2:#FF9A4D; --pill:#17181B; --pill-fg:#FFFFFF; --nav:#1C1D21; --nav-fg:#9C9EA6; --on-accent:#FFFFFF;
   --shadow:0 1px 2px rgb(20 20 30 / .04),0 8px 24px rgb(20 20 30 / .06);
-  --k-styrke:#2F6FEB; --k-interval:#F26A1B; --k-zone2:#14A37A; --k-hvile:#B3B5BC; --k-test:#E3B11B; --k-vaegt:#8B5CF6; --k-mobilitet:#D9468F;
+  --k-styrke:#2F6FEB; --k-interval:#F26A1B; --k-zone2:#14A37A; --k-hvile:#B3B5BC; --k-test:#E3B11B; --k-vaegt:#8B5CF6; --k-mobilitet:#D9468F; --k-kulde:#139FC4; --k-meditation:#8B63E8; --k-tak:#D98E12;
   --font:"Outfit",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --display:var(--font); --body:var(--font);
 }
@@ -28,13 +28,13 @@
   --bg:#0F1012; --surface:#1B1C20; --surface-2:#25262B; --fg:#F2F2F4; --muted:#8E909A; --line:#2E3036;
   --accent:#FF7A2E; --accent-2:#FFA766; --pill:#F2F2F4; --pill-fg:#111214; --nav:#000000; --nav-fg:#8E909A; --on-accent:#FFFFFF;
   --shadow:0 1px 2px rgb(0 0 0 / .3),0 8px 24px rgb(0 0 0 / .25);
-  --k-styrke:#5B93FF; --k-interval:#FF8A3D; --k-zone2:#2FD3A0; --k-hvile:#6B6E77; --k-test:#F5CB45; --k-vaegt:#B394FF; --k-mobilitet:#FF79B8;
+  --k-styrke:#5B93FF; --k-interval:#FF8A3D; --k-zone2:#2FD3A0; --k-hvile:#6B6E77; --k-test:#F5CB45; --k-vaegt:#B394FF; --k-mobilitet:#FF79B8; --k-kulde:#4FD3F2; --k-meditation:#B59AFF; --k-tak:#FFC15A;
   color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0F1012; --surface:#1B1C20; --surface-2:#25262B; --fg:#F2F2F4; --muted:#8E909A; --line:#2E3036;
   --accent:#FF7A2E; --accent-2:#FFA766; --pill:#F2F2F4; --pill-fg:#111214; --nav:#000000; --nav-fg:#8E909A; --on-accent:#FFFFFF;
   --shadow:0 1px 2px rgb(0 0 0 / .3),0 8px 24px rgb(0 0 0 / .25);
-  --k-styrke:#5B93FF; --k-interval:#FF8A3D; --k-zone2:#2FD3A0; --k-hvile:#6B6E77; --k-test:#F5CB45; --k-vaegt:#B394FF; --k-mobilitet:#FF79B8;
+  --k-styrke:#5B93FF; --k-interval:#FF8A3D; --k-zone2:#2FD3A0; --k-hvile:#6B6E77; --k-test:#F5CB45; --k-vaegt:#B394FF; --k-mobilitet:#FF79B8; --k-kulde:#4FD3F2; --k-meditation:#B59AFF; --k-tak:#FFC15A;
   color-scheme:dark}
 
 *{box-sizing:border-box}
@@ -62,7 +62,7 @@ section{display:flex;flex-direction:column;gap:12px}
 .row-between{display:flex;justify-content:space-between;align-items:center;gap:10px}
 
 .k-styrke{--k:var(--k-styrke)} .k-interval{--k:var(--k-interval)} .k-zone2{--k:var(--k-zone2)}
-.k-hvile{--k:var(--k-hvile)} .k-test{--k:var(--k-test)} .k-vaegt{--k:var(--k-vaegt)} .k-mobilitet{--k:var(--k-mobilitet)}
+.k-hvile{--k:var(--k-hvile)} .k-test{--k:var(--k-test)} .k-vaegt{--k:var(--k-vaegt)} .k-mobilitet{--k:var(--k-mobilitet)} .k-kulde{--k:var(--k-kulde)} .k-meditation{--k:var(--k-meditation)} .k-tak{--k:var(--k-tak)}
 .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--fg);white-space:nowrap;background:var(--surface-2);padding:5px 10px 5px 8px;border-radius:999px}
 .chip i{width:9px;height:9px;border-radius:50%;border:2px solid var(--k)}
 
@@ -117,6 +117,25 @@ section{display:flex;flex-direction:column;gap:12px}
 .stat .meter i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--k-zone2))}
 .stat em{font-style:normal;font-size:12px;color:var(--muted)}
 .delta{display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px;vertical-align:middle;margin-left:6px;background:var(--surface-2);color:var(--muted)}
+.hab-list{display:flex;flex-direction:column;gap:8px}
+.hab{appearance:none;border:0;width:100%;display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;padding:10px 12px 10px 10px;border-radius:18px;background:var(--surface-2);color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.hab-ic{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--k) 18%,transparent);color:var(--k)}
+.hab-ic svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.hab-t{display:flex;flex-direction:column;min-width:0}
+.hab-t b{font-weight:500;font-size:16px}
+.hab-t small{font-size:13px;color:var(--muted)}
+.hab-ck{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--k);color:transparent;font-weight:700;font-size:15px}
+.hab.done .hab-ck{background:var(--k);color:#fff}
+.habit-head{display:flex;align-items:center;gap:12px}
+.habit-hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px}
+.habit-hero .tm-ring{--ring:var(--k)}
+.dots7{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.dots7 span{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12px;color:var(--muted)}
+.dots7 i{width:12px;height:12px;border-radius:50%;border:2px solid var(--k)}
+.dots7 i.on{background:var(--k)}
+.tak-entry{padding:12px 0;border-top:1px solid var(--line)}
+.tak-entry:first-child{border-top:0;padding-top:0}
+.tak-entry p{margin:4px 0 0;white-space:pre-wrap;font-size:15px}
 .goals{display:flex;flex-direction:column;gap:12px}
 .goal{display:grid;grid-template-columns:1fr auto;gap:5px 10px;align-items:baseline}
 .goal .gl{font-size:14px}
@@ -240,7 +259,7 @@ textarea{resize:vertical}
 /* floating dark pill nav */
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;pointer-events:none;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
-.tabs .in{pointer-events:auto;max-width:360px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);background:var(--nav);border-radius:999px;padding:7px;box-shadow:0 12px 30px rgb(0 0 0 / .28)}
+.tabs .in{pointer-events:auto;max-width:420px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);background:var(--nav);border-radius:999px;padding:7px;box-shadow:0 12px 30px rgb(0 0 0 / .28)}
 .tab{appearance:none;border:0;background:transparent;color:var(--nav-fg);font:500 11px/1 var(--font);height:56px;border-radius:999px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer}
 .tab svg,.icon-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .tab.on{color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent-2))}
@@ -268,6 +287,7 @@ textarea{resize:vertical}
     <button class="tab" data-act="view" data-view="today"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>I dag</button>
     <button class="tab" data-act="view" data-view="cal"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Kalender</button>
     <button class="tab" data-act="view" data-view="log"><svg viewBox="0 0 24 24"><path d="M6.5 9v6M17.5 9v6M3.5 10.5v3M20.5 10.5v3M6.5 12h11"/></svg>Log</button>
+    <button class="tab" data-act="view" data-view="habits"><svg viewBox="0 0 24 24"><path d="M12 21c-4.5-2.6-7-6-7-10a7 7 0 0 1 7-7 7 7 0 0 1 7 7c0 4-2.5 7.4-7 10z"/><path d="M12 8v6M9 11h6"/></svg>Vaner</button>
     <button class="tab" data-act="view" data-view="prog"><svg viewBox="0 0 24 24"><path d="M5 20V12M10 20V6M15 20v-9M20 20V9"/></svg>Udvikling</button>
   </div>
 </nav>
@@ -320,6 +340,22 @@ const DEFAULT_PLAN={0:'R',1:'A',2:'I4',3:'B',4:'Z2',5:'C',6:'I30'};
 const BP_PLAN={0:'Z2L',1:'A',2:'I5',3:'B',4:'Z2L',5:'I30B',6:'C'};
 const BP_ADDONS={1:'MOB',3:'MOB',6:'MOB',0:'BAL'};
 const DELOAD_EVERY=5;
+const IC={
+  kulde:'<svg viewBox="0 0 24 24"><path d="M12 2v20M4.5 6.5l15 11M19.5 6.5l-15 11M9 4l3 2 3-2M9 20l3-2 3 2"/></svg>',
+  meditation:'<svg viewBox="0 0 24 24"><circle cx="12" cy="6" r="2.5"/><path d="M4 18c3-1 5-2 8-2s5 1 8 2M7 14l5-3 5 3"/></svg>',
+  tak:'<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg>'};
+/* Habits progress weekly from the week you started: cold +15 s/week to 10 min, meditation +2 min/week to 30 min */
+const HABITS=[
+  {id:'kulde',name:'Koldt bad',unit:'sek',target:w=>Math.min(600,15*(w+1)),
+   tips:['Start under bruseren eller i karret, og ånd langsomt ud gennem munden.','Tag det ikke lige efter styrketræning. Kulde kan dæmpe muskelvæksten, så vent mindst 4–6 timer.','Stop med det samme, hvis du bliver svimmel eller følelsesløs.']},
+  {id:'meditation',name:'Meditation',unit:'min',target:w=>Math.min(30,10+2*w)*60,
+   tips:['Sid oprejst, luk øjnene og følg vejret ind og ud.','Når tankerne vandrer, så læg mærke til det og vend roligt tilbage til vejret.','Samme tid hver dag gør det lettere at holde fast i.']},
+  {id:'tak',name:'Taknemmelighed',unit:'',target:()=>0,
+   tips:['Skriv i nutid, som om det allerede er sket: "Jeg er taknemmelig for, at jeg ..."','Skriv det fysisk ned på papir. Tryk så "Skrevet i dag".']}];
+const habitWeek=d=>state.habitStart?Math.max(0,Math.floor((pd(weekDates(d)[0])-pd(state.habitStart))/(7*864e5))):0;
+const habitDone=(id,d)=>logsOn(d).some(l=>l.type===id);
+function habitStreak(id){let n=0,d=pd(TODAY);if(!habitDone(id,TODAY))d.setDate(d.getDate()-1);for(;;){if(habitDone(id,ds(d))){n++;d.setDate(d.getDate()-1)}else break}return n}
+function habitTargetText(h,d){if(h.id==='tak')return 'Skriv 3 ting som om de er sket';const t=h.target(habitWeek(d||TODAY));return h.id==='kulde'?fmtTime(t):Math.round(t/60)+' min'}
 const BP_GOALS={total:360,z2:150,vig:75,str:3,mob:45};
 
 /* ---------- helpers ---------- */
@@ -349,10 +385,10 @@ function load(){
     if(st.program==='blueprint'&&st.plan[2]==='I4'&&st.plan[0]==='Z2L')st.plan[2]='I5';
     /* v9: move 30/15 to Friday and Styrke C to Saturday, so intervals never follow a heavy leg day */
     if(st.program==='blueprint'&&st.plan[5]==='C'&&st.plan[6]==='I30B'){st.plan[5]='I30B';st.plan[6]='C';if(st.addons[5]==='MOB'){delete st.addons[5];st.addons[6]='MOB'}}
-    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;
+    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;
     if(!st.program){const untouched=Object.keys(DEFAULT_PLAN).every(k=>st.plan[k]===DEFAULT_PLAN[k]);st.program='blueprint';if(untouched)st.plan={...BP_PLAN};st.addons={...BP_ADDONS}}
     return st}}catch(e){}
-  return {plan:{...BP_PLAN},logs:[],program:'blueprint',addons:{...BP_ADDONS},cycleStart:null,hrmax:null};
+  return {plan:{...BP_PLAN},logs:[],program:'blueprint',addons:{...BP_ADDONS},cycleStart:null,hrmax:null,habitStart:null};
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state));storageOK=true}catch(e){storageOK=false}}
 let state=load();
@@ -517,7 +553,7 @@ function viewToday(){
     ${actions}
   </section>
   ${addonCard(TODAY)}
-  ${state.program==='blueprint'?goalsCard(TODAY):''}
+  ${habitsCard()}
   ${testDue?`<section class="banner"><span class="bi">!</span><div><b>${lastT?'Tid til en ny test':'Lav en baseline-test'}</b>
     <p>En 3 km løbetest eller Cooper-test hver 6. uge viser, om din VO₂max går frem. Tag den udhvilet.</p>
     <button data-act="logtest">Log test</button></div></section>`:''}
@@ -526,13 +562,20 @@ function viewToday(){
     ${dial(doneN,planned.length)}
     <div class="week">${wk.map(weekCell).join('')}</div>
   </section>
-  <section class="stats">
+  ${''}<section class="stats" hidden>
     <div class="stat"><span class="lab">Kropsvægt</span><b class="num">${w?fnum(w.kg)+'<small>kg</small>':'–'}</b><em class="num">${wDelta!=null?`${wDelta>0?'+':wDelta<0?'−':'±'}${fnum(Math.abs(wDelta))} kg siden ${shortDate(W[0].date)}`:w?'Første måling':'Log under Vægt'}</em></div>
     <div class="stat"><span class="lab">${B?esc(B.ex)+' · est. 1RM':'Styrke'}</span><b class="num">${B?fnum(B.v,0)+'<small>kg</small>':'–'}</b><em class="num">${B?`Sidst ${shortDate(B.date)}`:'Log et styrkepas'}</em></div>
   </section>
   ${backupDue?`<section class="card"><p class="rt">Tag en backup</p><p class="hint">Dine logs ligger kun på denne telefon. Kopiér backuppen og gem den fx i Noter.</p>
     <button class="btn ghost" data-act="copy">Kopiér backup</button><textarea id="exp" readonly rows="3" hidden aria-label="Backup-tekst"></textarea></section>`:''}`;
 }
+function habitsCard(){
+  const n=HABITS.filter(h=>habitDone(h.id,TODAY)).length;
+  return `<section class="card"><div class="row-between"><h3 class="sec">Dagens vaner</h3><span class="muted small num">${n} af ${HABITS.length}</span></div>
+    <div class="hab-list">${HABITS.map(h=>habitBtn(h)).join('')}</div></section>`;
+}
+function habitBtn(h){const dn=habitDone(h.id,TODAY);
+  return `<button class="hab k-${h.id}${dn?' done':''}" data-act="habit" data-h="${h.id}"><span class="hab-ic">${IC[h.id]}</span><span class="hab-t"><b>${h.name}</b><small class="num">${dn?'Klaret i dag':habitTargetText(h)}</small></span><span class="hab-ck">✓</span></button>`}
 function addonCard(d){
   const a=addonFor(d);if(!a)return '';const dn=addonDone(d,a);
   return `<section class="card k-mobilitet"><div class="row-between">${chip('mobilitet','Bagefter')}<span class="muted small">${a.s.dur}</span></div>
@@ -588,7 +631,7 @@ function viewCal(){
   </section>`;
 }
 function logItem(l){
-  const map={styrke:['styrke','Styrke'],kondition:['interval','Kondition'],vaegt:['vaegt','Vægt'],test:['test','Test'],mobilitet:['mobilitet','Mobilitet']};
+  const map={styrke:['styrke','Styrke'],kondition:['interval','Kondition'],vaegt:['vaegt','Vægt'],test:['test','Test'],mobilitet:['mobilitet','Mobilitet'],kulde:['kulde','Koldt bad'],meditation:['meditation','Meditation'],tak:['tak','Taknemmelighed']};
   const [k,lab]=map[l.type]||['hvile','Log'];let title='',detail='';
   if(l.type==='styrke'){title=esc(l.sess||'Styrke');
     const g=new Map();l.sets.forEach(s=>{const k=s.ex;if(!g.has(k))g.set(k,[]);g.get(k).push(s)});
@@ -596,6 +639,8 @@ function logItem(l){
   else if(l.type==='kondition'){title=esc(l.name);const b=[fmtTime(l.dur)];if(l.dist){b.push(fnum(l.dist,2)+' km',fmtTime(l.dur/l.dist)+' /km')}if(l.hr)b.push(Math.round(l.hr)+' bpm');if(l.rpe)b.push('RPE '+l.rpe);detail=b.join(' · ')+(l.note?' · '+esc(l.note):'')}
   else if(l.type==='vaegt'){title=fnum(l.kg)+' kg'}
   else if(l.type==='mobilitet'){title=esc(l.name);detail=Math.round(l.dur/60)+' min'}
+  else if(l.type==='kulde'||l.type==='meditation'){title=fmtTime(l.sec)}
+  else if(l.type==='tak'){title=l.text?esc(l.text.split('\n')[0]).slice(0,80):'Skrevet på papir'}
   else{title=esc(l.name);detail=fmtVal(l.value,l.unit)}
   const armed=ui.pendingDel===l.id;
   return `<div class="log"><div class="meta">${chip(k,lab)}<span class="muted small num">${shortDate(l.date)}</span><button class="del${armed?' confirm':''}" data-act="del" data-id="${l.id}">${armed?'Bekræft slet':'Slet'}</button></div><p class="lt">${title}</p>${detail?`<p class="ld num">${detail}</p>`:''}</div>`;
@@ -681,6 +726,42 @@ function chart(pts,fmt,kind){
   <text class="ev" x="${Math.min(lx,W-2).toFixed(1)}" y="${Math.max(ly-9,11).toFixed(1)}" text-anchor="end">${fmt(last.y)}</text>
   <text x="0" y="${H-4}">${fd(pts[0].x)}</text><text x="${W}" y="${H-4}" text-anchor="end">${fd(last.x)}</text></svg>`;
 }
+function viewHabits(){
+  return `<h2 class="h2">Vaner</h2>
+  <p class="hint">Tryk på en vane for at gå i gang. Målene vokser hver uge.</p>
+  <div class="hab-list">${HABITS.map(h=>habitBtn(h)).join('')}</div>
+  <section class="card"><h3 class="sec">Streak</h3><div class="goals">${HABITS.map(h=>{const st=habitStreak(h.id);return `<div class="goal k-${h.id}"><span class="gl">${h.name}</span><span class="gv num"><b>${st}</b> ${st===1?'dag':'dage'} i træk</span></div>`}).join('')}</div></section>`;
+}
+function last7(id){const out=[];const t=pd(TODAY);for(let i=6;i>=0;i--){const d=new Date(t.getFullYear(),t.getMonth(),t.getDate()-i),k=ds(d);out.push(`<span><i class="${habitDone(id,k)?'on':''}"></i>${DAYS[d.getDay()].slice(0,2)}</span>`)}return `<div class="dots7 k-${id}">${out.join('')}</div>`}
+function viewHabit(){
+  const h=HABITS.find(x=>x.id===ui.habit)||HABITS[0],w=habitWeek(TODAY),dn=habitDone(h.id,TODAY);
+  const back=`<div class="habit-head"><button class="icon-btn" data-act="view" data-view="habits" aria-label="Tilbage">‹</button><h2 class="h2">${h.name}</h2></div>`;
+  const tips=`<section class="card"><h3 class="sec">Sådan gør du</h3><ul class="facts">${h.tips.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></section>`;
+  const week=`<section class="card k-${h.id}"><div class="row-between"><h3 class="sec">Sidste 7 dage</h3><span class="muted small num">${habitStreak(h.id)} i træk</span></div>${last7(h.id)}</section>`;
+  if(h.id==='tak'){
+    const L=state.logs.filter(l=>l.type==='tak').sort(byDate).reverse().slice(0,7);
+    return `${back}<section class="card k-tak">
+      <p class="eyebrow">Skriv i nutid, som om det allerede er sket</p>
+      <label class="field"><span>Dine 3 ting (valgfrit at skrive her)</span><textarea id="tak-text" rows="5" data-bind="takText" placeholder="Jeg er taknemmelig for, at jeg ...">${esc(ui.takText||'')}</textarea></label>
+      ${dn?'<p class="done-msg">✓ Skrevet i dag</p>':''}
+      <button class="btn accent" data-act="taksave">${dn?'Gem igen':'Skrevet i dag'}</button></section>
+      ${week}
+      ${L.some(l=>l.text)?`<section class="card"><h3 class="sec">Tidligere</h3>${L.filter(l=>l.text).map(l=>`<div class="tak-entry"><span class="muted small">${cap(niceDate(l.date))}</span><p>${esc(l.text)}</p></div>`).join('')}</section>`:''}
+      ${tips}`;
+  }
+  const tgt=h.target(w),next=h.target(w+1),run=ht&&ht.h===h.id,C=2*Math.PI*88;
+  const rem=run?htRemain():tgt,frac=run?1-rem/ht.total:0;
+  const nextTxt=next>tgt?`Næste uge: ${h.id==='kulde'?fmtTime(next):Math.round(next/60)+' min'}`:'Du har nået slutmålet';
+  return `${back}<section class="card k-${h.id}"><div class="habit-hero">
+      <p class="eyebrow num">Uge ${w+1} · mål ${habitTargetText(h)}</p>
+      <div class="tm-ring"><svg viewBox="0 0 200 200" aria-hidden="true"><circle class="trk" cx="100" cy="100" r="88" fill="none" stroke-width="12"/>
+        <circle class="prg" id="ht-prog" cx="100" cy="100" r="88" fill="none" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C*(1-frac)).toFixed(1)}"/></svg>
+        <div class="in"><p class="tm-time num" id="ht-time">${fmtTime(Math.ceil(rem))}</p><span class="tm-ph">${run?(ht.paused?'På pause':h.id==='kulde'?'Træk vejret roligt':'Følg vejret'):dn?'✓ Klaret i dag':'Klar'}</span></div></div>
+      <p class="tm-next num">${nextTxt}</p></div>
+    ${run?`<div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn ghost" data-act="htpause">${ht.paused?'Fortsæt':'Pause'}</button><button class="btn primary" data-act="htstop">Stop og gem</button></div>`
+      :`<button class="btn accent" data-act="htstart">${dn?'Start igen':'Start'}</button>`}</section>
+    ${week}${tips}`;
+}
 function viewProg(){
   // Vægt
   const W=logsOf('vaegt');let wHtml;
@@ -709,6 +790,7 @@ function viewProg(){
   else tHtml='<p class="empty">Log fx en 3 km løbetest under Log → Test.</p>';
   const all=[...state.logs].sort(byDate).reverse();
   return `<h2 class="h2">Udvikling</h2>
+  ${state.program==='blueprint'?goalsCard(TODAY):''}
   <section class="card"><h3 class="sec">Kropsvægt</h3>${wHtml}</section>
   <section class="card"><h3 class="sec">Styrke</h3>${sHtml}</section>
   <section class="card"><h3 class="sec">Tests og tider</h3>${tHtml}</section>
@@ -726,6 +808,8 @@ function viewSettings(){
   ${state.program==='blueprint'?`<section class="card"><h3 class="sec">Deload</h3>
     <p class="hint num">Hver ${DELOAD_EVERY}. uge er en let uge. ${state.cycleStart?(isDeload(TODAY)?'Du er i deload-uge nu.':`Du er i uge ${cycleWeek(TODAY)%DELOAD_EVERY+1} af ${DELOAD_EVERY}.`):''}</p>
     <button class="btn ghost" data-act="cyclereset">Start cyklus forfra i denne uge</button></section>`:''}
+  <section class="card"><h3 class="sec">Vaner</h3><p class="hint num">Du er i uge ${habitWeek(TODAY)+1}. Koldt bad: ${fmtTime(HABITS[0].target(habitWeek(TODAY)))} · Meditation: ${Math.round(HABITS[1].target(habitWeek(TODAY))/60)} min.</p>
+    <button class="btn ghost" data-act="habitreset">Start vaner forfra i uge 1</button></section>
   <section class="card"><h3 class="sec">Ugeplan</h3><p class="hint">Vælg hvilket pas der ligger på hver ugedag. Kalenderen følger med.</p>
     ${[1,2,3,4,5,6,0].map(d=>`<label class="field inline"><span>${cap(DAYS[d])}</span><select id="p-${d}" data-plan="${d}">${Object.entries(SESS).map(([k,s])=>`<option value="${k}"${state.plan[d]===k?' selected':''}>${s.name}</option>`).join('')}</select></label>`).join('')}
     <button class="btn ghost" data-act="resetplan">Gendan standardplan</button></section>
@@ -798,7 +882,16 @@ function finishTimer(completed){
   ui.logType='kondition';ui.logDate=TODAY;ui.dirty=true;ui.view='log';render(true);
   toast(completed?'Færdig. Tilføj km, puls og RPE, og tryk Gem.':'Stoppet. Tjek tiden og tryk Gem.');
 }
+let ht=null;
+const htRemain=()=>!ht?0:Math.max(0,(ht.paused?ht.left:ht.end-Date.now())/1000);
+function htStart(id){const h=HABITS.find(x=>x.id===id),t=h.target(habitWeek(TODAY));beep(660,.05,.05);ht={h:id,total:t,end:Date.now()+t*1000,paused:false,left:0};keepAwake();ensureLoop();render()}
+function htFinish(full){const h=HABITS.find(x=>x.id===ht.h),sec=Math.round(full?ht.total:ht.total-htRemain());const id=ht.h;ht=null;releaseAwake();
+  if(sec<5){render();return toast('For kort til at gemme')}
+  state.logs.push({id:Date.now().toString(36),date:TODAY,type:id,sec});save();
+  if(full){if(id==='meditation'){beep(528,1.4,.25);setTimeout(()=>beep(660,1.6,.2),900)}else{beep(988,.2);setTimeout(()=>beep(1175,.3),220)}buzz([200,100,200])}
+  render();toast(`Gemt · ${fmtTime(sec)}`)}
 function tick(){
+  if(ht&&!ht.paused){if(Date.now()>=ht.end)htFinish(true);else if(ui.view==='habit'){const t=$('#ht-time'),p=$('#ht-prog');if(t)t.textContent=fmtTime(Math.ceil(htRemain()));if(p)p.setAttribute('stroke-dashoffset',(2*Math.PI*88*htRemain()/ht.total).toFixed(1))}}
   const now=Date.now();
   if(timer&&!timer.paused){
     if(now>=timer.end)advance(false);
@@ -810,7 +903,7 @@ function tick(){
     if(left<=0&&!ui.rest.done){ui.rest.done=true;beep(988,.2);setTimeout(()=>beep(988,.2),300);buzz([300,150,300])}
     if(el)el.textContent=left>0?`Pause ${fmtTime(left)}`:'Næste sæt!';
     if(left<=-10){ui.rest=null;$('#restbar').hidden=true}}
-  if(!timer&&!ui.rest){clearInterval(loop);loop=null}
+  if(!timer&&!ui.rest&&!ht){clearInterval(loop);loop=null}
 }
 function viewTimer(){
   const T=timer;if(!T){ui.view='today';return viewToday()}
@@ -834,9 +927,9 @@ function render(top){
   const v=ui.view;
   $('#main').innerHTML=(storageOK?'':'<p class="warn">Browseren tillader ikke at gemme her. Åbn siden i Chrome og tilføj den til startskærmen, ellers forsvinder dine logs.</p>')+
     (timer&&v!=='timer'?'<button class="btn primary" data-act="view" data-view="timer">Timeren kører · gå tilbage</button>':'')+
-    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():viewSettings());
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v));
-  {const st=sessFor(TODAY);$('#hdr-hi').textContent='Hej Mikkel! · '+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'?'Hold fokus':'Styrke & VO₂ log'}
+    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():viewSettings());
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||(v==='habit'&&t.dataset.view==='habits')));
+  {const st=sessFor(TODAY);$('#hdr-hi').textContent='Hej Mikkel! · '+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
   if(top)window.scrollTo(0,0);
 }
 let tt;function toast(msg){const el=$('#toast');el.textContent=msg;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>{el.hidden=true},2200)}
@@ -879,7 +972,7 @@ function doRestore(){
   let d;try{d=JSON.parse(ui.impText)}catch(e){d=null}
   if(!d||!Array.isArray(d.logs)){ui.pendingRestore=false;render();return toast('Teksten er ikke en gyldig backup')}
   if(!ui.pendingRestore){ui.pendingRestore=true;return render()}
-  state={plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:d.program||'blueprint',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS})};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);
+  state={plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:d.program||'blueprint',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);
 }
 function guessUnit(name){
   const prev=logsOf('test').filter(l=>l.name===name);if(prev.length)return prev[prev.length-1].unit;
@@ -919,6 +1012,12 @@ document.addEventListener('click',e=>{
     case 'save':doSave();break;
     case 'del':if(ui.pendingDel===b.dataset.id){state.logs=state.logs.filter(l=>l.id!==b.dataset.id);save();ui.pendingDel=null;toast('Slettet')}else ui.pendingDel=b.dataset.id;render();break;
     case 'resetplan':state.plan=state.program==='blueprint'?{...BP_PLAN}:{...DEFAULT_PLAN};save();render();toast('Plan gendannet');break;
+    case 'habit':ui.habit=b.dataset.h;ui.view='habit';render(true);break;
+    case 'htstart':htStart(ui.habit);break;
+    case 'htpause':if(ht.paused){ht.end=Date.now()+ht.left;ht.paused=false;keepAwake()}else{ht.left=ht.end-Date.now();ht.paused=true}render();break;
+    case 'htstop':htFinish(false);break;
+    case 'taksave':{const txt=(ui.takText||'').trim();const ex=state.logs.find(l=>l.type==='tak'&&l.date===TODAY);if(ex){if(txt)ex.text=txt}else state.logs.push({id:Date.now().toString(36),date:TODAY,type:'tak',text:txt});ui.takText='';save();render();toast('Gemt');break}
+    case 'habitreset':state.habitStart=mondayOf(TODAY);save();render();toast('Vaner starter forfra i uge 1');break;
     case 'cyclereset':state.cycleStart=mondayOf(TODAY);save();render();toast('Uge 1 af '+DELOAD_EVERY);break;
     case 'program':{const bp=b.dataset.p==='blueprint';state.program=bp?'blueprint':'egen';state.plan=bp?{...BP_PLAN}:{...DEFAULT_PLAN};state.addons=bp?{...BP_ADDONS}:{};state.cycleStart=mondayOf(TODAY);save();render();toast(bp?'Blueprint-program valgt':'Standardplan valgt');break}
     case 'mobdone':{const k=b.dataset.key,d=b.dataset.date||TODAY,S=SESS[k];state.logs.push({id:Date.now().toString(36),date:d,type:'mobilitet',name:S.name,dur:S.min*60});save();render();toast('Gemt');break}
@@ -954,6 +1053,7 @@ document.addEventListener('change',e=>{
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(timer&&!timer.paused)keepAwake();const n=ds(new Date());if(n!==TODAY){TODAY=n;render()}}});
 
 if(state.program==='blueprint'&&!state.cycleStart){delete state.needCycle;state.cycleStart=mondayOf(TODAY);save()}
+if(!state.habitStart){state.habitStart=mondayOf(TODAY);save()}
 render();
 </script>
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}</script>
