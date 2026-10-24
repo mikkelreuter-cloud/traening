@@ -750,16 +750,23 @@ function viewHabit(){
       ${tips}`;
   }
   const tgt=h.target(w),next=h.target(w+1),run=ht&&ht.h===h.id,C=2*Math.PI*88;
-  const rem=run?htRemain():tgt,frac=run?1-rem/ht.total:0;
+  const rem=run?htRemain():tgt,frac=run?1-rem/ht.total:0,paused=run&&ht.audio.paused,ringing=run&&ht.logged;
   const nextTxt=next>tgt?`Næste uge: ${h.id==='kulde'?fmtTime(next):Math.round(next/60)+' min'}`:'Du har nået slutmålet';
   return `${back}<section class="card k-${h.id}"><div class="habit-hero">
       <p class="eyebrow num">Uge ${w+1} · mål ${habitTargetText(h)}</p>
       <div class="tm-ring"><svg viewBox="0 0 200 200" aria-hidden="true"><circle class="trk" cx="100" cy="100" r="88" fill="none" stroke-width="12"/>
         <circle class="prg" id="ht-prog" cx="100" cy="100" r="88" fill="none" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C*(1-frac)).toFixed(1)}"/></svg>
-        <div class="in"><p class="tm-time num" id="ht-time">${fmtTime(Math.ceil(rem))}</p><span class="tm-ph">${run?(ht.paused?'På pause':h.id==='kulde'?'Træk vejret roligt':'Følg vejret'):dn?'✓ Klaret i dag':'Klar'}</span></div></div>
+        <div class="in"><p class="tm-time num" id="ht-time">${fmtTime(Math.ceil(rem))}</p><span class="tm-ph">${ringing?'✓ Færdig':run?(paused?'På pause':h.id==='kulde'?'Træk vejret roligt':'Følg vejret'):dn?'✓ Klaret i dag':'Klar'}</span></div></div>
       <p class="tm-next num">${nextTxt}</p></div>
-    ${run?`<div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn ghost" data-act="htpause">${ht.paused?'Fortsæt':'Pause'}</button><button class="btn primary" data-act="htstop">Stop og gem</button></div>`
-      :`<button class="btn accent" data-act="htstart">${dn?'Start igen':'Start'}</button>`}</section>
+    ${ringing?`<button class="btn accent" data-act="htstop">Stop alarm</button>`
+      :run?`<div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn ghost" data-act="htpause">${paused?'Fortsæt':'Pause'}</button><button class="btn primary" data-act="htstop">Stop og gem</button></div>`
+      :`<button class="btn accent" data-act="htstart">${dn?'Start igen':'Start'}</button>`}
+    ${run?'<p class="hint">Du kan låse skærmen. Timeren kører videre, ses på låseskærmen, og alarmen ringer, når tiden er gået.</p>':''}</section>
+    ${run?'':`<section class="card"><h3 class="sec">Allerede gjort?</h3>
+      <div class="duo"><label><span>${h.id==='kulde'?'Tid (m:ss)':'Minutter'}</span><input id="man-val" inputmode="${h.id==='kulde'?'text':'decimal'}" data-bind="manVal" value="${esc(ui.manVal||'')}" placeholder="${h.id==='kulde'?fmtTime(tgt):Math.round(tgt/60)}"></label>
+      <label><span>Dato</span><input type="date" id="man-date" data-bind="manDate" value="${ui.manDate||TODAY}" max="${TODAY}"></label></div>
+      <button class="btn ghost" data-act="manlog">Log som gennemført</button>
+      <p class="hint">Lader du tiden stå tom, logges ugens mål.</p></section>`}
     ${week}${tips}`;
 }
 function viewProg(){
@@ -883,15 +890,51 @@ function finishTimer(completed){
   toast(completed?'Færdig. Tilføj km, puls og RPE, og tryk Gem.':'Stoppet. Tjek tiden og tryk Gem.');
 }
 let ht=null;
-const htRemain=()=>!ht?0:Math.max(0,(ht.paused?ht.left:ht.end-Date.now())/1000);
-function htStart(id){const h=HABITS.find(x=>x.id===id),t=h.target(habitWeek(TODAY));beep(660,.05,.05);ht={h:id,total:t,end:Date.now()+t*1000,paused:false,left:0};keepAwake();ensureLoop();render()}
-function htFinish(full){const h=HABITS.find(x=>x.id===ht.h),sec=Math.round(full?ht.total:ht.total-htRemain());const id=ht.h;ht=null;releaseAwake();
-  if(sec<5){render();return toast('For kort til at gemme')}
-  state.logs.push({id:Date.now().toString(36),date:TODAY,type:id,sec});save();
-  if(full){if(id==='meditation'){beep(528,1.4,.25);setTimeout(()=>beep(660,1.6,.2),900)}else{beep(988,.2);setTimeout(()=>beep(1175,.3),220)}buzz([200,100,200])}
-  render();toast(`Gemt · ${fmtTime(sec)}`)}
+/* The habit timer is an audio file: silence for the target time, then the alarm.
+   Audio keeps playing with the screen locked, so the alarm rings on time and the lock screen shows progress. */
+const ALARM_SEC=8;
+function timerWav(sec,kind){
+  const SR=4000,n=Math.round((sec+ALARM_SEC)*SR),buf=new ArrayBuffer(44+n),v=new DataView(buf),d=new Uint8Array(buf,44);
+  const w=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))};
+  w(0,'RIFF');v.setUint32(4,36+n,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,SR,true);v.setUint32(28,SR,true);v.setUint16(32,1,true);v.setUint16(34,8,true);w(36,'data');v.setUint32(40,n,true);
+  const a0=Math.round(sec*SR);
+  for(let i=0;i<a0;i++)d[i]=128+((Math.random()*3|0)-1);           /* near-silent bed keeps playback alive */
+  for(let i=a0;i<n;i++){const t=(i-a0)/SR;let x=0;
+    if(kind==='meditation'){for(const st of [0,2.5,5]){const u=t-st;if(u>=0)x+=Math.exp(-u*1.6)*(Math.sin(2*Math.PI*528*u)+.4*Math.sin(2*Math.PI*1056*u))}x*=.55}
+    else{const ph=t%1,on=(ph<.12)||(ph>.2&&ph<.32)||(ph>.4&&ph<.52);x=on?.8*Math.sin(2*Math.PI*(ph<.2?880:ph<.4?988:1175)*t):0}
+    d[i]=Math.max(0,Math.min(255,Math.round(128+x*120)))}
+  return URL.createObjectURL(new Blob([buf],{type:'audio/wav'}));
+}
+const htRemain=()=>!ht?0:Math.max(0,ht.total-(ht.audio.currentTime||0));
+function htMedia(){
+  try{if(!('mediaSession' in navigator)||!ht)return;const h=HABITS.find(x=>x.id===ht.h);
+    navigator.mediaSession.metadata=new MediaMetadata({title:h.name,artist:ht.logged?'Færdig':`Mål ${fmtTime(ht.total)}`,album:'Styrke & VO₂ Log',artwork:[{src:'icon-512.png',sizes:'512x512',type:'image/png'}]});
+    navigator.mediaSession.playbackState=ht.audio.paused?'paused':'playing';
+    const dur=ht.audio.duration;if(isFinite(dur)&&navigator.mediaSession.setPositionState)navigator.mediaSession.setPositionState({duration:dur,position:Math.min(dur,ht.audio.currentTime),playbackRate:1});
+  }catch(e){}
+}
+function htLog(sec){if(!ht||ht.logged)return;ht.logged=true;state.logs.push({id:Date.now().toString(36),date:TODAY,type:ht.h,sec:Math.round(sec)});save();buzz([300,150,300,150,600]);htMedia()}
+function htCleanup(){if(!ht)return;try{ht.audio.pause();URL.revokeObjectURL(ht.url)}catch(e){}ht=null;releaseAwake();try{navigator.mediaSession.metadata=null;navigator.mediaSession.playbackState='none'}catch(e){}}
+function htStart(id){
+  const h=HABITS.find(x=>x.id===id),t=h.target(habitWeek(TODAY)),url=timerWav(t,id),audio=new Audio(url);
+  ht={h:id,total:t,audio,url,logged:false};
+  audio.addEventListener('timeupdate',()=>{if(!ht)return;if(!ht.logged&&audio.currentTime>=ht.total){htLog(ht.total);if(ui.view==='habit')render()}});
+  audio.addEventListener('ended',()=>{const was=ht&&ht.logged;htCleanup();render();if(was)toast('Gemt · godt gået')});
+  audio.addEventListener('play',htMedia);audio.addEventListener('pause',()=>{htMedia();if(ui.view==='habit')render()});
+  try{const ms=navigator.mediaSession;ms.setActionHandler('play',()=>audio.play());ms.setActionHandler('pause',()=>audio.pause());ms.setActionHandler('stop',()=>htFinish(false))}catch(e){}
+  audio.play().then(()=>{keepAwake();htMedia()}).catch(()=>toast('Lyd blev blokeret. Tryk Start igen.'));
+  ensureLoop();render();
+}
+function htFinish(){if(!ht)return;
+  if(ht.logged){htCleanup();render();return toast('Gemt')}
+  const sec=Math.min(ht.total,ht.audio.currentTime||0);
+  if(sec<5){htCleanup();render();return toast('For kort til at gemme')}
+  htLog(sec);htCleanup();render();toast(`Gemt · ${fmtTime(sec)}`)}
 function tick(){
-  if(ht&&!ht.paused){if(Date.now()>=ht.end)htFinish(true);else if(ui.view==='habit'){const t=$('#ht-time'),p=$('#ht-prog');if(t)t.textContent=fmtTime(Math.ceil(htRemain()));if(p)p.setAttribute('stroke-dashoffset',(2*Math.PI*88*htRemain()/ht.total).toFixed(1))}}
+  if(ht&&!ht.audio.paused){if(!ht.logged&&ht.audio.currentTime>=ht.total){htLog(ht.total);if(ui.view==='habit')render()}
+    else if(ui.view==='habit'){const t=$('#ht-time'),p=$('#ht-prog');if(t)t.textContent=fmtTime(Math.ceil(htRemain()));if(p)p.setAttribute('stroke-dashoffset',(2*Math.PI*88*htRemain()/ht.total).toFixed(1))}
+    if(Math.round(ht.audio.currentTime)%5===0)htMedia()}
   const now=Date.now();
   if(timer&&!timer.paused){
     if(now>=timer.end)advance(false);
@@ -1012,9 +1055,13 @@ document.addEventListener('click',e=>{
     case 'save':doSave();break;
     case 'del':if(ui.pendingDel===b.dataset.id){state.logs=state.logs.filter(l=>l.id!==b.dataset.id);save();ui.pendingDel=null;toast('Slettet')}else ui.pendingDel=b.dataset.id;render();break;
     case 'resetplan':state.plan=state.program==='blueprint'?{...BP_PLAN}:{...DEFAULT_PLAN};save();render();toast('Plan gendannet');break;
-    case 'habit':ui.habit=b.dataset.h;ui.view='habit';render(true);break;
+    case 'habit':ui.habit=b.dataset.h;ui.manVal='';ui.manDate=TODAY;ui.view='habit';render(true);break;
     case 'htstart':htStart(ui.habit);break;
-    case 'htpause':if(ht.paused){ht.end=Date.now()+ht.left;ht.paused=false;keepAwake()}else{ht.left=ht.end-Date.now();ht.paused=true}render();break;
+    case 'htpause':if(ht){if(ht.audio.paused){ht.audio.play();keepAwake()}else ht.audio.pause()}render();break;
+    case 'manlog':{const h=HABITS.find(x=>x.id===ui.habit),raw=String(ui.manVal||'').trim(),date=ui.manDate||TODAY;
+      let sec=h.id==='kulde'?parseTime(raw):(num(raw)!=null?num(raw)*60:null);if(raw==='')sec=h.target(habitWeek(date));
+      if(!sec||sec<5){toast(h.id==='kulde'?'Skriv tiden som m:ss, fx 0:45':'Skriv antal minutter');break}
+      state.logs.push({id:Date.now().toString(36),date,type:h.id,sec:Math.round(sec),manual:true});save();ui.manVal='';render();toast(`Logget · ${fmtTime(sec)}`);break}
     case 'htstop':htFinish(false);break;
     case 'taksave':{const txt=(ui.takText||'').trim();const ex=state.logs.find(l=>l.type==='tak'&&l.date===TODAY);if(ex){if(txt)ex.text=txt}else state.logs.push({id:Date.now().toString(36),date:TODAY,type:'tak',text:txt});ui.takText='';save();render();toast('Gemt');break}
     case 'habitreset':state.habitStart=mondayOf(TODAY);save();render();toast('Vaner starter forfra i uge 1');break;
