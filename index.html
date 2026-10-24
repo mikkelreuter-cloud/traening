@@ -283,11 +283,11 @@ const LOGTYPE={styrke:'Styrke',kondition:'Kondition',vaegt:'Vægt',test:'Test'};
 const TESTS=['3 km løb','5 km løb','Cooper 12 min','1RM squat','1RM bænkpres','1RM dødløft','Max pull-ups','VO₂max (ur)'];
 
 const SESS={
-  A:{name:'Styrke A',kind:'styrke',dur:'ca. 60 min',ex:[['Squat',4,5,2],['Bænkpres',4,5,2],['Rotræk med stang',3,8,1],['Bulgarsk splitsquat',3,8,2]],
+  A:{name:'Styrke A',kind:'styrke',dur:'ca. 60 min',ex:[['Squat',4,5,2],['Bænkpres',4,5,2],['Rotræk med stang',3,8,1],['Bulgarsk splitsquat',3,8,2],['Farmer\'s walk (meter)',3,40,1]],
      note:'Stop hvert sæt med det antal reps i reserve (RIR), der står. Log din RIR på sidste sæt, så foreslår appen næste gangs vægt.'},
-  B:{name:'Styrke B',kind:'styrke',dur:'ca. 60 min',ex:[['Dødløft',3,5,3],['Militærpres',4,5,2],['Pull-ups',4,6,1],['Hip thrust',3,8,1]],
+  B:{name:'Styrke B',kind:'styrke',dur:'ca. 60 min',ex:[['Dødløft',3,5,3],['Militærpres',4,5,2],['Pull-ups',4,6,1],['Hip thrust',3,8,1],['Ab wheel',3,8,2]],
      note:'Dødløft med RIR 3, så teknikken holder. Pull-ups får ekstra vægt, når appen foreslår det.'},
-  C:{name:'Styrke C',kind:'styrke',dur:'ca. 50 min',ex:[['Frontsquat',3,6,2],['Skrå håndvægtpres',3,8,1],['Chin-ups',3,8,1],['Rumænsk dødløft',3,8,2]],
+  C:{name:'Styrke C',kind:'styrke',dur:'ca. 50 min',ex:[['Frontsquat',3,6,2],['Skrå håndvægtpres',4,8,1],['Chin-ups',3,8,1],['Rumænsk dødløft',3,8,2],['Pallof press (pr. side)',3,10,2]],
      note:'Moderat tungt. Fokus på teknik og fart op i løftet.'},
   I4:{name:'Intervaller 4×4',kind:'interval',dur:'ca. 40 min',
      steps:['10 min opvarmning, roligt','4 × 4 min hårdt ved 90–95 % af maks puls (RPE 9)','3 min aktiv pause mellem hvert interval','5 min nedvarmning'],
@@ -300,12 +300,12 @@ const SESS={
      note:'Bygger den aerobe base og hjælper restitutionen. Den kan springes over, hvis tiden er knap.'},
   I5:{name:'Intervaller 5×4',kind:'interval',dur:'ca. 47 min',
      steps:['10 min opvarmning, roligt','5 × 4 min hårdt ved 90–95 % af maks puls (RPE 9)','3 min aktiv pause mellem hvert interval','5 min nedvarmning'],
-     note:'Et ekstra interval i forhold til 4×4. Det giver flere hårde minutter mod Blueprints 75 min om ugen.'},
+     note:'Et ekstra interval i forhold til 4×4. Løb er fint her, da dagen før er let for benene.'},
   I30B:{name:'Korte intervaller 30/15 · 4 serier',kind:'interval',dur:'ca. 50 min',
      steps:['10 min opvarmning','4 serier. Hver serie er 10 runder: 30 sek hårdt + 15 sek let (7½ min)','3 min pause mellem serierne','5 min nedvarmning'],
-     note:'Fjerde serie giver flere hårde minutter, så du rammer Blueprints 75 min hård træning om ugen.'},
+     note:'Tag det på cykel eller romaskine. Så slipper benene for 40 hårde løbestød, og styrken lider mindre. Fjerde serie giver flere hårde minutter mod de 75.'},
   Z2L:{name:'Zone 2 · 60 min',kind:'zone2',dur:'60 min',
-     steps:['60 min roligt løb, cykel, ro eller rask gang med oppakning','60–70 % af maks puls','Du skal kunne tale i hele sætninger'],
+     steps:['60 min march med oppakning, cykel, ro eller roligt løb','60–70 % af maks puls','Du skal kunne tale i hele sætninger'],
      note:'To lange zone 2-pas plus opvarmning og nedvarmning på intervaldagene giver 150 min om ugen.'},
   MOB:{name:'Mobilitet',kind:'mobilitet',dur:'10 min',min:10,
      steps:['90/90 hofteskift · 1 min','Verdens bedste stræk · 5 pr. side','Åben bog (brystryg-rotation) · 8 pr. side','Dyb squat-hold · 1 min','Couch stretch · 45 sek pr. side','Dead hang · 2 × 30 sek'],
@@ -317,8 +317,9 @@ const SESS={
 };
 const DEFAULT_PLAN={0:'R',1:'A',2:'I4',3:'B',4:'Z2',5:'C',6:'I30'};
 /* Bryan Johnson Blueprint: 6 h/week, 3 strength + 3 cardio, 150 min zone 2, 75 min vigorous, mobility and balance */
-const BP_PLAN={0:'Z2L',1:'A',2:'I5',3:'B',4:'Z2L',5:'C',6:'I30B'};
-const BP_ADDONS={1:'MOB',3:'MOB',5:'MOB',0:'BAL'};
+const BP_PLAN={0:'Z2L',1:'A',2:'I5',3:'B',4:'Z2L',5:'I30B',6:'C'};
+const BP_ADDONS={1:'MOB',3:'MOB',6:'MOB',0:'BAL'};
+const DELOAD_EVERY=5;
 const BP_GOALS={total:360,z2:150,vig:75,str:3,mob:45};
 
 /* ---------- helpers ---------- */
@@ -346,15 +347,30 @@ function load(){
   try{const raw=localStorage.getItem(KEY);if(raw){const d=JSON.parse(raw);
     const st={plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:Array.isArray(d.logs)?d.logs:[],lastBackup:d.lastBackup||null,program:d.program,addons:d.addons||{}};
     if(st.program==='blueprint'&&st.plan[2]==='I4'&&st.plan[0]==='Z2L')st.plan[2]='I5';
+    /* v9: move 30/15 to Friday and Styrke C to Saturday, so intervals never follow a heavy leg day */
+    if(st.program==='blueprint'&&st.plan[5]==='C'&&st.plan[6]==='I30B'){st.plan[5]='I30B';st.plan[6]='C';if(st.addons[5]==='MOB'){delete st.addons[5];st.addons[6]='MOB'}}
+    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;
     if(!st.program){const untouched=Object.keys(DEFAULT_PLAN).every(k=>st.plan[k]===DEFAULT_PLAN[k]);st.program='blueprint';if(untouched)st.plan={...BP_PLAN};st.addons={...BP_ADDONS}}
     return st}}catch(e){}
-  return {plan:{...BP_PLAN},logs:[],program:'blueprint',addons:{...BP_ADDONS}};
+  return {plan:{...BP_PLAN},logs:[],program:'blueprint',addons:{...BP_ADDONS},cycleStart:null,hrmax:null};
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state));storageOK=true}catch(e){storageOK=false}}
 let state=load();
 
 /* ---------- data queries ---------- */
-const sessKey=s=>state.plan[pd(s).getDay()]||'R';
+const mondayOf=s=>weekDates(s)[0];
+/* Deload: every DELOAD_EVERY-th week of the cycle → half the sets, same weight, one interval session */
+function cycleWeek(s){if(!state.cycleStart)return 0;return Math.floor((pd(mondayOf(s))-pd(state.cycleStart))/(7*864e5))}
+const isDeload=s=>state.program==='blueprint'&&!!state.cycleStart&&cycleWeek(s)>=0&&cycleWeek(s)%DELOAD_EVERY===DELOAD_EVERY-1;
+function sessKey(s){const k=state.plan[pd(s).getDay()]||'R';
+  if(SESS[k]&&SESS[k].kind==='interval'&&isDeload(s)){const wk=weekDates(s);const first=wk.find(d=>SESS[state.plan[pd(d).getDay()]||'R'].kind==='interval');if(first!==s)return 'Z2'}
+  return k}
+const hr=p=>state.hrmax?Math.round(state.hrmax*p):null;
+function hrLine(s){
+  if(!state.hrmax)return '<p class="hint">Indtast din makspuls under Plan og data, så vises dine pulszoner her.</p>';
+  if(s.kind==='zone2')return `<p class="sug num">Puls: ${hr(.6)}–${hr(.7)} bpm. Hold dig under ${hr(.7)}.</p>`;
+  return `<p class="sug num">Puls i de hårde intervaller: ${hr(.9)}–${hr(.95)} bpm · pauser under ${hr(.75)}</p>`;
+}
 const sessFor=s=>SESS[sessKey(s)];
 const logsOn=s=>state.logs.filter(l=>l.date===s);
 const byDate=(a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.id<b.id?-1:1);
@@ -411,7 +427,7 @@ function suggest(ex){
     if(delta>=0)return {kg:0,bw:true,text:'Prøv 1 rep mere',l,rir,delta};
     return {kg:0,bw:true,text:'Samme som sidst',l,rir,delta};
   }
-  const step=/håndvægt|bulgarsk/i.test(ex)?2:2.5;
+  const step=/håndvægt|bulgarsk|farmer|pallof/i.test(ex)?2:2.5;
   let next;
   if(delta===0)next=l.kg+step;
   else{next=l.kg*Math.max(.9,Math.min(1.1,1+.035*delta));if(delta>0)next=Math.max(next,l.kg+step)}
@@ -431,14 +447,15 @@ let ui={view:'today',calY:now.getFullYear(),calM:now.getMonth(),sel:TODAY,
   pendingDel:null,pendingRestore:false,pendingWipe:false,impText:''};
 
 /* One row per exercise, one line per set. Prefill: kg = next-session suggestion (or last kg), reps + RIR = what you did in that set last time. */
-function makeRow(ex,n,tReps,tRir){
-  const prev=lastSets(ex),g=suggest(ex);n=Math.max(n||0,prev.length,1);
+function makeRow(ex,n,tReps,tRir,deload){
+  const prev=lastSets(ex);let g=suggest(ex);n=deload?Math.max(1,Math.ceil((n||1)/2)):Math.max(n||0,prev.length,1);
+  if(deload)g=null;
   const sets=Array.from({length:n},(_,i)=>{const p=prev[i]||prev[prev.length-1];
     const kg=g&&g.kg?g.kg:(p?p.kg:0);
     return {kg:kg?fnum(kg,2):'',reps:p?String(p.reps):(tReps?String(tReps):''),rir:p&&p.rir!=null?String(p.rir):'',done:false}});
   return {ex,tReps,tRir,sets};
 }
-function initRows(k){ui.rows=SESS[k].ex.map(([n,s,r,q])=>makeRow(n,s,r,q));saveDraft()}
+function initRows(k){const dl=isDeload(ui.logDate||TODAY);ui.rows=SESS[k].ex.map(([n,s,r,q])=>makeRow(n,s,r,q,dl));saveDraft()}
 const DKEY='styrke-vo2-draft.v1';
 function saveDraft(){try{if(ui.logType==='styrke'&&ui.rows.some(r=>r.sets.some(s=>s.done)))localStorage.setItem(DKEY,JSON.stringify({date:ui.logDate,sess:ui.sess,rows:ui.rows,wStart:ui.wStart}));else localStorage.removeItem(DKEY)}catch(e){}}
 function loadDraft(){try{const d=JSON.parse(localStorage.getItem(DKEY)||'null');if(d&&d.date===TODAY&&Array.isArray(d.rows))return d}catch(e){}return null}
@@ -453,12 +470,13 @@ function openLog(date){
 }
 
 /* ---------- views ---------- */
-function sessionBody(s){
-  if(s.ex)return `<ul class="ex">${s.ex.map(([n,a,b,q])=>{const g=suggest(n);
-    const line=g?`<span class="sug num">Forslag: ${esc(g.text)}</span><span class="exl num">Sidst ${g.l.kg?fnum(g.l.kg)+' kg':'kropsvægt'} × ${g.l.reps}${rirTxt(g.l.rir)} (${shortDate(g.l.date)})</span>`
+function sessionBody(s,date){
+  const dl=s.ex&&isDeload(date||TODAY);
+  if(s.ex)return `<ul class="ex">${s.ex.map(([n,a,b,q])=>{const g=suggest(n);if(dl)a=Math.ceil(a/2);
+    const line=g?`<span class="sug num">${dl?`Deload: ${g.l.kg?fnum(g.l.kg)+' kg':'kropsvægt'} (samme vægt)`:`Forslag: ${esc(g.text)}`}</span><span class="exl num">Sidst ${g.l.kg?fnum(g.l.kg)+' kg':'kropsvægt'} × ${g.l.reps}${rirTxt(g.l.rir)} (${shortDate(g.l.date)})</span>`
       :`<span class="exl">Første gang: vælg en vægt hvor du har ${q} reps tilbage i sidste sæt.</span>`;
     return `<li><span class="exn">${esc(n)}</span><span class="exp num">${a}×${b}<small>RIR ${q}</small></span>${line}</li>`}).join('')}</ul>`;
-  return `<ol class="steps">${s.steps.map(t=>`<li>${esc(t)}</li>`).join('')}</ol>${s.kind==='interval'||s.kind==='zone2'?kondTip(s):''}`;
+  return `<ol class="steps">${s.steps.map(t=>`<li>${esc(t)}</li>`).join('')}</ol>${s.kind==='interval'||s.kind==='zone2'?hrLine(s)+kondTip(s):''}`;
 }
 function kondTip(s){
   const L=logsOf('kondition').filter(l=>l.name===s.name),l=L[L.length-1];if(!l)return '';
@@ -489,7 +507,8 @@ function viewToday(){
   const backupDue=state.logs.length>=5&&(!state.lastBackup||daysSince(state.lastBackup)>=14);
   const B=bestLift();
   const wDelta=W.length>1?W[W.length-1].kg-W[0].kg:null;
-  return `<section class="card">
+  return `${isDeload(TODAY)?`<section class="banner" style="background:linear-gradient(135deg,var(--k-zone2),var(--k-styrke))"><span class="bi">↓</span><div><b>Deload-uge</b><p>Halvdelen af sættene, samme vægt og kun ét intervalpas. Kroppen bygger op, så du kommer stærkere tilbage næste uge.</p></div></section>`:''}
+  <section class="card">
     <div class="row-between">${chip(s.kind,KIND_LABEL[s.kind])}${s.dur?`<span class="muted small">${s.dur}</span>`:''}</div>
     <h2 class="sess">${esc(s.name)}</h2>
     ${sessionBody(s)}
@@ -562,7 +581,7 @@ function viewCal(){
   <section class="card">
     <p class="eyebrow">${cap(niceDate(sel))}${sel===TODAY?' · i dag':''}</p>
     <div class="row-between"><h2 class="sess">${esc(se.name)}</h2>${chip(se.kind,KIND_LABEL[se.kind])}</div>
-    ${sessionBody(se)}
+    ${sessionBody(se,sel)}
     ${addonFor(sel)?`<p class="note">+ ${esc(addonFor(sel).s.name)} (${addonFor(sel).s.dur}) bagefter</p>`:''}
     ${L.length?`<h3 class="sec">Logget</h3><div>${L.map(logItem).join('')}</div>`:''}
     <button class="btn primary" data-act="logday" data-date="${sel}">Log denne dag</button>
@@ -699,7 +718,14 @@ function viewSettings(){
   return `<h2 class="h2">Plan og data</h2>
   <section class="card"><h3 class="sec">Program</h3>
     <div class="progsw"><button class="${state.program==='blueprint'?'on':''}" data-act="program" data-p="blueprint">Blueprint<small>Bryan Johnson · 6 t/uge</small></button><button class="${state.program!=='blueprint'?'on':''}" data-act="program" data-p="egen">Standard<small>Styrke og VO₂max</small></button></div>
-    ${state.program==='blueprint'?'<p class="hint">3 styrkepas, 2 intervalpas og 2 lange zone 2-pas. Mobilitet efter hvert styrkepas og balance om søndagen. Træning hver dag.</p>':''}</section>
+    ${state.program==='blueprint'?'<p class="hint">3 styrkepas, 2 intervalpas og 2 lange zone 2-pas. Mobilitet efter hvert styrkepas og balance om søndagen. Hver 5. uge er en deload-uge.</p>':''}</section>
+  <section class="card"><h3 class="sec">Puls</h3>
+    <label class="field"><span>Makspuls (bpm)</span><input id="hrmax" inputmode="numeric" value="${state.hrmax||''}" placeholder="fx 190"></label>
+    <p class="hint">Bedst målt i slutningen af en hård test. Kender du den ikke, så brug 208 − 0,7 × din alder som start.</p>
+    ${state.hrmax?`<p class="hint num">Zone 2: ${hr(.6)}–${hr(.7)} · Intervaller: ${hr(.9)}–${hr(.95)}</p>`:''}</section>
+  ${state.program==='blueprint'?`<section class="card"><h3 class="sec">Deload</h3>
+    <p class="hint num">Hver ${DELOAD_EVERY}. uge er en let uge. ${state.cycleStart?(isDeload(TODAY)?'Du er i deload-uge nu.':`Du er i uge ${cycleWeek(TODAY)%DELOAD_EVERY+1} af ${DELOAD_EVERY}.`):''}</p>
+    <button class="btn ghost" data-act="cyclereset">Start cyklus forfra i denne uge</button></section>`:''}
   <section class="card"><h3 class="sec">Ugeplan</h3><p class="hint">Vælg hvilket pas der ligger på hver ugedag. Kalenderen følger med.</p>
     ${[1,2,3,4,5,6,0].map(d=>`<label class="field inline"><span>${cap(DAYS[d])}</span><select id="p-${d}" data-plan="${d}">${Object.entries(SESS).map(([k,s])=>`<option value="${k}"${state.plan[d]===k?' selected':''}>${s.name}</option>`).join('')}</select></label>`).join('')}
     <button class="btn ghost" data-act="resetplan">Gendan standardplan</button></section>
@@ -799,7 +825,7 @@ function viewTimer(){
     <p class="tm-next">${nx?`Næste: ${esc(nx.label)} · ${fmtTime(nx.sec)}`:'Sidste fase'}</p>
   </section>
   <div class="btns3"><button class="btn ${T.paused?'accent':'primary'}" data-act="tpause">${T.paused?'Fortsæt':'Pause'}</button><button class="btn ghost" data-act="tskip">Spring over</button><button class="btn danger${T.stopArmed?' armed':''}" data-act="tstop">${T.stopArmed?'Bekræft':'Stop'}</button></div>
-  <p class="hint">${ph.type==='work'?'Hårdt: 90–95 % af maks puls, RPE 9. Det skal føles svært de sidste minutter.':ph.type==='rest'?'Aktiv pause: jog eller træd let. Hold dig i gang.':'Roligt tempo. Du skal kunne tale i hele sætninger.'}</p>
+  <p class="hint">${ph.type==='work'?`Hårdt: ${state.hrmax?hr(.9)+'–'+hr(.95)+' bpm':'90–95 % af maks puls'}, RPE 9. Det skal føles svært de sidste minutter.`:ph.type==='rest'?'Aktiv pause: jog eller træd let. Hold dig i gang.':`Roligt tempo${state.hrmax?', under '+hr(.7)+' bpm':''}. Du skal kunne tale i hele sætninger.`}</p>
   <p class="hint">Appen bipper 3-2-1 og ved hvert skift. Hold appen åben på skærmen.</p>`;
 }
 
@@ -893,7 +919,8 @@ document.addEventListener('click',e=>{
     case 'save':doSave();break;
     case 'del':if(ui.pendingDel===b.dataset.id){state.logs=state.logs.filter(l=>l.id!==b.dataset.id);save();ui.pendingDel=null;toast('Slettet')}else ui.pendingDel=b.dataset.id;render();break;
     case 'resetplan':state.plan=state.program==='blueprint'?{...BP_PLAN}:{...DEFAULT_PLAN};save();render();toast('Plan gendannet');break;
-    case 'program':{const bp=b.dataset.p==='blueprint';state.program=bp?'blueprint':'egen';state.plan=bp?{...BP_PLAN}:{...DEFAULT_PLAN};state.addons=bp?{...BP_ADDONS}:{};save();render();toast(bp?'Blueprint-program valgt':'Standardplan valgt');break}
+    case 'cyclereset':state.cycleStart=mondayOf(TODAY);save();render();toast('Uge 1 af '+DELOAD_EVERY);break;
+    case 'program':{const bp=b.dataset.p==='blueprint';state.program=bp?'blueprint':'egen';state.plan=bp?{...BP_PLAN}:{...DEFAULT_PLAN};state.addons=bp?{...BP_ADDONS}:{};state.cycleStart=mondayOf(TODAY);save();render();toast(bp?'Blueprint-program valgt':'Standardplan valgt');break}
     case 'mobdone':{const k=b.dataset.key,d=b.dataset.date||TODAY,S=SESS[k];state.logs.push({id:Date.now().toString(36),date:d,type:'mobilitet',name:S.name,dur:S.min*60});save();render();toast('Gemt');break}
     case 'copy':doCopy();break;
     case 'restore':doRestore();break;
@@ -917,6 +944,7 @@ document.addEventListener('change',e=>{
   else if(t.id==='f-sess'){ui.sess=t.value;if(t.value!=='X')initRows(t.value);else ui.rows=[makeRow('',3,8,2)];render()}
   else if(t.dataset.row!==undefined&&t.dataset.f==='ex'){const i=+t.dataset.row,r=ui.rows[i];
     if(r&&!r.sets.some(s=>s.done)){const tg=target(t.value);ui.rows[i]=makeRow(t.value.trim(),r.sets.length,tg?tg.reps:r.tReps,tg?tg.rir:r.tRir);render()}}
+  else if(t.id==='hrmax'){const v=parseInt(t.value);state.hrmax=v>=140&&v<=230?v:null;save();render();toast(state.hrmax?'Makspuls gemt':'Skriv et tal mellem 140 og 230')}
   else if(t.dataset.plan!==undefined){state.plan[t.dataset.plan]=t.value;save();toast('Ugeplan opdateret')}
   else if(t.id==='p-ex'){ui.progEx=t.value;render()}
   else if(t.id==='p-test'){ui.progTest=t.value;render()}
@@ -925,6 +953,7 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(timer&&!timer.paused)keepAwake();const n=ds(new Date());if(n!==TODAY){TODAY=n;render()}}});
 
+if(state.program==='blueprint'&&!state.cycleStart){delete state.needCycle;state.cycleStart=mondayOf(TODAY);save()}
 render();
 </script>
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}</script>
