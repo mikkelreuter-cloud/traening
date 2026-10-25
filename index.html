@@ -354,10 +354,16 @@ const HABITS=[
    tips:['Sid oprejst, luk øjnene og følg vejret ind og ud.','Når tankerne vandrer, så læg mærke til det og vend roligt tilbage til vejret.','Samme tid hver dag gør det lettere at holde fast i.']},
   {id:'tak',name:'Taknemmelighed',unit:'',target:()=>0,
    tips:['Skriv i nutid, som om det allerede er sket: "Jeg er taknemmelig for, at jeg ..."','Skriv det fysisk ned på papir. Tryk så "Skrevet i dag".']}];
+const HCOLORS=['#E5484D','#30A46C','#0091FF','#F5A524','#8E4EC6','#12A594','#E93D82'];
+function habits(){return HABITS.concat((state.customHabits||[]).map(c=>({id:c.id,name:c.name,custom:true,check:c.kind==='check',color:c.color,since:c.since,unit:'min',
+  target:w=>c.kind==='check'?0:Math.round(Math.min(c.maxMin,c.startMin+c.stepMin*w)*60),
+  tips:c.note?c.note.split('\n').filter(Boolean):(c.kind==='check'?['Markér vanen, når du har gjort den.']:['Start timeren, og lad alarmen fortælle dig, når du er færdig.'])})))}
+const findHabit=id=>habits().find(x=>x.id===id);
+const hw=(h,d)=>h&&h.since?Math.max(0,Math.floor((pd(weekDates(d)[0])-pd(h.since))/(7*864e5))):habitWeek(d);
 const habitWeek=d=>state.habitStart?Math.max(0,Math.floor((pd(weekDates(d)[0])-pd(state.habitStart))/(7*864e5))):0;
 const habitDone=(id,d)=>logsOn(d).some(l=>l.type===id);
 function habitStreak(id){let n=0,d=pd(TODAY);if(!habitDone(id,TODAY))d.setDate(d.getDate()-1);for(;;){if(habitDone(id,ds(d))){n++;d.setDate(d.getDate()-1)}else break}return n}
-function habitTargetText(h,d){if(h.id==='tak')return 'Skriv 3 ting som om de er sket';const t=h.target(habitWeek(d||TODAY));return h.id==='kulde'?fmtTime(t):Math.round(t/60)+' min'}
+function habitTargetText(h,d){if(h.id==='tak')return 'Skriv 3 ting som om de er sket';if(h.check)return 'Afkryds når den er gjort';const t=h.target(hw(h,d||TODAY));return h.id==='kulde'||t<60||t%60?fmtTime(t):Math.round(t/60)+' min'}
 const BP_GOALS={total:360,z2:150,vig:75,str:3,mob:45};
 
 /* ---------- helpers ---------- */
@@ -387,7 +393,7 @@ function load(){
     if(st.program==='blueprint'&&st.plan[2]==='I4'&&st.plan[0]==='Z2L')st.plan[2]='I5';
     /* v9: move 30/15 to Friday and Styrke C to Saturday, so intervals never follow a heavy leg day */
     if(st.program==='blueprint'&&st.plan[5]==='C'&&st.plan[6]==='I30B'){st.plan[5]='I30B';st.plan[6]='C';if(st.addons[5]==='MOB'){delete st.addons[5];st.addons[6]='MOB'}}
-    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;
+    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];
     if(!st.program){const untouched=Object.keys(DEFAULT_PLAN).every(k=>st.plan[k]===DEFAULT_PLAN[k]);st.program='blueprint';if(untouched)st.plan={...BP_PLAN};st.addons={...BP_ADDONS}}
     return st}}catch(e){}
   return {plan:{...BP_PLAN},logs:[],program:'blueprint',addons:{...BP_ADDONS},cycleStart:null,hrmax:null,habitStart:null};
@@ -572,12 +578,12 @@ function viewToday(){
     <button class="btn ghost" data-act="copy">Kopiér backup</button><textarea id="exp" readonly rows="3" hidden aria-label="Backup-tekst"></textarea></section>`:''}`;
 }
 function habitsCard(){
-  const n=HABITS.filter(h=>habitDone(h.id,TODAY)).length;
-  return `<section class="card"><div class="row-between"><h3 class="sec">Dagens vaner</h3><span class="muted small num">${n} af ${HABITS.length}</span></div>
-    <div class="hab-list">${HABITS.map(h=>habitBtn(h)).join('')}</div></section>`;
+  const H=habits(),n=H.filter(h=>habitDone(h.id,TODAY)).length;
+  return `<section class="card"><div class="row-between"><h3 class="sec">Dagens vaner</h3><span class="muted small num">${n} af ${H.length}</span></div>
+    <div class="hab-list">${H.map(h=>habitBtn(h)).join('')}</div></section>`;
 }
 function habitBtn(h){const dn=habitDone(h.id,TODAY);
-  return `<button class="hab k-${h.id}${dn?' done':''}" data-act="habit" data-h="${h.id}"><span class="hab-ic">${IC[h.id]}</span><span class="hab-t"><b>${h.name}</b><small class="num">${dn?'Klaret i dag':habitTargetText(h)}</small></span><span class="hab-ck">✓</span></button>`}
+  return `<button class="hab k-${h.id}${dn?' done':''}" data-act="habit" data-h="${h.id}"><span class="hab-ic">${IC[h.id]||`<b style="font-weight:600;font-size:18px">${esc(h.name.charAt(0).toUpperCase())}</b>`}</span><span class="hab-t"><b>${h.name}</b><small class="num">${dn?'Klaret i dag':habitTargetText(h)}</small></span><span class="hab-ck">✓</span></button>`}
 function addonCard(d){
   const a=addonFor(d);if(!a)return '';const dn=addonDone(d,a);
   return `<section class="card k-mobilitet"><div class="row-between">${chip('mobilitet','Bagefter')}<span class="muted small">${a.s.dur}</span></div>
@@ -634,7 +640,7 @@ function viewCal(){
 }
 function logItem(l){
   const map={styrke:['styrke','Styrke'],kondition:['interval','Kondition'],vaegt:['vaegt','Vægt'],test:['test','Test'],mobilitet:['mobilitet','Mobilitet'],kulde:['kulde','Koldt bad'],meditation:['meditation','Meditation'],tak:['tak','Taknemmelighed']};
-  const [k,lab]=map[l.type]||['hvile','Log'];let title='',detail='';
+  const [k,lab]=map[l.type]||(findHabit(l.type)?[l.type,'Vane']:['hvile','Log']);let title='',detail='';
   if(l.type==='styrke'){title=esc(l.sess||'Styrke');
     const g=new Map();l.sets.forEach(s=>{const k=s.ex;if(!g.has(k))g.set(k,[]);g.get(k).push(s)});
     detail=[...g].map(([ex,ss])=>`${esc(ex)}: ${ss.map(s=>`${(s.saet||1)>1?s.saet+'×':''}${s.kg?fnum(s.kg,2):'kv'}×${s.reps}${s.rir!=null?'@'+s.rir:''}`).join(', ')}`).join('<br>')}
@@ -643,7 +649,8 @@ function logItem(l){
   else if(l.type==='mobilitet'){title=esc(l.name);detail=Math.round(l.dur/60)+' min'}
   else if(l.type==='kulde'||l.type==='meditation'){title=fmtTime(l.sec)}
   else if(l.type==='tak'){title=l.text?esc(l.text.split('\n')[0]).slice(0,80):'Skrevet på papir'}
-  else{title=esc(l.name);detail=fmtVal(l.value,l.unit)}
+  else if(l.type==='test'){title=esc(l.name);detail=fmtVal(l.value,l.unit)}
+  else{const h=findHabit(l.type);title=h?esc(h.name):'Vane';detail=l.sec?fmtTime(l.sec):'Gjort'}
   const armed=ui.pendingDel===l.id;
   return `<div class="log"><div class="meta">${chip(k,lab)}<span class="muted small num">${shortDate(l.date)}</span><button class="del${armed?' confirm':''}" data-act="del" data-id="${l.id}">${armed?'Bekræft slet':'Slet'}</button></div><p class="lt">${title}</p>${detail?`<p class="ld num">${detail}</p>`:''}</div>`;
 }
@@ -731,15 +738,43 @@ function chart(pts,fmt,kind){
 function viewHabits(){
   return `<h2 class="h2">Vaner</h2>
   <p class="hint">Tryk på en vane for at gå i gang. Målene vokser hver uge.</p>
-  <div class="hab-list">${HABITS.map(h=>habitBtn(h)).join('')}</div>
-  <section class="card"><h3 class="sec">Streak</h3><div class="goals">${HABITS.map(h=>{const st=habitStreak(h.id);return `<div class="goal k-${h.id}"><span class="gl">${h.name}</span><span class="gv num"><b>${st}</b> ${st===1?'dag':'dage'} i træk</span></div>`}).join('')}</div></section>`;
+  <div class="hab-list">${habits().map(h=>habitBtn(h)).join('')}</div>
+  <button class="btn ghost" data-act="nhopen">+ Tilføj vane</button>
+  <section class="card"><h3 class="sec">Streak</h3><div class="goals">${habits().map(h=>{const st=habitStreak(h.id);return `<div class="goal k-${h.id}"><span class="gl">${h.name}</span><span class="gv num"><b>${st}</b> ${st===1?'dag':'dage'} i træk</span></div>`}).join('')}</div></section>`;
+}
+function viewHabitNew(){
+  const n=ui.nh;
+  return `<div class="habit-head"><button class="icon-btn" data-act="view" data-view="habits" aria-label="Tilbage">‹</button><h2 class="h2">Ny vane</h2></div>
+  <section class="card">
+    <label class="field"><span>Navn</span><input id="nh-name" data-bind="nh.name" value="${esc(n.name)}" placeholder="Fx Læs 10 sider"></label>
+    <div class="field"><span>Type</span><div class="progsw">
+      <button class="${n.kind==='check'?'on':''}" data-act="nhkind" data-v="check">Afkryds<small>Gjort eller ikke gjort</small></button>
+      <button class="${n.kind==='timer'?'on':''}" data-act="nhkind" data-v="timer">Timer<small>Med alarm og mål</small></button></div></div>
+    ${n.kind==='timer'?`<div class="trio"><label><span>Start (min)</span><input id="nh-start" inputmode="decimal" data-bind="nh.start" value="${esc(n.start)}"></label>
+      <label><span>+ pr. uge</span><input id="nh-step" inputmode="decimal" data-bind="nh.step" value="${esc(n.step)}"></label>
+      <label><span>Slutmål</span><input id="nh-max" inputmode="decimal" data-bind="nh.max" value="${esc(n.max)}"></label></div>
+      <p class="hint">Minutter. Brug komma for sekunder, fx 0,5 = 30 sek. Sæt "+ pr. uge" til 0 for et fast mål.</p>`:''}
+    <label class="field"><span>Instruktion (valgfri)</span><textarea id="nh-note" rows="3" data-bind="nh.note" placeholder="Én linje pr. punkt">${esc(n.note)}</textarea></label>
+    <div class="field"><span>Farve</span><div style="display:flex;gap:10px;flex-wrap:wrap">${HCOLORS.map(c=>`<button data-act="nhcolor" data-v="${c}" aria-label="Farve" style="width:36px;height:36px;border-radius:50%;border:3px solid ${n.color===c?'var(--fg)':'transparent'};background:${c};cursor:pointer"></button>`).join('')}</div></div>
+    <button class="btn accent" data-act="nhsave">Tilføj vane</button>
+  </section>`;
 }
 function last7(id){const out=[];const t=pd(TODAY);for(let i=6;i>=0;i--){const d=new Date(t.getFullYear(),t.getMonth(),t.getDate()-i),k=ds(d);out.push(`<span><i class="${habitDone(id,k)?'on':''}"></i>${DAYS[d.getDay()].slice(0,2)}</span>`)}return `<div class="dots7 k-${id}">${out.join('')}</div>`}
 function viewHabit(){
-  const h=HABITS.find(x=>x.id===ui.habit)||HABITS[0],w=habitWeek(TODAY),dn=habitDone(h.id,TODAY);
+  const h=findHabit(ui.habit)||HABITS[0],w=hw(h,TODAY),dn=habitDone(h.id,TODAY);
   const back=`<div class="habit-head"><button class="icon-btn" data-act="view" data-view="habits" aria-label="Tilbage">‹</button><h2 class="h2">${h.name}</h2></div>`;
   const tips=`<section class="card"><h3 class="sec">Sådan gør du</h3><ul class="facts">${h.tips.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></section>`;
   const week=`<section class="card k-${h.id}"><div class="row-between"><h3 class="sec">Sidste 7 dage</h3><span class="muted small num">${habitStreak(h.id)} i træk</span></div>${last7(h.id)}</section>`;
+  const del=h.custom?`<button class="btn danger${ui.delHabit===h.id?' armed':''}" data-act="hdel">${ui.delHabit===h.id?'Tryk igen for at slette vanen':'Slet vane'}</button>`:'';
+  if(h.check){
+    return `${back}<section class="card k-${h.id}"><div class="habit-hero">
+      <span class="hab-ic" style="width:96px;height:96px;font-size:40px">${dn?'✓':`<b style="font-weight:500">${esc(h.name.charAt(0).toUpperCase())}</b>`}</span>
+      <p class="tm-next">${dn?'Gjort i dag. Godt gået.':'Ikke gjort endnu i dag'}</p></div>
+      <button class="btn ${dn?'ghost':'accent'}" data-act="hcheck">${dn?'Fortryd':'Markér som gjort'}</button></section>
+      <section class="card"><h3 class="sec">Glemt at logge?</h3><label class="field"><span>Dato</span><input type="date" id="man-date" data-bind="manDate" value="${ui.manDate||TODAY}" max="${TODAY}"></label>
+      <button class="btn ghost" data-act="manlog">Log som gjort</button></section>
+      ${week}${tips}${del}`;
+  }
   if(h.id==='tak'){
     const L=state.logs.filter(l=>l.type==='tak').sort(byDate).reverse().slice(0,7);
     return `${back}<section class="card k-tak">
@@ -753,7 +788,7 @@ function viewHabit(){
   }
   const tgt=h.target(w),next=h.target(w+1),run=ht&&ht.h===h.id,C=2*Math.PI*88;
   const rem=run?htRemain():tgt,frac=run?htFrac():0,paused=run&&ht.audio.paused,ringing=run&&ht.logged,warm=run&&htWarm();
-  const nextTxt=next>tgt?`Næste uge: ${h.id==='kulde'?fmtTime(next):Math.round(next/60)+' min'}`:'Du har nået slutmålet';
+  const nextTxt=next>tgt?`Næste uge: ${h.id==='kulde'||next%60?fmtTime(next):Math.round(next/60)+' min'}`:'Du har nået slutmålet';
   return `${back}<section class="card k-${h.id}"><div class="habit-hero">
       <p class="eyebrow num">Uge ${w+1} · mål ${habitTargetText(h)}</p>
       <div class="tm-ring${warm?' warm':''}"><svg viewBox="0 0 200 200" aria-hidden="true"><circle class="trk" cx="100" cy="100" r="88" fill="none" stroke-width="12"/>
@@ -770,7 +805,7 @@ function viewHabit(){
       <label><span>Dato</span><input type="date" id="man-date" data-bind="manDate" value="${ui.manDate||TODAY}" max="${TODAY}"></label></div>
       <button class="btn ghost" data-act="manlog">Log som gennemført</button>
       <p class="hint">Lader du tiden stå tom, logges ugens mål.</p></section>`}
-    ${week}${tips}`;
+    ${week}${tips}${del}`;
 }
 function viewProg(){
   // Vægt
@@ -916,7 +951,7 @@ const htWarm=()=>!!ht&&ht.pre>0&&htT()<ht.pre;
 const htRemain=()=>!ht?0:htWarm()?ht.pre-htT():Math.max(0,ht.total-(htT()-ht.pre));
 const htFrac=()=>!ht?0:htWarm()?htT()/ht.pre:Math.min(1,(htT()-ht.pre)/ht.total);
 function htMedia(){
-  try{if(!('mediaSession' in navigator)||!ht)return;const h=HABITS.find(x=>x.id===ht.h);
+  try{if(!('mediaSession' in navigator)||!ht)return;const h=findHabit(ht.h);
     navigator.mediaSession.metadata=new MediaMetadata({title:h.name,artist:ht.logged?'Færdig':htWarm()?'Varmt vand · skift til koldt ved bip':`Koldt · mål ${fmtTime(ht.total)}`,album:'Styrke & VO₂ Log',artwork:[{src:'icon-512.png',sizes:'512x512',type:'image/png'}]});
     navigator.mediaSession.playbackState=ht.audio.paused?'paused':'playing';
     const dur=ht.audio.duration;if(isFinite(dur)&&navigator.mediaSession.setPositionState)navigator.mediaSession.setPositionState({duration:dur,position:Math.min(dur,ht.audio.currentTime),playbackRate:1});
@@ -927,7 +962,7 @@ function coldPre(){const v=state.coldPre;return v==null?60:v}
 function htPhaseCheck(){if(ht&&ht.warm&&!htWarm()){ht.warm=false;buzz([150,80,150,80,150]);htMedia();if(ui.view==='habit')render()}}
 function htCleanup(){if(!ht)return;try{ht.audio.pause();URL.revokeObjectURL(ht.url)}catch(e){}ht=null;releaseAwake();try{navigator.mediaSession.metadata=null;navigator.mediaSession.playbackState='none'}catch(e){}}
 function htStart(id){
-  const h=HABITS.find(x=>x.id===id),t=h.target(habitWeek(TODAY)),pre=id==='kulde'?coldPre():0,url=timerWav(t,id,pre),audio=new Audio(url);
+  const h=findHabit(id),t=h.target(hw(h,TODAY)),pre=id==='kulde'?coldPre():0,url=timerWav(t,id,pre),audio=new Audio(url);
   ht={h:id,total:t,pre,audio,url,logged:false,warm:pre>0};
   audio.addEventListener('timeupdate',()=>{if(!ht)return;htPhaseCheck();if(!ht.logged&&audio.currentTime>=ht.pre+ht.total){htLog(ht.total);if(ui.view==='habit')render()}});
   audio.addEventListener('ended',()=>{const was=ht&&ht.logged;htCleanup();render();if(was)toast('Gemt · godt gået')});
@@ -976,13 +1011,15 @@ function viewTimer(){
 }
 
 /* ---------- render ---------- */
-function render(top){
+function habitCss(){let el=document.getElementById('hab-css');if(!el){el=document.createElement('style');el.id='hab-css';document.head.appendChild(el)}
+  el.textContent=(state.customHabits||[]).map(c=>`.k-${c.id}{--k:${c.color}}`).join('')}
+function render(top){habitCss();
   const v=ui.view;
   $('#main').innerHTML=(storageOK?'':'<p class="warn">Browseren tillader ikke at gemme her. Åbn siden i Chrome og tilføj den til startskærmen, ellers forsvinder dine logs.</p>')+
     (timer&&v!=='timer'?'<button class="btn primary" data-act="view" data-view="timer">Timeren kører · gå tilbage</button>':'')+
-    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():viewSettings());
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||(v==='habit'&&t.dataset.view==='habits')));
-  {const st=sessFor(TODAY);$('#hdr-hi').textContent='Hej Mikkel! · '+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
+    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():viewSettings());
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')));
+  {const st=sessFor(TODAY);$('#hdr-hi').textContent='Hej Mikkel! · '+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
   if(top)window.scrollTo(0,0);
 }
 let tt;function toast(msg){const el=$('#toast');el.textContent=msg;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>{el.hidden=true},2200)}
@@ -1025,7 +1062,7 @@ function doRestore(){
   let d;try{d=JSON.parse(ui.impText)}catch(e){d=null}
   if(!d||!Array.isArray(d.logs)){ui.pendingRestore=false;render();return toast('Teksten er ikke en gyldig backup')}
   if(!ui.pendingRestore){ui.pendingRestore=true;return render()}
-  state={plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:d.program||'blueprint',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);
+  state={plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:d.program||'blueprint',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);
 }
 function guessUnit(name){
   const prev=logsOf('test').filter(l=>l.name===name);if(prev.length)return prev[prev.length-1].unit;
@@ -1036,7 +1073,7 @@ function guessUnit(name){
 
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
-  if(a!=='del')ui.pendingDel=null;if(a!=='wipe')ui.pendingWipe=false;if(a!=='restore')ui.pendingRestore=false;if(a!=='tstop'&&timer)timer.stopArmed=false;
+  if(a!=='del')ui.pendingDel=null;if(a!=='hdel')ui.delHabit=null;if(a!=='wipe')ui.pendingWipe=false;if(a!=='restore')ui.pendingRestore=false;if(a!=='tstop'&&timer)timer.stopArmed=false;
   switch(a){
     case 'timer':startTimer(b.dataset.key);break;
     case 'tpause':if(timer.paused){timer.end=Date.now()+timer.left;timer.paused=false;keepAwake()}else{timer.left=timer.end-Date.now();timer.paused=true}render();break;
@@ -1068,9 +1105,19 @@ document.addEventListener('click',e=>{
     case 'habit':ui.habit=b.dataset.h;ui.manVal='';ui.manDate=TODAY;ui.view='habit';render(true);break;
     case 'htstart':htStart(ui.habit);break;
     case 'htpause':if(ht){if(ht.audio.paused){ht.audio.play();keepAwake()}else ht.audio.pause()}render();break;
+    case 'hcheck':{const h=findHabit(ui.habit);const i=state.logs.findIndex(l=>l.type===h.id&&l.date===TODAY);if(i>=0)state.logs.splice(i,1);else state.logs.push({id:Date.now().toString(36),date:TODAY,type:h.id});save();render();break}
+    case 'hdel':{const id=ui.habit;if(ui.delHabit===id){state.customHabits=(state.customHabits||[]).filter(c=>c.id!==id);ui.delHabit=null;save();ui.view='habits';render(true);toast('Vane slettet')}else{ui.delHabit=id;render()}break}
+    case 'nhopen':ui.nh={name:'',kind:'check',start:'10',step:'0',max:'10',note:'',color:HCOLORS[(state.customHabits||[]).length%HCOLORS.length]};ui.view='habitnew';render(true);break;
+    case 'nhkind':ui.nh.kind=b.dataset.v;render();break;
+    case 'nhcolor':ui.nh.color=b.dataset.v;render();break;
+    case 'nhsave':{const n=ui.nh,name=n.name.trim();if(!name){toast('Giv vanen et navn');break}
+      const c={id:'h'+Date.now().toString(36),name,kind:n.kind,note:n.note.trim(),color:n.color,since:mondayOf(TODAY)};
+      if(n.kind==='timer'){c.startMin=num(n.start);c.stepMin=num(n.step)||0;c.maxMin=num(n.max);if(!(c.startMin>0)){toast('Skriv et startmål i minutter');break}if(!(c.maxMin>=c.startMin))c.maxMin=c.startMin}
+      state.customHabits=(state.customHabits||[]).concat(c);save();ui.habit=c.id;ui.manVal='';ui.manDate=TODAY;ui.view='habit';render(true);toast('Vane tilføjet');break}
     case 'coldpre':state.coldPre=+b.dataset.v;save();render();break;
-    case 'manlog':{const h=HABITS.find(x=>x.id===ui.habit),raw=String(ui.manVal||'').trim(),date=ui.manDate||TODAY;
-      let sec=h.id==='kulde'?parseTime(raw):(num(raw)!=null?num(raw)*60:null);if(raw==='')sec=h.target(habitWeek(date));
+    case 'manlog':{const h=findHabit(ui.habit),raw=String(ui.manVal||'').trim(),date=ui.manDate||TODAY;
+      if(h.check){if(habitDone(h.id,date)){toast('Allerede logget den dag');break}state.logs.push({id:Date.now().toString(36),date,type:h.id,manual:true});save();render();toast('Logget');break}
+      let sec=h.id==='kulde'?parseTime(raw):(num(raw)!=null?num(raw)*60:null);if(raw==='')sec=h.target(hw(h,date));
       if(!sec||sec<5){toast(h.id==='kulde'?'Skriv tiden som m:ss, fx 0:45':'Skriv antal minutter');break}
       state.logs.push({id:Date.now().toString(36),date,type:h.id,sec:Math.round(sec),manual:true});save();ui.manVal='';render();toast(`Logget · ${fmtTime(sec)}`);break}
     case 'htstop':htFinish(false);break;
