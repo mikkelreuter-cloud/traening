@@ -393,7 +393,7 @@ function load(){
     if(st.program==='blueprint'&&st.plan[2]==='I4'&&st.plan[0]==='Z2L')st.plan[2]='I5';
     /* v9: move 30/15 to Friday and Styrke C to Saturday, so intervals never follow a heavy leg day */
     if(st.program==='blueprint'&&st.plan[5]==='C'&&st.plan[6]==='I30B'){st.plan[5]='I30B';st.plan[6]='C';if(st.addons[5]==='MOB'){delete st.addons[5];st.addons[6]='MOB'}}
-    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];
+    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.shifts=Array.isArray(d.shifts)?d.shifts:[];
     if(!st.program){const untouched=Object.keys(DEFAULT_PLAN).every(k=>st.plan[k]===DEFAULT_PLAN[k]);st.program='blueprint';if(untouched)st.plan={...BP_PLAN};st.addons={...BP_ADDONS}}
     return st}}catch(e){}
   return {plan:{...BP_PLAN},logs:[],program:'blueprint',addons:{...BP_ADDONS},cycleStart:null,hrmax:null,habitStart:null};
@@ -406,8 +406,12 @@ const mondayOf=s=>weekDates(s)[0];
 /* Deload: every DELOAD_EVERY-th week of the cycle → half the sets, same weight, one interval session */
 function cycleWeek(s){if(!state.cycleStart)return 0;return Math.floor((pd(mondayOf(s))-pd(state.cycleStart))/(7*864e5))}
 const isDeload=s=>state.program==='blueprint'&&!!state.cycleStart&&cycleWeek(s)>=0&&cycleWeek(s)%DELOAD_EVERY===DELOAD_EVERY-1;
-function sessKey(s){const k=state.plan[pd(s).getDay()]||'R';
-  if(SESS[k]&&SESS[k].kind==='interval'&&isDeload(s)){const wk=weekDates(s);const first=wk.find(d=>SESS[state.plan[pd(d).getDay()]||'R'].kind==='interval');if(first!==s)return 'Z2'}
+/* Skips make a day a rest day. Shifts push every later session one day forward (plan of day d comes from d minus the shifts before it). */
+const isSkipped=s=>!!(state.skips||{})[s];
+function planDate(s){const n=(state.shifts||[]).filter(x=>x<s).length;if(!n)return s;const d=pd(s);d.setDate(d.getDate()-n);return ds(d)}
+const baseKey=s=>state.plan[pd(planDate(s)).getDay()]||'R';
+function sessKey(s){if(isSkipped(s))return 'R';const k=baseKey(s);
+  if(SESS[k]&&SESS[k].kind==='interval'&&isDeload(s)){const wk=weekDates(s);const first=wk.find(d=>!isSkipped(d)&&SESS[baseKey(d)].kind==='interval');if(first!==s)return 'Z2'}
   return k}
 const hr=p=>state.hrmax?Math.round(state.hrmax*p):null;
 function hrLine(s){
@@ -420,7 +424,7 @@ const logsOn=s=>state.logs.filter(l=>l.date===s);
 const byDate=(a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.id<b.id?-1:1);
 const logsOf=t=>state.logs.filter(l=>l.type===t).sort(byDate);
 function isDone(s){const k=sessFor(s).kind,L=logsOn(s);if(k==='hvile')return false;return L.some(l=>l.type===(k==='styrke'?'styrke':k==='mobilitet'?'mobilitet':'kondition'))}
-const addonFor=s=>{const k=(state.addons||{})[pd(s).getDay()];return k&&SESS[k]?{key:k,s:SESS[k]}:null};
+const addonFor=s=>{if(isSkipped(s))return null;const k=(state.addons||{})[pd(planDate(s)).getDay()];return k&&SESS[k]?{key:k,s:SESS[k]}:null};
 const addonDone=(d,a)=>logsOn(d).some(l=>l.type==='mobilitet'&&l.name===a.s.name);
 const keyByName=n=>Object.keys(SESS).find(k=>SESS[k].name===n);
 /* Minutes this week toward the Blueprint targets */
@@ -544,7 +548,7 @@ function viewToday(){
   const W=logsOf('vaegt'),w=W[W.length-1],key=sessKey(TODAY);
   let actions;
   if(s.kind==='styrke')actions=`<button class="btn accent" data-act="logday" data-date="${TODAY}">${loadDraft()?'Fortsæt træning':done?'Log mere':'Start træning'}</button>`;
-  else if(s.kind==='hvile'){const n=nextSession(TODAY);actions=(n?`<p class="note">Næste pas: <b>${esc(n.s.name)}</b> ${n.i===1?'i morgen':'på '+DAYS[pd(n.d).getDay()]}.</p>`:'')}
+  else if(s.kind==='hvile'){const n=nextSession(TODAY);actions=(isSkipped(TODAY)?`<p class="note">${(state.shifts||[]).includes(TODAY)?'Du rykkede planen. Dagens pas ligger nu i morgen.':'Du sprang dagens pas over.'}</p><button class="btn ghost" data-act="unskip">Fortryd</button>`:'')+(n?`<p class="note">Næste pas: <b>${esc(n.s.name)}</b> ${n.i===1?'i morgen':'på '+DAYS[pd(n.d).getDay()]}.</p>`:'')}
   else if(s.kind==='mobilitet')actions=done?'':`<button class="btn accent" data-act="mobdone" data-key="${key}">Færdig · ${s.min} min</button>`;
   else actions=`<div class="btns"><button class="btn accent" data-act="timer" data-key="${key}">${s.kind==='zone2'?'Start timer':'Start intervaltimer'}</button><button class="btn ghost" data-act="logday" data-date="${TODAY}">Log uden timer</button></div>`;
   const T=logsOf('test'),lastT=T.length?T[T.length-1].date:null,testDue=!lastT||daysSince(lastT)>=42;
@@ -559,6 +563,12 @@ function viewToday(){
     ${s.note?`<p class="note">${esc(s.note)}</p>`:''}
     ${done?'<p class="done-msg">✓ Logget i dag</p>':''}
     ${actions}
+    ${s.kind!=='hvile'&&!done?(ui.skipAsk?`<div class="card" style="background:var(--surface-2);box-shadow:none;gap:10px">
+      <p class="rt">Ikke klar i dag?</p>
+      <button class="btn primary" data-act="shiftday">Ryk planen én dag<small style="display:block;font-weight:400;font-size:12px;opacity:.75;margin-top:4px">I dag bliver hviledag. ${esc(s.name)} kommer i morgen, og resten rykker med.</small></button>
+      <button class="btn ghost" data-act="skipday">Spring dagens pas over<small style="display:block;font-weight:400;font-size:12px;opacity:.7;margin-top:4px">Planen fortsætter som normalt i morgen.</small></button>
+      <button class="restbtn" data-act="skipcancel">Annullér</button></div>`
+      :`<button class="restbtn" data-act="skipask">Ikke klar i dag? Ryk eller spring over</button>`):''}
   </section>
   ${addonCard(TODAY)}
   ${habitsCard()}
@@ -1062,7 +1072,7 @@ function doRestore(){
   let d;try{d=JSON.parse(ui.impText)}catch(e){d=null}
   if(!d||!Array.isArray(d.logs)){ui.pendingRestore=false;render();return toast('Teksten er ikke en gyldig backup')}
   if(!ui.pendingRestore){ui.pendingRestore=true;return render()}
-  state={plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:d.program||'blueprint',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);
+  state={plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:d.program||'blueprint',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,skips:d.skips||{},shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);
 }
 function guessUnit(name){
   const prev=logsOf('test').filter(l=>l.name===name);if(prev.length)return prev[prev.length-1].unit;
@@ -1101,7 +1111,7 @@ document.addEventListener('click',e=>{
     case 'rmrow':ui.rows.splice(+b.dataset.i,1);ui.dirty=true;saveDraft();render();break;
     case 'save':doSave();break;
     case 'del':if(ui.pendingDel===b.dataset.id){state.logs=state.logs.filter(l=>l.id!==b.dataset.id);save();ui.pendingDel=null;toast('Slettet')}else ui.pendingDel=b.dataset.id;render();break;
-    case 'resetplan':state.plan=state.program==='blueprint'?{...BP_PLAN}:{...DEFAULT_PLAN};save();render();toast('Plan gendannet');break;
+    case 'resetplan':state.plan=state.program==='blueprint'?{...BP_PLAN}:{...DEFAULT_PLAN};state.shifts=(state.shifts||[]).filter(x=>x>=TODAY);save();render();toast('Plan gendannet');break;
     case 'habit':ui.habit=b.dataset.h;ui.manVal='';ui.manDate=TODAY;ui.view='habit';render(true);break;
     case 'htstart':htStart(ui.habit);break;
     case 'htpause':if(ht){if(ht.audio.paused){ht.audio.play();keepAwake()}else ht.audio.pause()}render();break;
@@ -1114,6 +1124,11 @@ document.addEventListener('click',e=>{
       const c={id:'h'+Date.now().toString(36),name,kind:n.kind,note:n.note.trim(),color:n.color,since:mondayOf(TODAY)};
       if(n.kind==='timer'){c.startMin=num(n.start);c.stepMin=num(n.step)||0;c.maxMin=num(n.max);if(!(c.startMin>0)){toast('Skriv et startmål i minutter');break}if(!(c.maxMin>=c.startMin))c.maxMin=c.startMin}
       state.customHabits=(state.customHabits||[]).concat(c);save();ui.habit=c.id;ui.manVal='';ui.manDate=TODAY;ui.view='habit';render(true);toast('Vane tilføjet');break}
+    case 'skipask':ui.skipAsk=true;render();break;
+    case 'skipcancel':ui.skipAsk=false;render();break;
+    case 'skipday':state.skips={...(state.skips||{}),[TODAY]:true};ui.skipAsk=false;save();render();toast('Dagens pas er sprunget over');break;
+    case 'shiftday':{const name=sessFor(TODAY).name;state.skips={...(state.skips||{}),[TODAY]:true};state.shifts=(state.shifts||[]).concat(TODAY);ui.skipAsk=false;save();render();toast(name+' er rykket til i morgen');break}
+    case 'unskip':{const sk={...(state.skips||{})};delete sk[TODAY];state.skips=sk;state.shifts=(state.shifts||[]).filter(x=>x!==TODAY);save();render();toast('Fortrudt');break}
     case 'coldpre':state.coldPre=+b.dataset.v;save();render();break;
     case 'manlog':{const h=findHabit(ui.habit),raw=String(ui.manVal||'').trim(),date=ui.manDate||TODAY;
       if(h.check){if(habitDone(h.id,date)){toast('Allerede logget den dag');break}state.logs.push({id:Date.now().toString(36),date,type:h.id,manual:true});save();render();toast('Logget');break}
