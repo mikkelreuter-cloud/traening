@@ -312,19 +312,19 @@ const SESS={
   C:{name:'Styrke C',kind:'styrke',dur:'ca. 50 min',ex:[['Frontsquat',3,6,2],['Skrå håndvægtpres',4,8,1],['Chin-ups',3,8,1],['Rumænsk dødløft',3,8,2],['Pallof press (pr. side)',3,10,2]],
      note:'Moderat tungt. Fokus på teknik og fart op i løftet.'},
   I4:{name:'Intervaller 4×4',kind:'interval',dur:'ca. 40 min',
-     steps:['10 min opvarmning, roligt','4 × 4 min hårdt ved 90–95 % af maks puls (RPE 9)','3 min aktiv pause mellem hvert interval','5 min nedvarmning'],
+     steps:['10 min roligt for at varme op','4 × 4 min hårdt. Det hårdeste tempo, du kan holde jævnt hele vejen. Ikke en sprint.','3 min roligt jog eller gang mellem hvert interval','5 min roligt til sidst','Tjek: Du kan sige 2–3 ord ad gangen. Interval 4 skal være lige så hurtigt som interval 1.'],
      note:'Lange intervaller (2 min eller mere) med mindst 15 min arbejde gav de største VO₂max-fremskridt. Cykel eller romaskine skåner benene til styrke.'},
   I30:{name:'Korte intervaller 30/15',kind:'interval',dur:'ca. 35 min',
-     steps:['10 min opvarmning','3 serier. Hver serie er 10 runder: 30 sek hårdt + 15 sek let (7½ min)','3 min pause mellem serierne','5 min nedvarmning'],
+     steps:['10 min roligt for at varme op','3 serier. Hver serie er 10 runder: 30 sek hurtigt + 15 sek langsomt','3 min roligt mellem serierne','5 min roligt til sidst','De 30 sek er hurtige, men ikke en sprint. Du skal kunne holde samme fart i alle runder.'],
      note:'Korte, meget hårde intervaller med kort pause rangerer højt for trænede.'},
   Z2:{name:'Zone 2',kind:'zone2',dur:'45–60 min',
      steps:['45–60 min roligt løb, cykel eller ro','60–70 % af maks puls','Du skal kunne tale i hele sætninger'],
      note:'Bygger den aerobe base og hjælper restitutionen. Den kan springes over, hvis tiden er knap.'},
   I5:{name:'Intervaller 5×4',kind:'interval',dur:'ca. 47 min',
-     steps:['10 min opvarmning, roligt','5 × 4 min hårdt ved 90–95 % af maks puls (RPE 9)','3 min aktiv pause mellem hvert interval','5 min nedvarmning'],
+     steps:['10 min roligt for at varme op','5 × 4 min hårdt. Det hårdeste tempo, du kan holde jævnt hele vejen. Ikke en sprint.','3 min roligt jog eller gang mellem hvert interval','5 min roligt til sidst','Tjek: Du kan sige 2–3 ord ad gangen. Interval 5 skal være lige så hurtigt som interval 1.'],
      note:'Et ekstra interval i forhold til 4×4. Løb er fint her, da dagen før er let for benene.'},
   I30B:{name:'Korte intervaller 30/15 · 4 serier',kind:'interval',dur:'ca. 50 min',
-     steps:['10 min opvarmning','4 serier. Hver serie er 10 runder: 30 sek hårdt + 15 sek let (7½ min)','3 min pause mellem serierne','5 min nedvarmning'],
+     steps:['10 min roligt for at varme op','4 serier. Hver serie er 10 runder: 30 sek hurtigt + 15 sek langsomt','3 min roligt mellem serierne','5 min roligt til sidst','De 30 sek er hurtige, men ikke en sprint. Du skal kunne holde samme fart i alle runder.'],
      note:'Tag det på cykel eller romaskine. Så slipper benene for 40 hårde løbestød, og styrken lider mindre. Fjerde serie giver flere hårde minutter mod de 75.'},
   Z2L:{name:'Zone 2 · 60 min',kind:'zone2',dur:'60 min',
      steps:['60 min march med oppakning, cykel, ro eller roligt løb','60–70 % af maks puls','Du skal kunne tale i hele sætninger'],
@@ -417,7 +417,7 @@ const hr=p=>state.hrmax?Math.round(state.hrmax*p):null;
 function hrLine(s){
   if(!state.hrmax)return '<p class="hint">Indtast din makspuls under Plan og data, så vises dine pulszoner her.</p>';
   if(s.kind==='zone2')return `<p class="sug num">Puls: ${hr(.6)}–${hr(.7)} bpm. Hold dig under ${hr(.7)}.</p>`;
-  return `<p class="sug num">Puls i de hårde intervaller: ${hr(.9)}–${hr(.95)} bpm · pauser under ${hr(.75)}</p>`;
+  return `<p class="sug num">Pulsen stiger langsomt og rammer ${hr(.9)}–${hr(.95)} i slutningen af hvert hårdt stykke. I pauserne skal den falde til under ${hr(.75)}.</p>`;
 }
 const sessFor=s=>SESS[sessKey(s)];
 const logsOn=s=>state.logs.filter(l=>l.date===s);
@@ -1016,7 +1016,7 @@ function viewTimer(){
     <p class="tm-next">${nx?`Næste: ${esc(nx.label)} · ${fmtTime(nx.sec)}`:'Sidste fase'}</p>
   </section>
   <div class="btns3"><button class="btn ${T.paused?'accent':'primary'}" data-act="tpause">${T.paused?'Fortsæt':'Pause'}</button><button class="btn ghost" data-act="tskip">Spring over</button><button class="btn danger${T.stopArmed?' armed':''}" data-act="tstop">${T.stopArmed?'Bekræft':'Stop'}</button></div>
-  <p class="hint">${ph.type==='work'?`Hårdt: ${state.hrmax?hr(.9)+'–'+hr(.95)+' bpm':'90–95 % af maks puls'}, RPE 9. Det skal føles svært de sidste minutter.`:ph.type==='rest'?'Aktiv pause: jog eller træd let. Hold dig i gang.':`Roligt tempo${state.hrmax?', under '+hr(.7)+' bpm':''}. Du skal kunne tale i hele sætninger.`}</p>
+  <p class="hint">${ph.type==='work'?`Hårdt, men jævnt. Ikke en sprint. Du kan sige 2–3 ord ad gangen.${state.hrmax?' Pulsen ender på '+hr(.9)+'–'+hr(.95)+'.':''}`:ph.type==='rest'?'Aktiv pause: jog eller træd let. Hold dig i gang.':`Roligt tempo${state.hrmax?', under '+hr(.7)+' bpm':''}. Du skal kunne tale i hele sætninger.`}</p>
   <p class="hint">Appen bipper 3-2-1 og ved hvert skift. Hold appen åben på skærmen.</p>`;
 }
 
