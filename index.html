@@ -191,6 +191,7 @@ section{display:flex;flex-direction:column;gap:12px}
 .exnums label{display:grid;gap:4px}
 .exnums span{font-size:11px;color:var(--muted)}
 .exnums input{padding:9px 6px;text-align:center}
+.mvrow .rm.sw{appearance:none;border:0;background:var(--surface-2);color:var(--muted);width:40px;height:40px;border-radius:10px;cursor:pointer;font-size:16px}
 .pk-grp{margin-bottom:6px}
 .pk-grp[hidden],.pk-row[hidden]{display:none}
 .pk-row{appearance:none;display:grid;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:12px 2px;color:var(--fg);font:inherit;cursor:pointer;gap:2px}
@@ -919,8 +920,31 @@ function viewSess(){
 }
 const SE_KINDS=[['styrke','Styrke','Øvelser med sæt og vægt'],['interval','Hård kondition','Fx intervaller'],['zone2','Rolig kondition','Fx en rolig tur'],['mobilitet','Mobilitet','Smidighed og udstrækning']];
 function seDraft(k){const se=k?SESS[k]:null;
-  return {key:k||null,name:se?se.name:'',kind:se?se.kind:'styrke',ex:se&&se.ex?se.ex.map(e=>({n:e[0],s:String(e[1]),r:String(e[2]),q:String(e[3])})):[{n:'',s:'3',r:'8',q:'2'}],
+  return {mode:k?'self':null,key:k||null,name:se?se.name:'',kind:se?se.kind:'styrke',ex:se&&se.ex?se.ex.map(e=>({n:e[0],s:String(e[1]),r:String(e[2]),q:String(e[3])})):[{n:'',s:'3',r:'8',q:'2'}],
     steps:se&&se.steps?se.steps.join('\n'):'',min:se?String(se.min||parseInt(String(se.dur||'').replace(/\D+/g,' ').trim().split(' ').pop())||''):'',note:se?se.note||'':''}}
+/* Strength part of the session editor: first a choice between a random session and building it yourself, then only that path. */
+function strEditor(e){const m=e.mode,has=e.ex.some(x=>x.n.trim());
+  const choose=`<section class="card"><h3 class="sec">Sådan bygger du passet</h3><div class="fmt-grid">
+    <button class="fmt${m==='rand'?' on':''}" data-act="semode" data-v="rand"><b>🎲 Tilfældigt</b><small>Appen vælger øvelser ud fra fokus, tid og udstyr</small></button>
+    <button class="fmt${m==='self'?' on':''}" data-act="semode" data-v="self"><b>✍️ Byg selv</b><small>Vælg øvelserne én for én</small></button></div></section>`;
+  if(m==='rand'){const o=strOpts();
+    return choose+`<section class="card">
+    <div class="field"><span>Fokus</span><div class="chips">${Object.entries(STR_FOCUS).map(([k,[l]])=>`<button class="${o.focus===k?'on':''}" data-act="segen" data-f="focus" data-v="${k}">${l}</button>`).join('')}</div></div>
+    <div class="field"><span>Tid</span><div class="chips">${STR_TIME.map(x=>`<button class="${o.min===x?'on':''}" data-act="segen" data-f="min" data-v="${x}">${x} min</button>`).join('')}</div></div>
+    <div class="field"><span>Intensitet</span><div class="chips">${Object.entries(STR_INT).map(([k,[l]])=>`<button class="${o.int===k?'on':''}" data-act="segen" data-f="int" data-v="${k}">${l}</button>`).join('')}</div><p class="hint">${STR_INT[o.int][1]}.</p></div>
+    <button class="restbtn" data-act="seeqtog">${ui.seEq?'Skjul udstyr':`Udstyr · ${strHave().length} af ${STR_EQ.length} valgt`}</button>
+    ${ui.seEq?`<div class="chips">${STR_EQ.map(u=>`<button class="${strHave().includes(u)?'on':''}" data-act="seeq" data-v="${esc(u)}">${esc(u)}</button>`).join('')}</div><p class="hint">Øvelser uden udstyr er altid med.</p>`:''}
+    <button class="btn accent" data-act="sesuggest">🎲 Bland igen</button></section>
+    ${has?`<section class="card" id="se-result"><h3 class="sec">Dit pas</h3>${e.ex.map((x,i)=>!x.n.trim()?'':`<div class="mvrow"><div><b>${esc(x.n)}</b><small class="exmeta" style="display:block">${x.s} × ${x.r} · ${x.q} tilbage</small></div><button class="rm sw" data-act="seswap" data-i="${i}" aria-label="Byt øvelse">↻</button></div>`).join('')}
+      <button class="restbtn" data-act="semode" data-v="self">Ret øvelserne selv</button><p class="hint">↻ bytter til en lignende øvelse.</p></section>`:''}`}
+  if(m==='self')return choose+`<section class="card"><h3 class="sec">Øvelser</h3>
+    ${e.ex.map((x,i)=>{const lx=strFor(x.n),miss=lx&&!strOk(lx);return `<div class="exblk"><div class="exblk-top"><input class="exn-in" id="se-n${i}" data-bind="se.ex.${i}.n" value="${esc(x.n)}" list="exlist2" placeholder="Skriv eller vælg øvelse"><button class="rm" data-act="seswap" data-i="${i}" aria-label="Byt øvelse" title="Byt">↻</button><button class="rm" data-act="serm" data-i="${i}" aria-label="Fjern øvelse">×</button></div>
+      ${lx?`<small class="exmeta${miss?' warn':''}">${miss?'Kræver ':''}${esc(lx[1])} · ${esc(lx[2])}</small>`:''}
+      <div class="exnums"><label><span>Sæt</span><input id="se-s${i}" inputmode="numeric" data-bind="se.ex.${i}.s" value="${esc(x.s)}"></label><label><span>Gent.</span><input id="se-r${i}" inputmode="numeric" data-bind="se.ex.${i}.r" value="${esc(x.r)}"></label><label><span>Tilbage</span><input id="se-q${i}" inputmode="numeric" data-bind="se.ex.${i}.q" value="${esc(x.q)}"></label></div></div>`}).join('')}
+    <datalist id="exlist2">${allExercises().map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
+    <button class="restbtn" data-act="sepick">+ Tilføj øvelse</button>
+    <p class="hint">Tilbage = hvor mange gentagelser man stopper før, man ikke kan mere. ↻ bytter til en lignende øvelse.</p></section>`;
+  return choose}
 function viewSessEdit(){
   const e=ui.se,builtIn=e.key&&SESS_BASE[e.key],edited=builtIn&&(state.sessEdits||{})[e.key],cardioBuiltIn=builtIn&&(e.kind==='interval'||e.kind==='zone2');
   return `<div class="habit-head"><button class="icon-btn" data-act="sebask" aria-label="Tilbage" data-back>‹</button><h2 class="h2">${e.key?'Rediger pas':'Nyt pas'}</h2></div>
@@ -928,25 +952,12 @@ function viewSessEdit(){
     <label class="field"><span>Navn</span><input id="se-name" data-bind="se.name" value="${esc(e.name)}" placeholder="Fx Overkrop"></label>
     ${builtIn?'':`<div class="field"><span>Type</span><div class="fmt-grid">${SE_KINDS.map(([v,l,d])=>`<button class="fmt${e.kind===v?' on':''}" data-act="sekind" data-v="${v}"><b>${l}</b><small>${d}</small></button>`).join('')}</div></div>`}
   </section>
-  ${e.kind==='styrke'?(()=>{const o=strOpts();return `<section class="card"><h3 class="sec">🎲 Tilfældigt pas</h3>
-    <div class="field"><span>Fokus</span><div class="chips">${Object.entries(STR_FOCUS).map(([k,[l]])=>`<button class="${o.focus===k?'on':''}" data-act="segen" data-f="focus" data-v="${k}">${l}</button>`).join('')}</div></div>
-    <div class="field"><span>Tid</span><div class="chips">${STR_TIME.map(m=>`<button class="${o.min===m?'on':''}" data-act="segen" data-f="min" data-v="${m}">${m} min</button>`).join('')}</div></div>
-    <div class="field"><span>Intensitet</span><div class="chips">${Object.entries(STR_INT).map(([k,[l]])=>`<button class="${o.int===k?'on':''}" data-act="segen" data-f="int" data-v="${k}">${l}</button>`).join('')}</div><p class="hint">${STR_INT[o.int][1]}.</p></div>
-    <button class="restbtn" data-act="seeqtog">${ui.seEq?'Skjul udstyr':`Udstyr · ${strHave().length} af ${STR_EQ.length} valgt`}</button>
-    ${ui.seEq?`<div class="chips">${STR_EQ.map(u=>`<button class="${strHave().includes(u)?'on':''}" data-act="seeq" data-v="${esc(u)}">${esc(u)}</button>`).join('')}</div><p class="hint">Øvelser uden udstyr er altid med.</p>`:''}
-    <button class="btn accent" data-act="sesuggest">🎲 ${e.ex.some(x=>x.n.trim())?'Bland igen':'Bland et pas'}</button></section>`})()+`
-  <section class="card"><h3 class="sec">Øvelser</h3>
-    ${e.ex.map((x,i)=>{const lx=strFor(x.n),miss=lx&&!strOk(lx);return `<div class="exblk"><div class="exblk-top"><input class="exn-in" id="se-n${i}" data-bind="se.ex.${i}.n" value="${esc(x.n)}" list="exlist2" placeholder="Skriv eller vælg øvelse"><button class="rm" data-act="seswap" data-i="${i}" aria-label="Byt øvelse" title="Byt">↻</button><button class="rm" data-act="serm" data-i="${i}" aria-label="Fjern øvelse">×</button></div>
-      ${lx?`<small class="exmeta${miss?' warn':''}">${miss?'Kræver ':''}${esc(lx[1])} · ${esc(lx[2])}</small>`:''}
-      <div class="exnums"><label><span>Sæt</span><input id="se-s${i}" inputmode="numeric" data-bind="se.ex.${i}.s" value="${esc(x.s)}"></label><label><span>Gent.</span><input id="se-r${i}" inputmode="numeric" data-bind="se.ex.${i}.r" value="${esc(x.r)}"></label><label><span>Tilbage</span><input id="se-q${i}" inputmode="numeric" data-bind="se.ex.${i}.q" value="${esc(x.q)}"></label></div></div>`}).join('')}
-    <datalist id="exlist2">${allExercises().map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
-    <button class="restbtn" data-act="sepick">+ Tilføj øvelse</button>
-    <p class="hint">Tilbage = hvor mange gentagelser man stopper før, man ikke kan mere. ↻ bytter til en lignende øvelse.</p></section>`
+  ${e.kind==='styrke'?strEditor(e)
   :`<section class="card"><label class="field"><span>Varighed (min)</span><input id="se-min" inputmode="numeric" data-bind="se.min" value="${esc(e.min)}" placeholder="30"></label>
     <label class="field"><span>Sådan gør du (én linje pr. trin)</span><textarea id="se-steps" rows="5" data-bind="se.steps" placeholder="10 min roligt&#10;…">${esc(e.steps)}</textarea></label>
     ${cardioBuiltIn?'<p class="hint">Timeren følger stadig det oprindelige pas. Teksten her er det, du ser.</p>':''}</section>`}
-  <section class="card"><label class="field"><span>Note (valgfri)</span><input id="se-note" data-bind="se.note" value="${esc(e.note)}" placeholder="Fx et godt råd til dig selv"></label></section>
-  <button class="btn accent" data-act="sesave">Gem pas</button>
+  ${e.kind==='styrke'&&!e.mode?'':`<section class="card"><label class="field"><span>Note (valgfri)</span><input id="se-note" data-bind="se.note" value="${esc(e.note)}" placeholder="Fx et godt råd til dig selv"></label></section>
+  <button class="btn accent" data-act="sesave">Gem pas</button>`}
   ${edited?'<button class="btn ghost" data-act="sereset">Gendan det oprindelige pas</button>':''}
   ${e.key&&!builtIn?`<button class="btn danger${ui.seDel?' armed':''}" data-act="sedel">${ui.seDel?'Tryk igen for at slette':'Slet pas'}</button>`:''}`;
 }
@@ -1506,12 +1517,15 @@ document.addEventListener('click',e=>{
     case 'seedit':ui.se=seDraft(b.dataset.key);ui.seDel=false;ui.view='sessedit';render(true);break;
     case 'sebask':ui.view=ui.se&&ui.se.key?'sess':'train';render(true);break;
     case 'sekind':ui.se.kind=b.dataset.v;render();break;
+    case 'semode':{const e=ui.se;e.mode=b.dataset.v;
+      if(e.mode==='rand'&&!e.ex.some(x=>x.n.trim())){const o=strOpts(),ex=strSuggest(o);if(ex.length){e.ex=ex;const nm=`${STR_FOCUS[o.focus][0]} · ${o.min} min · ${STR_INT[o.int][0].toLowerCase()}`;if(!e.name.trim())e.name=nm;ui.seAuto=nm}}
+      if(e.mode==='self'&&!e.ex.length)e.ex.push({n:'',s:'3',r:'8',q:'2'});render();break}
     case 'segen':{const o=strOpts();o[b.dataset.f]=b.dataset.f==='min'?+b.dataset.v:b.dataset.v;state.strGen=o;save();render();break}
     case 'seeqtog':ui.seEq=!ui.seEq;render();break;
     case 'seeq':{let have=strHave().slice();const u=b.dataset.v;have=have.includes(u)?have.filter(x=>x!==u):have.concat(u);state.strUdstyr=have.length===STR_EQ.length?null:have;save();render();break}
     case 'sesuggest':{const o=strOpts(),ex=strSuggest(o);if(!ex.length){toast('Vælg mere udstyr');break}ui.se.ex=ex;
       const nm=`${STR_FOCUS[o.focus][0]} · ${o.min} min · ${STR_INT[o.int][0].toLowerCase()}`;if(!ui.se.name.trim()||ui.se.name===ui.seAuto)ui.se.name=nm;ui.seAuto=nm;render();
-      {const el=document.querySelector('.exblk');if(el)el.scrollIntoView({behavior:'smooth',block:'center'})}break}
+      {const el=$('#se-result');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})}break}
     case 'seswap':{const i=+b.dataset.i,x=strSwap(ui.se.ex[i].n);if(!x){toast('Ingen anden lignende øvelse med dit udstyr');break}ui.se.ex[i]={n:x[0],s:String(x[4]),r:String(x[5]),q:String(x[6])};render();break}
     case 'sepick':ui.pick={g:''};ui.seScroll=scrollY;ui.view='expick';render(true);break;
     case 'pickback':ui.view='sessedit';render(true);if(ui.seScroll){scrollTo(0,ui.seScroll);ui.seScroll=0}break;
