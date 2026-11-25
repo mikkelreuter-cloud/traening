@@ -175,6 +175,13 @@ section{display:flex;flex-direction:column;gap:12px}
 .progsw button{appearance:none;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);border-radius:16px;padding:14px 12px;font:500 14px/1.3 var(--font);cursor:pointer;text-align:left}
 .progsw button.on{background:var(--pill);color:var(--pill-fg);border-color:var(--pill)}
 .progsw.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.tr-grp{display:flex;flex-direction:column;gap:8px}
+.tr-card{background:var(--surface);border-radius:20px;padding:16px;display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;box-shadow:var(--shadow)}
+.tr-card b{font-weight:500;font-size:17px;display:flex;align-items:center;gap:8px}
+.tr-card small{font-size:13px;color:var(--muted);line-height:1.4;grid-column:1}
+.tr-card .go{grid-row:1/3;grid-column:2;appearance:none;border:0;border-radius:999px;padding:11px 18px;font:500 14px/1 var(--font);cursor:pointer;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff}
+.tr-card.today{outline:2px solid var(--accent);outline-offset:-2px}
+.tr-empty{appearance:none;border:1px dashed var(--line);background:transparent;color:var(--fg);border-radius:20px;padding:16px;font:500 16px/1 var(--font);cursor:pointer;text-align:left}
 .wk{display:flex;flex-direction:column;gap:6px}
 .wkrow{appearance:none;border:0;width:100%;display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;padding:12px 14px;border-radius:16px;background:var(--surface-2);color:var(--fg);font:inherit;text-align:left;cursor:pointer}
 .wkrow .wd-d{font-weight:500;font-size:14px;color:var(--muted);text-transform:capitalize}
@@ -329,7 +336,7 @@ textarea{resize:vertical}
 <nav class="tabs" aria-label="Sider">
   <div class="in">
     <button class="tab" data-act="view" data-view="today"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>I dag</button>
-    <button class="tab" data-act="view" data-view="cal"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Kalender</button>
+    <button class="tab" data-act="view" data-view="train"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Træn</button>
     <button class="tab" data-act="view" data-view="log"><svg viewBox="0 0 24 24"><path d="M6.5 9v6M17.5 9v6M3.5 10.5v3M20.5 10.5v3M6.5 12h11"/></svg>Log</button>
     <button class="tab" data-act="view" data-view="prog"><svg viewBox="0 0 24 24"><path d="M5 20V12M10 20V6M15 20v-9M20 20V9"/></svg>Udvikling</button>
   </div>
@@ -677,7 +684,7 @@ function viewToday(){
   const B=bestLift();
   const wDelta=W.length>1?W[W.length-1].kg-W[0].kg:null;
   const tips=!state.tipSeen?`<section class="card"><div class="row-between"><h3 class="sec">Sådan virker appen</h3></div>
-    <ul class="facts"><li><b>I dag</b> viser dagens pas. Tryk på den orange knap for at gå i gang.</li><li>Log hvert sæt med ✓. Appen husker dine tal og foreslår vægten til næste gang.</li><li><b>Kalender</b> viser din uge. Tryk på en dag for at se den eller lægge CrossFit ind.</li><li><b>Udvikling</b> viser dine fremskridt. Ugen ændrer du via knappen øverst til højre.</li></ul>
+    <ul class="facts"><li><b>I dag</b> viser dagens pas. Tryk på den orange knap for at gå i gang.</li><li>Log hvert sæt med ✓. Appen husker dine tal og foreslår vægten til næste gang.</li><li><b>Træn</b> lader dig starte et hvilket som helst pas, når det passer dig. Tryk på en dag i ugen herunder for at se den eller lægge CrossFit ind.</li><li><b>Udvikling</b> viser dine fremskridt og en kalender. Ugen ændrer du via knappen øverst til højre.</li></ul>
     <button class="btn ghost" data-act="tipok">Forstået</button></section>`:'';
   return `${tips}${isDeload(TODAY)?`<section class="banner" style="background:linear-gradient(135deg,var(--k-zone2),var(--k-styrke))"><span class="bi">↓</span><div><b>Deload-uge</b><p>Halvdelen af sættene, samme vægt og kun ét intervalpas. Kroppen bygger op, så du kommer stærkere tilbage næste uge.</p></div></section>`:''}
   <section class="card">
@@ -752,17 +759,21 @@ function dial(done,total){
   return `<div class="dial" role="img" aria-label="${done} af ${total} pas gennemført denne uge"><svg viewBox="0 0 300 170">${g}</svg>
     <div class="dial-c"><span class="ic">⚡</span><b class="num">${done}/${total}</b><span>pas gennemført</span></div></div>`;
 }
-function viewCal(){
+function viewCal(){return calMonth()+dayCard(ui.sel)}
+function viewDay(){return `<div class="habit-head"><button class="icon-btn" data-act="dayback" aria-label="Tilbage">‹</button><h2 class="h2">${cap(DAYS[pd(ui.sel).getDay()])}</h2></div>`+dayCard(ui.sel)}
+function calMonth(){
   const y=ui.calY,m=ui.calM,first=new Date(y,m,1),start=(first.getDay()+6)%7,n=new Date(y,m+1,0).getDate();
   let cells='';for(let i=0;i<start;i++)cells+='<span class="cd empty"></span>';
   for(let d=1;d<=n;d++){const s=ds(new Date(y,m,d)),se=sessFor(s),done=logsOn(s).some(l=>!HABIT_LOG(l.type));
     cells+=`<button class="cd k-${se.kind}${s===TODAY?' is-today':''}${s===ui.sel?' is-sel':''}${done?' is-done':''}${s<TODAY?' past':''}" data-act="sel" data-date="${s}" aria-label="${niceDate(s)}: ${se.name}"><span class="dn num">${d}</span><span class="bar"></span></button>`}
-  const sel=ui.sel,se=sessFor(sel),L=logsOn(sel).filter(l=>!HABIT_LOG(l.type)).sort(byDate);
   return `<div class="cal-head"><button class="icon-btn" data-act="mprev" aria-label="Forrige måned">‹</button><h2 class="month">${MONTHS[m]} ${y}</h2><button class="icon-btn" data-act="mnext" aria-label="Næste måned">›</button></div>
   <div class="card cal-card"><div class="cal-grid">${['Ma','Ti','On','To','Fr','Lø','Sø'].map(x=>`<span class="cw">${x}</span>`).join('')}${cells}</div></div>
   <div class="legend">${['styrke','interval','zone2','crossfit','hvile'].map(k=>chip(k,KIND_LABEL[k])).join('')}</div>
-  <p class="hint">Tom ring = planlagt · udfyldt ring = gennemført</p>
-  <section class="card">
+  <p class="hint">Tom ring = planlagt · udfyldt ring = gennemført. Tryk på en dag for at åbne den.</p>`;
+}
+function dayCard(sel){
+  const se=sessFor(sel),L=logsOn(sel).filter(l=>!HABIT_LOG(l.type)).sort(byDate);
+  return `<section class="card">
     <p class="eyebrow">${cap(niceDate(sel))}${sel===TODAY?' · i dag':''}</p>
     <div class="row-between"><h2 class="sess">${esc(se.name)}</h2>${chip(se.kind,KIND_LABEL[se.kind])}</div>
     ${sessionBody(se,sel)}
@@ -772,6 +783,18 @@ function viewCal(){
     ${se.kind!=='crossfit'?`<button class="btn ghost" data-act="cfday" data-date="${sel}">Læg CrossFit ind på dagen</button>`:(state.overrides||{})[sel]==='CF'?`<button class="restbtn" data-act="cfundo" data-date="${sel}">Fjern CrossFit · tilbage til ${esc(SESS[baseKey(sel)].name)}</button>`:''}
     ${se.kind!=='crossfit'?`<button class="btn primary" data-act="logday" data-date="${sel}">Log denne dag</button>`:''}
   </section>`;
+}
+/* ---------- Træn: start any session, any day ---------- */
+const TRAIN_GROUPS=[['Styrke',['A','B','C']],['Intervaller',['I4','I5','I30','I30B']],['Rolig kondition (zone 2)',['Z2','Z2L']],['Mobilitet',['MOB','BAL']]];
+function trainCard(k){const se=SESS[k],isToday=sessKey(TODAY)===k;
+  const sub=se.ex?se.ex.map(e=>e[0]).join(', '):[se.dur,(se.steps||[])[1]||''].filter(Boolean).join(' · ');
+  return `<div class="tr-card k-${se.kind}${isToday?' today':''}"><b><span class="bar"></span>${esc(se.name)}</b><small>${isToday?'Dagens pas · ':''}${esc(se.ex?se.dur+' · '+sub:sub)}</small><button class="go" data-act="trstart" data-key="${k}">Start</button></div>`}
+function viewTrain(){
+  const cfToday=cfSaved(TODAY);
+  return `<h2 class="h2">Træn</h2><p class="note">Start et pas, når det passer dig. Det behøver ikke være dagens pas.</p>
+  <button class="tr-empty" data-act="trempty">+ Start tom træning<small style="display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:6px">Vælg selv øvelserne undervejs</small></button>
+  ${TRAIN_GROUPS.map(([g,ks])=>`<section class="tr-grp"><h3 class="sec">${g}</h3>${ks.map(trainCard).join('')}</section>`).join('')}
+  <section class="tr-grp"><h3 class="sec">CrossFit</h3><div class="tr-card k-crossfit${sessKey(TODAY)==='CF'?' today':''}"><b><span class="bar"></span>CrossFit</b><small>${cfToday?esc(cfToday.title||'Dagens pas er bygget'):'Vælg format og tid, så bygger appen et pas'}</small><button class="go" data-act="cfopen" data-date="${TODAY}">${cfToday?'Åbn':'Byg'}</button></div></section>`;
 }
 function logItem(l){
   const map={styrke:['styrke','Styrke'],kondition:['interval','Kondition'],vaegt:['vaegt','Vægt'],test:['test','Test'],mobilitet:['mobilitet','Mobilitet'],kulde:['kulde','Koldt bad'],meditation:['meditation','Meditation'],tak:['tak','Taknemmelighed'],crossfit:['crossfit','CrossFit']};
@@ -1024,6 +1047,7 @@ function viewProg(){
   else tHtml='<p class="empty">Log fx en 3 km løbetest under Log → Test.</p>';
   const all=trainLogs().sort(byDate).reverse();
   return `<h2 class="h2">Udvikling</h2>
+  ${calMonth()}
   <section class="card"><h3 class="sec">Kropsvægt</h3>${wHtml}</section>
   <section class="card"><h3 class="sec">Styrke</h3>${sHtml}</section>
   <section class="card"><h3 class="sec">Tests og tider</h3>${tHtml}</section>
@@ -1204,9 +1228,9 @@ function render(top){habitCss();
   const v=ui.view;$('.tabs').hidden=v==='onboard';$('.top .icon-btn').hidden=v==='onboard';
   $('#main').innerHTML=(storageOK?'':'<p class="warn">Browseren tillader ikke at gemme her. Åbn siden i Chrome og tilføj den til startskærmen, ellers forsvinder dine logs.</p>')+
     (timer&&v!=='timer'?'<button class="btn primary" data-act="view" data-view="timer">Timeren kører · gå tilbage</button>':'')+
-    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():viewSettings());
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')));
-  {const st=sessFor(TODAY);$('#hdr-hi').textContent=(state.name?'Hej '+state.name+'! · ':'')+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='onboard'?'Styrke & VO₂ log':v==='cf'?'Byg dagens WOD':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
+    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():v==='train'?viewTrain():v==='day'?viewDay():viewSettings());
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))));
+  {const st=sessFor(TODAY);$('#hdr-hi').textContent=(state.name?'Hej '+state.name+'! · ':'')+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='onboard'?'Styrke & VO₂ log':v==='train'?'Hvad har du lyst til i dag?':v==='day'?cap(niceDate(ui.sel)):v==='cf'?'Byg dagens WOD':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
   if(top)window.scrollTo(0,0);
 }
 let tt;function toast(msg){const el=$('#toast');el.textContent=msg;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>{el.hidden=true},2200)}
@@ -1279,8 +1303,14 @@ document.addEventListener('click',e=>{
     case 'view':ui.view=b.dataset.view;if(ui.view==='log'&&!ui.dirty){openLog(TODAY);return}render(true);break;
     case 'settings':ui.view='settings';render(true);break;
     case 'logday':openLog(b.dataset.date);break;
-    case 'calday':{ui.sel=b.dataset.date;const d=pd(ui.sel);ui.calY=d.getFullYear();ui.calM=d.getMonth();ui.view='cal';render(true);break}
-    case 'sel':ui.sel=b.dataset.date;render();break;
+    case 'calday':case 'sel':{ui.dayBack=ui.view==='day'?ui.dayBack:ui.view;ui.sel=b.dataset.date;const d=pd(ui.sel);ui.calY=d.getFullYear();ui.calM=d.getMonth();ui.view='day';render(true);break}
+    case 'dayback':ui.view=ui.dayBack||'today';render(true);break;
+    case 'trstart':{const k=b.dataset.key,se=SESS[k];
+      if(se.kind==='styrke'){ui.logDate=TODAY;ui.logType='styrke';const d=loadDraft();if(d&&d.sess===k){ui.sess=k;ui.rows=d.rows;ui.wStart=d.wStart||null}else{ui.sess=k;initRows(k)}ui.dirty=false;ui.view='log';render(true)}
+      else if(se.kind==='interval'||se.kind==='zone2')startTimer(k);
+      else if(se.kind==='mobilitet'){state.logs.push({id:Date.now().toString(36),date:TODAY,type:'mobilitet',name:se.name,dur:se.min*60});save();render();toast(se.name+' logget · '+se.min+' min')}
+      break}
+    case 'trempty':ui.logDate=TODAY;ui.logType='styrke';ui.sess='X';ui.rows=[makeRow('',3,8,2)];ui.dirty=true;ui.view='log';render(true);break;
     case 'mprev':if(--ui.calM<0){ui.calM=11;ui.calY--}render();break;
     case 'mnext':if(++ui.calM>11){ui.calM=0;ui.calY++}render();break;
     case 'ltype':ui.logType=b.dataset.type;if(ui.logType==='styrke'&&!ui.rows.length)initStyrke(ui.logDate);render();break;
@@ -1304,7 +1334,7 @@ document.addEventListener('click',e=>{
     case 'cfopen':cfOpen(b.dataset.date||TODAY);break;
     case 'cfday':{const d=b.dataset.date;state.overrides={...(state.overrides||{}),[d]:'CF'};save();cfOpen(d);break}
     case 'cfundo':{const d=b.dataset.date,o={...(state.overrides||{})};delete o[d];state.overrides=o;const cd={...(state.cfDays||{})};delete cd[d];state.cfDays=cd;save();render();toast('CrossFit fjernet');break}
-    case 'cfback':if(ui.cf&&ui.cf.step==='pas'&&!cfSaved(ui.cf.date)){ui.cf.step='menu';render(true)}else{ui.view=ui.cf&&ui.cf.date!==TODAY?'cal':'today';render(true)}break;
+    case 'cfback':if(ui.cf&&ui.cf.step==='pas'&&!cfSaved(ui.cf.date)){ui.cf.step='menu';render(true)}else{if(ui.cf&&ui.cf.date!==TODAY){ui.sel=ui.cf.date;ui.view='day'}else ui.view=ui.dayBack==='train'?'train':'today';render(true)}break;
     case 'cfmenu':ui.cf.step='menu';render(true);break;
     case 'cffmt':ui.cf.fmt=b.dataset.v||null;render();break;
     case 'cfmin':ui.cf.min=+b.dataset.v;render();break;
