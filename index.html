@@ -290,7 +290,7 @@ textarea{resize:vertical}
 /* floating dark pill nav */
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;pointer-events:none;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
-.tabs .in{pointer-events:auto;max-width:420px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);background:var(--nav);border-radius:999px;padding:7px;box-shadow:0 12px 30px rgb(0 0 0 / .28)}
+.tabs .in{pointer-events:auto;max-width:380px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);background:var(--nav);border-radius:999px;padding:7px;box-shadow:0 12px 30px rgb(0 0 0 / .28)}
 .tab{appearance:none;border:0;background:transparent;color:var(--nav-fg);font:500 11px/1 var(--font);height:56px;border-radius:999px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer}
 .tab svg,.icon-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .tab.on{color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent-2))}
@@ -318,7 +318,6 @@ textarea{resize:vertical}
     <button class="tab" data-act="view" data-view="today"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>I dag</button>
     <button class="tab" data-act="view" data-view="cal"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Kalender</button>
     <button class="tab" data-act="view" data-view="log"><svg viewBox="0 0 24 24"><path d="M6.5 9v6M17.5 9v6M3.5 10.5v3M20.5 10.5v3M6.5 12h11"/></svg>Log</button>
-    <button class="tab" data-act="view" data-view="habits"><svg viewBox="0 0 24 24"><path d="M12 21c-4.5-2.6-7-6-7-10a7 7 0 0 1 7-7 7 7 0 0 1 7 7c0 4-2.5 7.4-7 10z"/><path d="M12 8v6M9 11h6"/></svg>Vaner</button>
     <button class="tab" data-act="view" data-view="prog"><svg viewBox="0 0 24 24"><path d="M5 20V12M10 20V6M15 20v-9M20 20V9"/></svg>Udvikling</button>
   </div>
 </nav>
@@ -451,6 +450,8 @@ function hrLine(s){
   return `<p class="sug num">Pulsen stiger langsomt og rammer ${hr(.9)}–${hr(.95)} i slutningen af hvert hårdt stykke. I pauserne skal den falde til under ${hr(.75)}.</p>`;
 }
 const sessFor=s=>SESS[sessKey(s)];
+const HABIT_LOG=t=>t==='kulde'||t==='meditation'||t==='tak'||/^h[a-z0-9]{6,}$/.test(t);
+const trainLogs=()=>state.logs.filter(l=>!HABIT_LOG(l.type));
 const logsOn=s=>state.logs.filter(l=>l.date===s);
 const byDate=(a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.id<b.id?-1:1);
 const logsOf=t=>state.logs.filter(l=>l.type===t).sort(byDate);
@@ -671,7 +672,6 @@ function viewToday(){
       :`<button class="restbtn" data-act="skipask">Ikke klar i dag? Ryk eller spring over</button>`):''}
   </section>
   ${addonCard(TODAY)}
-  ${habitsCard()}
   ${testDue?`<section class="banner"><span class="bi">!</span><div><b>${lastT?'Tid til en ny test':'Lav en baseline-test'}</b>
     <p>En 3 km løbetest eller Cooper-test hver 6. uge viser, om din VO₂max går frem. Tag den udhvilet.</p>
     <button data-act="logtest">Log test</button></div></section>`:''}
@@ -732,9 +732,9 @@ function dial(done,total){
 function viewCal(){
   const y=ui.calY,m=ui.calM,first=new Date(y,m,1),start=(first.getDay()+6)%7,n=new Date(y,m+1,0).getDate();
   let cells='';for(let i=0;i<start;i++)cells+='<span class="cd empty"></span>';
-  for(let d=1;d<=n;d++){const s=ds(new Date(y,m,d)),se=sessFor(s),done=logsOn(s).length>0;
+  for(let d=1;d<=n;d++){const s=ds(new Date(y,m,d)),se=sessFor(s),done=logsOn(s).some(l=>!HABIT_LOG(l.type));
     cells+=`<button class="cd k-${se.kind}${s===TODAY?' is-today':''}${s===ui.sel?' is-sel':''}${done?' is-done':''}${s<TODAY?' past':''}" data-act="sel" data-date="${s}" aria-label="${niceDate(s)}: ${se.name}"><span class="dn num">${d}</span><span class="bar"></span></button>`}
-  const sel=ui.sel,se=sessFor(sel),L=logsOn(sel).sort(byDate);
+  const sel=ui.sel,se=sessFor(sel),L=logsOn(sel).filter(l=>!HABIT_LOG(l.type)).sort(byDate);
   return `<div class="cal-head"><button class="icon-btn" data-act="mprev" aria-label="Forrige måned">‹</button><h2 class="month">${MONTHS[m]} ${y}</h2><button class="icon-btn" data-act="mnext" aria-label="Næste måned">›</button></div>
   <div class="card cal-card"><div class="cal-grid">${['Ma','Ti','On','To','Fr','Lø','Sø'].map(x=>`<span class="cw">${x}</span>`).join('')}${cells}</div></div>
   <div class="legend">${['styrke','interval','zone2','crossfit','hvile'].map(k=>chip(k,KIND_LABEL[k])).join('')}</div>
@@ -823,7 +823,7 @@ function formTest(){
   <label><span>Enhed</span><select id="t-unit" data-bind="t.unit">${['tid','kg','m','reps','ml/kg/min'].map(u=>`<option value="${u}"${t.unit===u?' selected':''}>${u==='tid'?'tid (mm:ss)':u}</option>`).join('')}</select></label></div>`;
 }
 function viewLog(){
-  const t=ui.logType,recent=[...state.logs].sort(byDate).reverse().slice(0,5);
+  const t=ui.logType,recent=trainLogs().sort(byDate).reverse().slice(0,5);
   return `<h2 class="h2">Log</h2>
   <div class="seg">${Object.entries(LOGTYPE).map(([k,v])=>`<button class="${t===k?'on':''}" data-act="ltype" data-type="${k}">${v}</button>`).join('')}</div>
   <label class="field"><span>Dato</span><input type="date" id="f-date" value="${ui.logDate}"></label>
@@ -959,7 +959,7 @@ function viewProg(){
     ${chart(L.filter(l=>l.unit===unit).map(l=>({x:pd(l.date).getTime(),y:l.value})),v=>fmtVal(v,unit),'test')}
     ${lower?'<p class="hint">Lavere er bedre.</p>':''}`}
   else tHtml='<p class="empty">Log fx en 3 km løbetest under Log → Test.</p>';
-  const all=[...state.logs].sort(byDate).reverse();
+  const all=trainLogs().sort(byDate).reverse();
   return `<h2 class="h2">Udvikling</h2>
   ${state.program==='blueprint'?goalsCard(TODAY):''}
   <section class="card"><h3 class="sec">Kropsvægt</h3>${wHtml}</section>
@@ -980,8 +980,6 @@ function viewSettings(){
   ${state.program==='blueprint'?`<section class="card"><h3 class="sec">Deload</h3>
     <p class="hint num">Hver ${DELOAD_EVERY}. uge er en let uge. ${state.cycleStart?(isDeload(TODAY)?'Du er i deload-uge nu.':`Du er i uge ${cycleWeek(TODAY)%DELOAD_EVERY+1} af ${DELOAD_EVERY}.`):''}</p>
     <button class="btn ghost" data-act="cyclereset">Start cyklus forfra i denne uge</button></section>`:''}
-  <section class="card"><h3 class="sec">Vaner</h3><p class="hint num">Du er i uge ${habitWeek(TODAY)+1}. Koldt bad: ${fmtTime(HABITS[0].target(habitWeek(TODAY)))} · Meditation: ${Math.round(HABITS[1].target(habitWeek(TODAY))/60)} min.</p>
-    <button class="btn ghost" data-act="habitreset">Start vaner forfra i uge 1</button></section>
   ${state.program==='custom'?'':`<section class="card"><h3 class="sec">Ugeplan</h3><p class="hint">Vælg hvilket pas der ligger på hver ugedag. Vil du også styre mobilitet og deload, så vælg Egen ovenfor.</p>
     ${[1,2,3,4,5,6,0].map(d=>`<label class="field inline"><span>${cap(DAYS[d])}</span><select id="p-${d}" data-plan="${d}">${Object.entries(SESS).map(([k,s])=>`<option value="${k}"${state.plan[d]===k?' selected':''}>${s.name}</option>`).join('')}</select></label>`).join('')}
     <button class="btn ghost" data-act="resetplan">Gendan standardplan</button></section>`}
