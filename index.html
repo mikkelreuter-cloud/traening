@@ -351,13 +351,13 @@ const SESS={
      note:'Bygger den aerobe base og hjælper restitutionen. Den kan springes over, hvis tiden er knap.'},
   I5:{name:'Intervaller 5×4',kind:'interval',dur:'ca. 47 min',
      steps:['10 min roligt for at varme op','5 × 4 min hårdt. Det hårdeste tempo, du kan holde jævnt hele vejen. Ikke en sprint.','3 min roligt jog eller gang mellem hvert interval','5 min roligt til sidst','Tjek: Du kan sige 2–3 ord ad gangen. Interval 5 skal være lige så hurtigt som interval 1.'],
-     note:'Et ekstra interval i forhold til 4×4. Løb er fint her, da dagen før er let for benene.'},
+     note:'Et ekstra interval i forhold til 4×4. Løb er fint, hvis dagen før var let for benene.'},
   I30B:{name:'Korte intervaller 30/15 · 4 serier',kind:'interval',dur:'ca. 50 min',
      steps:['10 min roligt for at varme op','4 serier. Hver serie er 10 runder: 30 sek hurtigt + 15 sek langsomt','3 min roligt mellem serierne','5 min roligt til sidst','De 30 sek er hurtige, men ikke en sprint. Du skal kunne holde samme fart i alle runder.'],
-     note:'Tag det på cykel eller romaskine. Så slipper benene for 40 hårde løbestød, og styrken lider mindre. Fjerde serie giver flere hårde minutter mod de 75.'},
+     note:'Tag det på cykel eller romaskine. Så slipper benene for 40 hårde løbestød, og styrken lider mindre. Fjerde serie giver flere hårde minutter.'},
   Z2L:{name:'Zone 2 · 60 min',kind:'zone2',dur:'60 min',
      steps:['60 min march med oppakning, cykel, ro eller roligt løb','60–70 % af maks puls','Du skal kunne tale i hele sætninger'],
-     note:'To lange zone 2-pas plus opvarmning og nedvarmning på intervaldagene giver 150 min om ugen.'},
+     note:'Bygger den aerobe base, som gør intervallerne bedre. Hold det roligt hele vejen.'},
   MOB:{name:'Mobilitet',kind:'mobilitet',dur:'10 min',min:10,
      steps:['90/90 hofteskift · 1 min','Verdens bedste stræk · 5 pr. side','Åben bog (brystryg-rotation) · 8 pr. side','Dyb squat-hold · 1 min','Couch stretch · 45 sek pr. side','Dead hang · 2 × 30 sek'],
      note:'Lige efter styrkepasset, mens du er varm.'},
@@ -424,9 +424,12 @@ function load(){
     /* v9: move 30/15 to Friday and Styrke C to Saturday, so intervals never follow a heavy leg day */
     if(st.program==='blueprint'&&st.plan[5]==='C'&&st.plan[6]==='I30B'){st.plan[5]='I30B';st.plan[6]='C';if(st.addons[5]==='MOB'){delete st.addons[5];st.addons[6]='MOB'}}
     st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.customPlan=d.customPlan||null;st.customAddons=d.customAddons||null;st.customDeload=d.customDeload;st.overrides=d.overrides||{};st.cfDays=d.cfDays||{};st.cfPrefs=d.cfPrefs||null;st.shifts=Array.isArray(d.shifts)?d.shifts:[];
-    if(!st.program){const untouched=Object.keys(DEFAULT_PLAN).every(k=>st.plan[k]===DEFAULT_PLAN[k]);st.program='blueprint';if(untouched)st.plan={...BP_PLAN};st.addons={...BP_ADDONS}}
+    if(!st.program){const untouched=Object.keys(DEFAULT_PLAN).every(k=>st.plan[k]===DEFAULT_PLAN[k]);if(untouched)st.plan={...BP_PLAN};st.addons={...BP_ADDONS}}
+    /* v20: one program only — your own week. Existing data counts as already set up. */
+    if(st.program!=='custom'&&!d.customPlan)st.customDeload=d.customDeload??true;
+    st.program='custom';st.onboarded=d.onboarded!==false;st.name=d.name!=null?d.name:'Mikkel';
     return st}}catch(e){}
-  return {plan:{...BP_PLAN},logs:[],program:'blueprint',addons:{...BP_ADDONS},cycleStart:null,hrmax:null,habitStart:null};
+  return {plan:{0:'R',1:'R',2:'R',3:'R',4:'R',5:'R',6:'R'},logs:[],program:'custom',addons:{},cycleStart:null,hrmax:null,habitStart:null,onboarded:false,name:'',customDeload:true};
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state));storageOK=true}catch(e){storageOK=false}}
 let state=load();
@@ -864,10 +867,43 @@ function customWeekCard(){
       <div class="duo"><select id="cp-${d}" data-plan="${d}" aria-label="${cap(DAYS[d])}: pas">${PLAN_GROUPS.map(([g,ks])=>`<optgroup label="${g}">${ks.map(x=>`<option value="${x}"${k===x?' selected':''}>${esc(SESS[x].name)}</option>`).join('')}</optgroup>`).join('')}</select>
       <select id="ca-${d}" data-addon="${d}" aria-label="${cap(DAYS[d])}: bagefter"${se.kind==='hvile'||se.kind==='mobilitet'?' disabled':''}><option value="">Intet bagefter</option><option value="MOB"${ad==='MOB'?' selected':''}>+ Mobilitet</option><option value="BAL"${ad==='BAL'?' selected':''}>+ Balance</option></select></div></div>`}).join('')}
     <label class="field inline"><span>Deload hver ${DELOAD_EVERY}. uge</span><select id="cdl" data-cdeload="1"><option value="1"${state.customDeload!==false?' selected':''}>Til</option><option value="0"${state.customDeload===false?' selected':''}>Fra</option></select></label>
-    <div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn ghost" data-act="customfrom" data-p="blueprint">Start fra Blueprint</button><button class="btn ghost" data-act="customfrom" data-p="egen">Start fra Standard</button></div>
+    <button class="btn ghost" data-act="obstart">Planlæg ugen forfra</button>
   </section>`;
 }
 function syncCustom(){if(state.program==='custom'){state.customPlan={...state.plan};state.customAddons={...(state.addons||{})}}}
+/* ---------- First run: plan your week ---------- */
+const GOALS=[{id:'styrke',name:'Styrke',desc:'Tunge løft med vægtforslag'},{id:'kondition',name:'Kondition',desc:'Intervaller og zone 2 for VO₂max'},{id:'crossfit',name:'CrossFit',desc:'Pas bygget efter regler'},{id:'mobilitet',name:'Mobilitet',desc:'10 min efter træning'}];
+function obSuggest(days,goals){
+  const plan={0:'R',1:'R',2:'R',3:'R',4:'R',5:'R',6:'R'},addons={};
+  const pools={styrke:['A','B','C','A','B','C'],kondition:['I5','Z2L','I30B','Z2','I4','Z2L'],crossfit:['CF','CF','CF','CF','CF','CF']};
+  let main=goals.filter(g=>pools[g]);
+  if(!main.length&&goals.includes('mobilitet')){days.forEach((d,i)=>plan[d]=i%2?'BAL':'MOB');return {plan,addons}}
+  if(!main.length)main=['styrke'];
+  const idx={};main.forEach(g=>idx[g]=0);
+  days.forEach((d,i)=>{const g=main[i%main.length];plan[d]=pools[g][idx[g]++%pools[g].length]});
+  if(goals.includes('mobilitet'))days.forEach(d=>{const k=SESS[plan[d]].kind;if(k==='styrke'||(!main.includes('styrke')&&k!=='mobilitet'))addons[d]='MOB'});
+  return {plan,addons};
+}
+function obInit(){const days=Object.keys(state.plan).map(Number).filter(d=>state.plan[d]!=='R');
+  ui.ob={step:1,name:state.name||'',days:days.length?days:[1,3,5],goals:['styrke','kondition'],plan:null,addons:null}}
+function viewOnboard(){
+  const o=ui.ob||(obInit(),ui.ob),order=[1,2,3,4,5,6,0];
+  const dots=`<p class="eyebrow num">Trin ${o.step} af 3</p>`;
+  if(o.step===1)return `${dots}<h2 class="h2">Velkommen</h2><p class="note">Lad os sætte din træningsuge op. Det tager et minut, og du kan altid ændre den bagefter.</p>
+    <section class="card"><label class="field"><span>Hvad hedder du?</span><input id="ob-name" data-bind="ob.name" value="${esc(o.name)}" placeholder="Dit navn"></label></section>
+    <section class="card"><div class="row-between"><h3 class="sec">Hvilke dage vil du træne?</h3><span class="muted small num">${o.days.length} dage</span></div>
+      <div class="chips">${order.map(d=>`<button class="${o.days.includes(d)?'on':''}" data-act="obday" data-v="${d}">${cap(DAYS[d]).slice(0,3)}</button>`).join('')}</div>
+      <p class="hint">3–5 dage giver plads til både træning og restitution.</p></section>
+    <button class="btn accent" data-act="obnext"${o.days.length?'':' disabled'}>Videre</button>`;
+  if(o.step===2)return `${dots}<h2 class="h2">Hvad vil du træne?</h2><p class="note">Vælg en eller flere. Appen fordeler dem på dine ${o.days.length} dage.</p>
+    <div class="fmt-grid">${GOALS.map(g=>`<button class="fmt${o.goals.includes(g.id)?' on':''}" data-act="obgoal" data-v="${g.id}"><b>${g.name}</b><small>${g.desc}</small></button>`).join('')}</div>
+    <div class="btns3" style="grid-template-columns:1fr 2fr"><button class="btn ghost" data-act="obback">Tilbage</button><button class="btn accent" data-act="obnext"${o.goals.length?'':' disabled'}>Lav min uge</button></div>`;
+  return `${dots}<h2 class="h2">Din uge</h2><p class="note">Her er et forslag. Ret de dage, du vil have anderledes.</p>
+    <section class="card">${order.map(d=>{const k=o.plan[d]||'R',se=SESS[k],ad=o.addons[d]||'';return `<div class="dayrow"><b class="k-${se.kind}"><span class="bar"></span>${cap(DAYS[d])}</b>
+      <div class="duo"><select id="ob-p-${d}" data-obplan="${d}">${PLAN_GROUPS.map(([g,ks])=>`<optgroup label="${g}">${ks.map(x=>`<option value="${x}"${k===x?' selected':''}>${esc(SESS[x].name)}</option>`).join('')}</optgroup>`).join('')}</select>
+      <select id="ob-a-${d}" data-obaddon="${d}"${se.kind==='hvile'||se.kind==='mobilitet'?' disabled':''}><option value="">Intet bagefter</option><option value="MOB"${ad==='MOB'?' selected':''}>+ Mobilitet</option><option value="BAL"${ad==='BAL'?' selected':''}>+ Balance</option></select></div></div>`}).join('')}</section>
+    <div class="btns3" style="grid-template-columns:1fr 2fr"><button class="btn ghost" data-act="obback">Tilbage</button><button class="btn accent" data-act="obdone">Start træningen</button></div>`;
+}
 function viewHabitNew(){
   const n=ui.nh;
   return `<div class="habit-head"><button class="icon-btn" data-act="view" data-view="habits" aria-label="Tilbage">‹</button><h2 class="h2">Ny vane</h2></div>
@@ -961,7 +997,6 @@ function viewProg(){
   else tHtml='<p class="empty">Log fx en 3 km løbetest under Log → Test.</p>';
   const all=trainLogs().sort(byDate).reverse();
   return `<h2 class="h2">Udvikling</h2>
-  ${state.program==='blueprint'?goalsCard(TODAY):''}
   <section class="card"><h3 class="sec">Kropsvægt</h3>${wHtml}</section>
   <section class="card"><h3 class="sec">Styrke</h3>${sHtml}</section>
   <section class="card"><h3 class="sec">Tests og tider</h3>${tHtml}</section>
@@ -969,18 +1004,17 @@ function viewProg(){
 }
 function viewSettings(){
   return `<h2 class="h2">Plan og data</h2>
-  <section class="card"><h3 class="sec">Program</h3>
-    <div class="progsw three"><button class="${state.program==='blueprint'?'on':''}" data-act="program" data-p="blueprint">Blueprint<small>6 t/uge</small></button><button class="${state.program==='egen'?'on':''}" data-act="program" data-p="egen">Standard<small>Styrke og VO₂</small></button><button class="${state.program==='custom'?'on':''}" data-act="program" data-p="custom">Egen<small>Du bestemmer</small></button></div>
-    ${state.program==='blueprint'?'<p class="hint">3 styrkepas, 2 intervalpas og 2 lange zone 2-pas. Mobilitet efter hvert styrkepas og balance om søndagen. Hver 5. uge er en deload-uge.</p>':state.program==='custom'?'<p class="hint">Sæt din egen uge sammen herunder. Kalenderen og forsiden følger med med det samme.</p>':''}</section>
-  ${state.program==='custom'?customWeekCard():''}
+  <section class="card"><h3 class="sec">Dig</h3>
+    <label class="field"><span>Navn</span><input id="nm" value="${esc(state.name||'')}" placeholder="Dit navn"></label></section>
+  ${customWeekCard()}
   <section class="card"><h3 class="sec">Puls</h3>
     <label class="field"><span>Makspuls (bpm)</span><input id="hrmax" inputmode="numeric" value="${state.hrmax||''}" placeholder="fx 190"></label>
     <p class="hint">Bedst målt i slutningen af en hård test. Kender du den ikke, så brug 208 − 0,7 × din alder som start.</p>
     ${state.hrmax?`<p class="hint num">Zone 2: ${hr(.6)}–${hr(.7)} · Intervaller: ${hr(.9)}–${hr(.95)}</p>`:''}</section>
-  ${state.program==='blueprint'?`<section class="card"><h3 class="sec">Deload</h3>
+  ${state.customDeload!==false?`<section class="card"><h3 class="sec">Deload</h3>
     <p class="hint num">Hver ${DELOAD_EVERY}. uge er en let uge. ${state.cycleStart?(isDeload(TODAY)?'Du er i deload-uge nu.':`Du er i uge ${cycleWeek(TODAY)%DELOAD_EVERY+1} af ${DELOAD_EVERY}.`):''}</p>
     <button class="btn ghost" data-act="cyclereset">Start cyklus forfra i denne uge</button></section>`:''}
-  ${state.program==='custom'?'':`<section class="card"><h3 class="sec">Ugeplan</h3><p class="hint">Vælg hvilket pas der ligger på hver ugedag. Vil du også styre mobilitet og deload, så vælg Egen ovenfor.</p>
+  ${true?'':`<section class="card"><h3 class="sec">Ugeplan</h3><p class="hint">Vælg hvilket pas der ligger på hver ugedag. Vil du også styre mobilitet og deload, så vælg Egen ovenfor.</p>
     ${[1,2,3,4,5,6,0].map(d=>`<label class="field inline"><span>${cap(DAYS[d])}</span><select id="p-${d}" data-plan="${d}">${Object.entries(SESS).map(([k,s])=>`<option value="${k}"${state.plan[d]===k?' selected':''}>${s.name}</option>`).join('')}</select></label>`).join('')}
     <button class="btn ghost" data-act="resetplan">Gendan standardplan</button></section>`}
   <section class="card"><h3 class="sec">Backup</h3>
@@ -1139,12 +1173,13 @@ function viewTimer(){
 function habitCss(){let el=document.getElementById('hab-css');if(!el){el=document.createElement('style');el.id='hab-css';document.head.appendChild(el)}
   el.textContent=(state.customHabits||[]).map(c=>`.k-${c.id}{--k:${c.color}}`).join('')}
 function render(top){habitCss();
-  const v=ui.view;
+  if(!state.onboarded&&ui.view!=='onboard')ui.view='onboard';
+  const v=ui.view;$('.tabs').hidden=v==='onboard';$('.top .icon-btn').hidden=v==='onboard';
   $('#main').innerHTML=(storageOK?'':'<p class="warn">Browseren tillader ikke at gemme her. Åbn siden i Chrome og tilføj den til startskærmen, ellers forsvinder dine logs.</p>')+
     (timer&&v!=='timer'?'<button class="btn primary" data-act="view" data-view="timer">Timeren kører · gå tilbage</button>':'')+
-    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():viewSettings());
+    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():viewSettings());
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')));
-  {const st=sessFor(TODAY);$('#hdr-hi').textContent='Hej Mikkel! · '+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='cf'?'Byg dagens WOD':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
+  {const st=sessFor(TODAY);$('#hdr-hi').textContent=(state.name?'Hej '+state.name+'! · ':'')+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='onboard'?'Styrke & VO₂ log':v==='cf'?'Byg dagens WOD':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
   if(top)window.scrollTo(0,0);
 }
 let tt;function toast(msg){const el=$('#toast');el.textContent=msg;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>{el.hidden=true},2200)}
@@ -1187,7 +1222,7 @@ function doRestore(){
   let d;try{d=JSON.parse(ui.impText)}catch(e){d=null}
   if(!d||!Array.isArray(d.logs)){ui.pendingRestore=false;render();return toast('Teksten er ikke en gyldig backup')}
   if(!ui.pendingRestore){ui.pendingRestore=true;return render()}
-  state={plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:d.program||'blueprint',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);
+  state={plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:'custom',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,name:d.name,onboarded:true,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);
 }
 function guessUnit(name){
   const prev=logsOf('test').filter(l=>l.name===name);if(prev.length)return prev[prev.length-1].unit;
@@ -1271,6 +1306,13 @@ document.addEventListener('click',e=>{
     case 'taksave':{const txt=(ui.takText||'').trim();const ex=state.logs.find(l=>l.type==='tak'&&l.date===TODAY);if(ex){if(txt)ex.text=txt}else state.logs.push({id:Date.now().toString(36),date:TODAY,type:'tak',text:txt});ui.takText='';save();render();toast('Gemt');break}
     case 'habitreset':state.habitStart=mondayOf(TODAY);save();render();toast('Vaner starter forfra i uge 1');break;
     case 'cyclereset':state.cycleStart=mondayOf(TODAY);save();render();toast('Uge 1 af '+DELOAD_EVERY);break;
+    case 'obstart':obInit();ui.view='onboard';render(true);break;
+    case 'obday':{const d=+b.dataset.v,o=ui.ob;o.days=o.days.includes(d)?o.days.filter(x=>x!==d):o.days.concat(d);render();break}
+    case 'obgoal':{const g=b.dataset.v,o=ui.ob;o.goals=o.goals.includes(g)?o.goals.filter(x=>x!==g):o.goals.concat(g);render();break}
+    case 'obnext':{const o=ui.ob;if(o.step===2){const order=[1,2,3,4,5,6,0],sug=obSuggest(order.filter(d=>o.days.includes(d)),o.goals);o.plan=sug.plan;o.addons=sug.addons}o.step++;render(true);break}
+    case 'obback':ui.ob.step--;render(true);break;
+    case 'obdone':{const o=ui.ob;state.plan={...o.plan};state.addons={...o.addons};state.program='custom';state.name=o.name.trim();state.onboarded=true;state.shifts=[];state.skips={};state.overrides=state.overrides||{};
+      state.cycleStart=mondayOf(TODAY);syncCustom();save();ui.ob=null;ui.view='today';render(true);toast('Din uge er klar');break}
     case 'customfrom':{const bp=b.dataset.p==='blueprint';state.plan=bp?{...BP_PLAN}:{...DEFAULT_PLAN};state.addons=bp?{...BP_ADDONS}:{};syncCustom();save();render();toast('Kopieret. Ret dagene til.');break}
     case 'program':if(b.dataset.p==='custom'){if(state.program!=='custom'){state.plan=state.customPlan?{...state.customPlan}:{...state.plan};state.addons=state.customAddons?{...state.customAddons}:{...(state.addons||{})};state.program='custom';if(!state.cycleStart)state.cycleStart=mondayOf(TODAY);syncCustom();save()}render();toast('Egen plan valgt');break}
     {const bp=b.dataset.p==='blueprint';state.program=bp?'blueprint':'egen';state.plan=bp?{...BP_PLAN}:{...DEFAULT_PLAN};state.addons=bp?{...BP_ADDONS}:{};state.cycleStart=mondayOf(TODAY);save();render();toast(bp?'Blueprint-program valgt':'Standardplan valgt');break}
@@ -1299,6 +1341,9 @@ document.addEventListener('change',e=>{
     if(r&&!r.sets.some(s=>s.done)){const tg=target(t.value);ui.rows[i]=makeRow(t.value.trim(),r.sets.length,tg?tg.reps:r.tReps,tg?tg.rir:r.tRir);render()}}
   else if(t.id==='hrmax'){const v=parseInt(t.value);state.hrmax=v>=140&&v<=230?v:null;save();render();toast(state.hrmax?'Makspuls gemt':'Skriv et tal mellem 140 og 230')}
   else if(t.dataset.plan!==undefined){state.plan[t.dataset.plan]=t.value;const kk=SESS[t.value].kind;if(kk==='hvile'||kk==='mobilitet'){const a={...(state.addons||{})};delete a[t.dataset.plan];state.addons=a}syncCustom();save();render();toast('Ugeplan opdateret')}
+  else if(t.dataset.obplan!==undefined){const d=t.dataset.obplan,o=ui.ob;o.plan[d]=t.value;const kk=SESS[t.value].kind;if(kk==='hvile'||kk==='mobilitet')delete o.addons[d];render()}
+  else if(t.dataset.obaddon!==undefined){const d=t.dataset.obaddon,o=ui.ob;if(t.value)o.addons[d]=t.value;else delete o.addons[d]}
+  else if(t.id==='nm'){state.name=t.value.trim();save();render()}
   else if(t.dataset.addon!==undefined){const a={...(state.addons||{})};if(t.value)a[t.dataset.addon]=t.value;else delete a[t.dataset.addon];state.addons=a;syncCustom();save();toast('Ugeplan opdateret')}
   else if(t.dataset.cdeload!==undefined){state.customDeload=t.value==='1';save();render()}
   else if(t.id==='p-ex'){ui.progEx=t.value;render()}
@@ -1308,7 +1353,7 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(timer&&!timer.paused)keepAwake();const n=ds(new Date());if(n!==TODAY){TODAY=n;render()}}});
 
-if(state.program==='blueprint'&&!state.cycleStart){delete state.needCycle;state.cycleStart=mondayOf(TODAY);save()}
+if(state.onboarded&&!state.cycleStart){delete state.needCycle;state.cycleStart=mondayOf(TODAY);save()}
 if(!state.habitStart){state.habitStart=mondayOf(TODAY);save()}
 render();
 </script>
