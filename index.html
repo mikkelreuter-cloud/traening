@@ -357,6 +357,12 @@ textarea{resize:vertical}
 .tour-dots i.on{width:20px;background:var(--accent)}
 .tour-btns{display:flex;gap:10px;padding:0 20px}
 .tour-btns button{flex:1}
+.ac{position:absolute;z-index:15;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px rgb(0 0 0 / .35);overflow:hidden;max-height:300px;overflow-y:auto}
+.ac[hidden]{display:none}
+.ac button{appearance:none;display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:13px 14px;color:var(--fg);font:500 15px/1.25 var(--font);cursor:pointer}
+.ac button:first-child{border-top:0}
+.ac button small{display:block;color:var(--muted);font-size:12px;font-weight:400;margin-top:2px}
+.ac button:active{background:var(--surface-2)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(160px + env(safe-area-inset-bottom,0px));background:var(--nav);color:#fff;padding:11px 18px;border-radius:999px;font-weight:500;font-size:14px;z-index:6;max-width:calc(100% - 32px);text-align:center;box-shadow:0 10px 30px rgb(0 0 0 / .25)}
 </style>
 </head>
@@ -387,6 +393,7 @@ textarea{resize:vertical}
 <div class="restbar" id="restbar" hidden><span id="rest-t" class="num">Pause</span><button data-act="reststop">Stop</button></div>
 <div class="toast" id="toast" hidden></div>
 <div class="tour" id="tour" hidden></div>
+<div class="ac" id="ac" hidden></div>
 
 <script src="sw.js"></script>
 <script>
@@ -938,7 +945,7 @@ function strEditor(e){const m=e.mode,has=e.ex.some(x=>x.n.trim());
     ${has?`<section class="card" id="se-result"><h3 class="sec">Dit pas</h3>${e.ex.map((x,i)=>!x.n.trim()?'':`<div class="mvrow"><div><b>${esc(x.n)}</b><small class="exmeta" style="display:block">${x.s} × ${x.r} · ${x.q} tilbage</small></div><button class="rm sw" data-act="seswap" data-i="${i}" aria-label="Byt øvelse">↻</button></div>`).join('')}
       <button class="restbtn" data-act="semode" data-v="self">Ret øvelserne selv</button><p class="hint">↻ bytter til en lignende øvelse.</p></section>`:''}`}
   if(m==='self')return choose+`<section class="card"><h3 class="sec">Øvelser</h3>
-    ${e.ex.map((x,i)=>{const lx=strFor(x.n),miss=lx&&!strOk(lx);return `<div class="exblk"><div class="exblk-top"><input class="exn-in" id="se-n${i}" data-bind="se.ex.${i}.n" value="${esc(x.n)}" list="exlist2" placeholder="Skriv eller vælg øvelse"><button class="rm" data-act="seswap" data-i="${i}" aria-label="Byt øvelse" title="Byt">↻</button><button class="rm" data-act="serm" data-i="${i}" aria-label="Fjern øvelse">×</button></div>
+    ${e.ex.map((x,i)=>{const lx=strFor(x.n),miss=lx&&!strOk(lx);return `<div class="exblk"><div class="exblk-top"><input class="exn-in" id="se-n${i}" data-bind="se.ex.${i}.n" value="${esc(x.n)}" data-ac="ex" autocomplete="off" placeholder="Skriv eller vælg øvelse"><button class="rm" data-act="seswap" data-i="${i}" aria-label="Byt øvelse" title="Byt">↻</button><button class="rm" data-act="serm" data-i="${i}" aria-label="Fjern øvelse">×</button></div>
       ${lx?`<small class="exmeta${miss?' warn':''}">${miss?'Kræver ':''}${esc(lx[1])} · ${esc(lx[2])}</small>`:''}
       <div class="exnums"><label><span>Sæt</span><input id="se-s${i}" inputmode="numeric" data-bind="se.ex.${i}.s" value="${esc(x.s)}"></label><label><span>Gent.</span><input id="se-r${i}" inputmode="numeric" data-bind="se.ex.${i}.r" value="${esc(x.r)}"></label><label><span>Tilbage</span><input id="se-q${i}" inputmode="numeric" data-bind="se.ex.${i}.q" value="${esc(x.q)}"></label></div></div>`}).join('')}
     <datalist id="exlist2">${allExercises().map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
@@ -1009,7 +1016,7 @@ function formStyrke(){
   <p class="hint">Udfyldt med dine tal fra sidst og dagens vægtforslag. Ret tallene og tryk ✓ efter hvert sæt, så starter pausen. Tilbage = hvor mange gentagelser du kunne have taget mere.</p>
   <div class="rows">${ui.rows.map((r,i)=>{const g=suggest(r.ex),prev=lastSets(r.ex);const tq=r.tRir??(target(r.ex)||{}).rir;const tr=r.tReps??(target(r.ex)||{}).reps;
     const wu=warmup(r.ex,num(r.sets[0]&&r.sets[0].kg));const dn=r.sets.filter(s=>s.done).length;return `<div class="srow card">
-    <div class="row-between"><input id="r${i}-ex" class="exin" value="${esc(r.ex)}" placeholder="Øvelse" data-row="${i}" data-f="ex" list="exlist" aria-label="Øvelse"><span class="muted small num">${dn}/${r.sets.length}</span><button class="x" data-act="rmrow" data-i="${i}" aria-label="Fjern øvelse">×</button></div>
+    <div class="row-between"><input id="r${i}-ex" class="exin" value="${esc(r.ex)}" placeholder="Øvelse" data-row="${i}" data-f="ex" data-ac="ex" autocomplete="off" aria-label="Øvelse"><span class="muted small num">${dn}/${r.sets.length}</span><button class="x" data-act="rmrow" data-i="${i}" aria-label="Fjern øvelse">×</button></div>
     ${tr||tq!=null||g?`<p class="hint num">${tr?`Mål: ${r.sets.length} sæt × ${tr}`:''}${tq!=null?` · ${tq} tilbage`:''}${g?` · Forslag <b class="sugb">${esc(g.text)}</b>`:''}</p>`:''}
     ${wu?`<p class="hint num">Opvarmning: ${wu}</p>`:''}
     <div class="sets"><div class="set head"><span>Sæt</span><span>kg</span><span>Gent.</span><span>Tilbage</span><span></span></div>
@@ -1034,7 +1041,7 @@ function formVaegt(){
 }
 function formTest(){
   const t=ui.t,ph={tid:'12:30','kg':'140','m':'2950','reps':'15','ml/kg/min':'52'}[t.unit];
-  return `<label class="field"><span>Test</span><input id="t-name" list="tlist" value="${esc(t.name)}" data-bind="t.name" placeholder="Fx 3 km løb"></label>
+  return `<label class="field"><span>Test</span><input id="t-name" data-ac="test" autocomplete="off" value="${esc(t.name)}" data-bind="t.name" placeholder="Fx 3 km løb"></label>
   <datalist id="tlist">${[...new Set([...TESTS,...testNames()])].map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
   <div class="duo"><label><span>Resultat</span><input id="t-val" inputmode="${t.unit==='tid'?'text':'decimal'}" value="${esc(t.val)}" data-bind="t.val" placeholder="${ph}"></label>
   <label><span>Enhed</span><select id="t-unit" data-bind="t.unit">${['tid','kg','m','reps','ml/kg/min'].map(u=>`<option value="${u}"${t.unit===u?' selected':''}>${u==='tid'?'tid (mm:ss)':u}</option>`).join('')}</select></label></div>`;
@@ -1408,7 +1415,7 @@ addEventListener('popstate',e=>{const st=e.state;if(!st||!st.view)return;navDept
   navFromPop=true;ui.view=st.view;if(st.sel)ui.sel=st.sel;if(st.trKey)ui.trKey=st.trKey;if(ui.cf&&st.cfStep)ui.cf.step=st.cfStep;if(ui.ob&&st.obStep)ui.ob.step=st.obStep;
   if((st.view==='sessedit'||st.view==='expick')&&!ui.se)ui.view='train';if(st.view==='expick'&&!ui.pick)ui.view='sessedit';
   render(true);if(ui.view==='sessedit'&&ui.seScroll){scrollTo(0,ui.seScroll);ui.seScroll=0}});
-function render(top){habitCss();
+function render(top){if(typeof acHide==='function'&&!$('#ac').hidden)acHide();habitCss();
   if(!state.onboarded&&ui.view!=='onboard')ui.view='onboard';
   const v=ui.view;$('.tabs').hidden=v==='onboard';$('.top .icon-btn').hidden=v==='onboard';
   $('#main').innerHTML=(storageOK?'':'<p class="warn">Browseren tillader ikke at gemme her. Åbn siden i Chrome og tilføj den til startskærmen, ellers forsvinder dine logs.</p>')+
@@ -1433,6 +1440,26 @@ function showTour(){const el=$('#tour');
   el.hidden=false;const tr=$('#tour-track');
   tr.addEventListener('scroll',()=>{const i=Math.round(tr.scrollLeft/tr.clientWidth);el.querySelectorAll('.tour-dots i').forEach((d,j)=>d.classList.toggle('on',j===i));$('#tour-next').textContent=i===TOUR.length-1?'Kom i gang':'Næste'},{passive:true})}
 function endTour(){$('#tour').hidden=true;$('#tour').innerHTML='';state.tourSeen=true;state.tipSeen=true;save()}
+/* ---------- Own suggestion list under text fields (the phone's built-in one is see-through in dark mode) ---------- */
+let acFor=null;
+function acSource(kind){if(kind==='test')return [...new Set([...TESTS,...testNames()])].map(n=>[n,'']);
+  return allExercises().map(n=>{const x=strFor(n);return [n,x?x[1]+(strOk(x)?'':' · ikke i dit udstyr'):'',x&&!strOk(x)?1:0]})}
+function acShow(inp){const q=inp.value.trim().toLowerCase(),box=$('#ac');acFor=inp;
+  if(!q){box.hidden=true;return}
+  const m=acSource(inp.dataset.ac).filter(([n])=>n.toLowerCase().includes(q)&&n.toLowerCase()!==q)
+    .sort((a,b)=>(a[2]||0)-(b[2]||0)||(b[0].toLowerCase().startsWith(q)-a[0].toLowerCase().startsWith(q))||a[0].localeCompare(b[0],'da')).slice(0,6);
+  if(!m.length){box.hidden=true;return}
+  box.innerHTML=m.map(([n,sub])=>`<button type="button" data-n="${esc(n)}">${esc(n)}${sub?`<small>${esc(sub)}</small>`:''}</button>`).join('');
+  const r=inp.getBoundingClientRect();box.style.left=(r.left+scrollX)+'px';box.style.top=(r.bottom+scrollY+6)+'px';box.style.width=r.width+'px';box.hidden=false}
+function acHide(){$('#ac').hidden=true;acFor=null}
+$('#ac').addEventListener('pointerdown',e=>e.preventDefault());
+$('#ac').addEventListener('click',e=>{const b=e.target.closest('button[data-n]');if(!b||!acFor)return;const inp=acFor,n=b.dataset.n;acHide();
+  inp.value=n;inp.dispatchEvent(new Event('input',{bubbles:true}));
+  const m=/^se-n(\d+)$/.exec(inp.id);
+  if(m&&ui.se){const row=ui.se.ex[+m[1]],x=strFor(n);if(x&&row.s==='3'&&row.r==='8'&&row.q==='2'){row.s=String(x[4]);row.r=String(x[5]);row.q=String(x[6])}render()}
+  else inp.dispatchEvent(new Event('change',{bubbles:true}));inp.blur()});
+document.addEventListener('focusin',e=>{const t=e.target;if(t.dataset&&t.dataset.ac)acShow(t)});
+document.addEventListener('focusout',e=>{if(e.target===acFor)setTimeout(()=>{if(document.activeElement!==acFor)acHide()},150)});
 let tt;function toast(msg){const el=$('#toast');el.textContent=msg;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>{el.hidden=true},2200)}
 
 /* ---------- actions ---------- */
@@ -1625,6 +1652,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('input',e=>{
   const t=e.target;
+  if(t.dataset.ac)acShow(t);
   if(t.id==='pk-q'){const q=t.value.trim().toLowerCase();document.querySelectorAll('.pk-row').forEach(r=>r.hidden=!!q&&!r.dataset.q.includes(q));document.querySelectorAll('.pk-grp').forEach(g=>g.hidden=![...g.querySelectorAll('.pk-row')].some(r=>!r.hidden));return}
   if(t.dataset.row!==undefined){const r=ui.rows[+t.dataset.row];if(r){r[t.dataset.f]=t.value;ui.dirty=true}return}
   if(t.dataset.set!==undefined){const [i,j]=t.dataset.set.split('.').map(Number),r=ui.rows[i];if(!r)return;const s=r.sets[j],f=t.dataset.f,old=s[f];s[f]=t.value;ui.dirty=true;
