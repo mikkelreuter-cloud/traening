@@ -487,7 +487,7 @@ function load(){
     if(st.program==='blueprint'&&st.plan[2]==='I4'&&st.plan[0]==='Z2L')st.plan[2]='I5';
     /* v9: move 30/15 to Friday and Styrke C to Saturday, so intervals never follow a heavy leg day */
     if(st.program==='blueprint'&&st.plan[5]==='C'&&st.plan[6]==='I30B'){st.plan[5]='I30B';st.plan[6]='C';if(st.addons[5]==='MOB'){delete st.addons[5];st.addons[6]='MOB'}}
-    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.sessEdits=d.sessEdits||{};st.customSess=d.customSess||{};st.customPlan=d.customPlan||null;st.customAddons=d.customAddons||null;st.customDeload=d.customDeload;st.overrides=d.overrides||{};st.cfDays=d.cfDays||{};st.cfPrefs=d.cfPrefs||null;st.strUdstyr=d.strUdstyr||null;st.shifts=Array.isArray(d.shifts)?d.shifts:[];
+    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.sessEdits=d.sessEdits||{};st.customSess=d.customSess||{};st.customPlan=d.customPlan||null;st.customAddons=d.customAddons||null;st.customDeload=d.customDeload;st.overrides=d.overrides||{};st.cfDays=d.cfDays||{};st.cfPrefs=d.cfPrefs||null;st.strUdstyr=d.strUdstyr||null;st.strGen=d.strGen||null;st.shifts=Array.isArray(d.shifts)?d.shifts:[];
     if(!st.program){const untouched=Object.keys(DEFAULT_PLAN).every(k=>st.plan[k]===DEFAULT_PLAN[k]);if(untouched)st.plan={...BP_PLAN};st.addons={...BP_ADDONS}}
     /* v20: one program only — your own week. Existing data counts as already set up. */
     if(st.program!=='custom'&&!d.customPlan)st.customDeload=d.customDeload??true;
@@ -613,7 +613,7 @@ const STR_LIB=[
  ["Farmer's walk (meter)",EQ_DB,'Helkrop','carry',3,40,1],['Suitcase carry (meter pr. side)',EQ_DB,'Core','carry',3,30,2],
  ['Kettlebell swing',EQ_KB,'Bagside','hinge',4,15,2],['Dobbelt kettlebell frontsquat',EQ_KB,'Ben','squat',3,8,2],['Kettlebell clean & press (pr. arm)',EQ_KB,'Skuldre','push_v',3,6,2],
  ['Kettlebell-roning (pr. arm)',EQ_KB,'Ryg','pull_h',3,10,2],['Turkish get-up (pr. side)',EQ_KB,'Helkrop','core',3,2,2],['Kettlebell snatch (pr. arm)',EQ_KB,'Helkrop','power',4,6,2],
- ['Kabelroning siddende',EQ_CB,'Ryg','pull_h',3,10,1],['Lat pulldown',EQ_CB,'Ryg','pull_v',3,10,1],['Straight-arm pulldown',EQ_CB,'Ryg','pull_v',3,12,2],['Face pulls',EQ_CB,'Skuldre','delt',3,15,2],
+ ['Kabelroning siddende',EQ_CB,'Ryg','pull_h',3,10,1],['Lat pulldown',EQ_CB,'Ryg','pull_v',3,10,1],['Straight-arm pulldown',EQ_CB,'Ryg','pull_iso',3,12,2],['Face pulls',EQ_CB,'Skuldre','delt',3,15,2],
  ['Kabel-flyes',EQ_CB,'Bryst','chest_iso',3,12,2],['Triceps pushdown',EQ_CB,'Arme','arms',3,12,1],['Kabel-curl',EQ_CB,'Arme','arms',3,12,1],['Pallof press (pr. side)',EQ_CB,'Core','core',3,10,2],['Kabel-woodchop (pr. side)',EQ_CB,'Core','core',3,10,2],
  ['Benpres',EQ_MA,'Ben','squat',3,10,2],['Hack squat',EQ_MA,'Ben','squat',3,8,2],['Leg extension',EQ_MA,'Ben','leg_iso',3,12,1],['Leg curl',EQ_MA,'Bagside','leg_iso',3,10,1],
  ['Lægpres i maskine',EQ_MA,'Ben','calves',3,12,1],['Brystpres i maskine',EQ_MA,'Bryst','push_h',3,10,1],['Skulderpres i maskine',EQ_MA,'Skuldre','push_v',3,10,1],['Roning i maskine',EQ_MA,'Ryg','pull_h',3,10,1],
@@ -632,14 +632,31 @@ const strHave=()=>state.strUdstyr||STR_EQ;
 const strOk=x=>x[1]===EQ_NO||strHave().includes(x[1]);
 const strFor=n=>STR_BY.get(String(n||'').trim().toLowerCase());
 /* Build a session: one exercise per slot, picking from what the equipment allows. Earlier slots are the heavy lifts. */
-const STR_FOCUS={hel:['Helkrop',[['squat'],['hinge'],['push_h','push_v'],['pull_v','pull_h'],['lunge'],['core','carry']]],
- over:['Overkrop',[['push_h'],['pull_v'],['push_v'],['pull_h'],['delt','chest_iso'],['arms']]],
- under:['Underkrop',[['squat'],['hinge'],['lunge'],['glute','leg_iso'],['calves','carry'],['core']]]};
+const STR_FOCUS={hel:['Helkrop',[['squat'],['hinge'],['push_h','push_v'],['pull_v','pull_h'],['lunge'],['push_v','push_h'],['pull_h','pull_v'],['core','carry'],['delt','arms']]],
+ over:['Overkrop',[['push_h'],['pull_v'],['push_v'],['pull_h'],['delt','chest_iso'],['arms'],['arms'],['core']]],
+ under:['Underkrop',[['squat'],['hinge'],['lunge'],['glute'],['leg_iso'],['calves'],['carry'],['core']]],
+ bryst:['Bryst',[['push_h'],['push_h'],['chest_iso'],['push_v'],['arms'],['chest_iso'],['delt'],['core']]],
+ ryg:['Ryg',[['pull_v'],['pull_h'],['hinge'],['pull_h','pull_v'],['pull_iso','delt'],['arms'],['carry'],['core']]],
+ ben:['Ben',[['squat'],['hinge'],['lunge'],['leg_iso'],['glute'],['calves'],['squat'],['core']]],
+ arme:['Skuldre og arme',[['push_v'],['delt'],['arms'],['arms'],['delt'],['arms'],['push_v'],['core']]],
+ core:['Core',[['core'],['carry'],['core'],['hinge'],['core'],['core'],['carry']]]};
+const STR_TIME=[30,45,60,75];
+const STR_INT={let:['Let','Flere gentagelser, god margin'],mod:['Moderat','Klassisk styrke og muskler'],tung:['Tung','Få gentagelser, tæt på max']};
+const STR_MAIN=['squat','hinge','push_h','push_v','pull_h','pull_v','lunge','power'];
 const pickRand=a=>a[Math.floor(Math.random()*a.length)];
-function strSuggest(focus){const used=new Set(),out=[];
-  STR_FOCUS[focus][1].forEach(pats=>{const c=STR_LIB.filter(x=>pats.includes(x[3])&&strOk(x)&&!used.has(x[0]));const f=c.length?c:STR_LIB.filter(x=>pats.includes(x[3])&&x[1]===EQ_NO&&!used.has(x[0]));
-    if(f.length){const x=pickRand(f);used.add(x[0]);out.push({n:x[0],s:String(x[4]),r:String(x[5]),q:String(x[6])})}});
+const perSetMin=i=>i==='tung'?2.8:2.2;
+/* Sets, reps and reps in reserve for one exercise at the chosen intensity. Distances and seconds keep their number. */
+function strDose(x,slot,int){let s=x[4],r=x[5],q=x[6];const unit=/\((meter|sek)/.test(x[0]),main=STR_MAIN.includes(x[3]);
+  if(int==='tung'){if(main&&slot<2){s=Math.max(4,s);if(!unit)r=Math.max(3,Math.min(5,r-2));q=1}else{if(!unit)r=Math.max(5,r-2);q=1}}
+  else if(int==='let'){s=Math.min(3,s);if(!unit)r=Math.min(20,r+4);q=3}
+  return {n:x[0],s:String(s),r:String(r),q:String(q)}}
+/* Random session: walks the focus slots in order (heavy lifts first) until the time budget is filled. */
+function strSuggest(o){const f=STR_FOCUS[o.focus]||STR_FOCUS.hel,used=new Set(),out=[],budget=(o.min-8)/perSetMin(o.int);let sets=0;
+  for(let i=0;i<f[1].length&&out.length<9;i++){const pats=f[1][i];
+    let c=STR_LIB.filter(x=>pats.includes(x[3])&&strOk(x)&&!used.has(x[0]));if(!c.length)c=STR_LIB.filter(x=>pats.includes(x[3])&&x[1]===EQ_NO&&!used.has(x[0]));if(!c.length)continue;
+    const d=strDose(pickRand(c),out.length,o.int);if(out.length>=3&&sets+(+d.s)>budget+1)break;used.add(d.n);out.push(d);sets+=+d.s}
   return out}
+const strOpts=()=>({focus:'hel',min:45,int:'mod',...(state.strGen||{})});
 function strSwap(name){const x=strFor(name);const pats=x?[x[3]]:['squat','hinge','push_h','pull_h'];const c=STR_LIB.filter(y=>pats.includes(y[3])&&strOk(y)&&y[0]!==name&&!(ui.se.ex||[]).some(e=>e.n===y[0]));return c.length?pickRand(c):null}
 function allExercises(){const set=new Set();Object.values(SESS).forEach(s=>(s.ex||[]).forEach(e=>set.add(e[0])));loggedExercises().forEach(e=>set.add(e));STR_LIB.forEach(x=>set.add(x[0]));return [...set]}
 const testNames=()=>[...new Set(logsOf('test').map(l=>l.name))];
@@ -888,7 +905,8 @@ function trainRow(k){const se=SESS[k],t=sessKey(TODAY)===k;
 function viewTrain(){
   const cfToday=cfSaved(TODAY);
   return `<h2 class="h2">Træn</h2><p class="note">Tryk på et pas for at se det, starte det eller rette i det.</p>
-  <div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn accent" data-act="trempty">+ Tom træning</button><button class="btn ghost" data-act="senew">+ Nyt pas</button></div>
+  <button class="btn accent" data-act="trrand">🎲 Tilfældigt styrkepas</button>
+  <div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn ghost" data-act="trempty">+ Tom træning</button><button class="btn ghost" data-act="senew">+ Nyt pas</button></div>
   ${trainGroups().map(([g,ks])=>`<section class="tr-grp"><h3 class="sec">${g}</h3>${ks.map(trainRow).join('')}</section>`).join('')}
   <section class="tr-grp"><h3 class="sec">CrossFit</h3><button class="tr-row k-crossfit${sessKey(TODAY)==='CF'?' today':''}" data-act="cfopen" data-date="${TODAY}"><span class="bar"></span><span class="nm">CrossFit${cfToday?` · ${esc(cfToday.title||'')}`:''}</span>${sessKey(TODAY)==='CF'?'<span class="tag">I dag</span>':''}<span class="chev">›</span></button></section>`;
 }
@@ -911,12 +929,13 @@ function viewSessEdit(){
     <label class="field"><span>Navn</span><input id="se-name" data-bind="se.name" value="${esc(e.name)}" placeholder="Fx Overkrop"></label>
     ${builtIn?'':`<div class="field"><span>Type</span><div class="fmt-grid">${SE_KINDS.map(([v,l,d])=>`<button class="fmt${e.kind===v?' on':''}" data-act="sekind" data-v="${v}"><b>${l}</b><small>${d}</small></button>`).join('')}</div></div>`}
   </section>
-  ${e.kind==='styrke'?`<section class="card"><h3 class="sec">Byg et forslag</h3>
-    <div class="chips">${Object.entries(STR_FOCUS).map(([k,[l]])=>`<button class="${(ui.seFocus||'hel')===k?'on':''}" data-act="sefocus" data-v="${k}">${l}</button>`).join('')}</div>
+  ${e.kind==='styrke'?(()=>{const o=strOpts();return `<section class="card"><h3 class="sec">🎲 Tilfældigt pas</h3>
+    <div class="field"><span>Fokus</span><div class="chips">${Object.entries(STR_FOCUS).map(([k,[l]])=>`<button class="${o.focus===k?'on':''}" data-act="segen" data-f="focus" data-v="${k}">${l}</button>`).join('')}</div></div>
+    <div class="field"><span>Tid</span><div class="chips">${STR_TIME.map(m=>`<button class="${o.min===m?'on':''}" data-act="segen" data-f="min" data-v="${m}">${m} min</button>`).join('')}</div></div>
+    <div class="field"><span>Intensitet</span><div class="chips">${Object.entries(STR_INT).map(([k,[l]])=>`<button class="${o.int===k?'on':''}" data-act="segen" data-f="int" data-v="${k}">${l}</button>`).join('')}</div><p class="hint">${STR_INT[o.int][1]}.</p></div>
     <button class="restbtn" data-act="seeqtog">${ui.seEq?'Skjul udstyr':`Udstyr · ${strHave().length} af ${STR_EQ.length} valgt`}</button>
     ${ui.seEq?`<div class="chips">${STR_EQ.map(u=>`<button class="${strHave().includes(u)?'on':''}" data-act="seeq" data-v="${esc(u)}">${esc(u)}</button>`).join('')}</div><p class="hint">Øvelser uden udstyr er altid med.</p>`:''}
-    <button class="btn accent" data-act="sesuggest">${e.ex.some(x=>x.n.trim())?'Byg nyt forslag':'Byg forslag'}</button>
-    <p class="hint">Appen vælger øvelser ud fra dit udstyr. Du kan bytte eller rette dem bagefter.</p></section>
+    <button class="btn accent" data-act="sesuggest">🎲 ${e.ex.some(x=>x.n.trim())?'Bland igen':'Bland et pas'}</button></section>`})()+`
   <section class="card"><h3 class="sec">Øvelser</h3>
     ${e.ex.map((x,i)=>{const lx=strFor(x.n),miss=lx&&!strOk(lx);return `<div class="exblk"><div class="exblk-top"><input class="exn-in" id="se-n${i}" data-bind="se.ex.${i}.n" value="${esc(x.n)}" list="exlist2" placeholder="Skriv eller vælg øvelse"><button class="rm" data-act="seswap" data-i="${i}" aria-label="Byt øvelse" title="Byt">↻</button><button class="rm" data-act="serm" data-i="${i}" aria-label="Fjern øvelse">×</button></div>
       ${lx?`<small class="exmeta${miss?' warn':''}">${miss?'Kræver ':''}${esc(lx[1])} · ${esc(lx[2])}</small>`:''}
@@ -1444,7 +1463,7 @@ function doRestore(){
   let d;try{d=JSON.parse(ui.impText)}catch(e){d=null}
   if(!d||!Array.isArray(d.logs)){ui.pendingRestore=false;render();return toast('Teksten er ikke en gyldig backup')}
   if(!ui.pendingRestore){ui.pendingRestore=true;return render()}
-  state={sessEdits:d.sessEdits||{},customSess:d.customSess||{},plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:'custom',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,name:d.name,onboarded:true,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,strUdstyr:d.strUdstyr||null,shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);applySess();
+  state={sessEdits:d.sessEdits||{},customSess:d.customSess||{},plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:'custom',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,name:d.name,onboarded:true,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,strUdstyr:d.strUdstyr||null,strGen:d.strGen||null,shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);applySess();
 }
 function guessUnit(name){
   const prev=logsOf('test').filter(l=>l.name===name);if(prev.length)return prev[prev.length-1].unit;
@@ -1483,14 +1502,17 @@ document.addEventListener('click',e=>{
       else if(se.kind==='mobilitet'){state.logs.push({id:Date.now().toString(36),date:TODAY,type:'mobilitet',name:se.name,dur:se.min*60});save();render();toast(se.name+' logget · '+se.min+' min')}
       break}
     case 'trsess':ui.trKey=b.dataset.key;ui.view='sess';render(true);break;
+    case 'trrand':{ui.se=seDraft(null);ui.seDel=false;const o=strOpts(),ex=strSuggest(o);if(ex.length)ui.se.ex=ex;ui.seAuto=ui.se.name=`${STR_FOCUS[o.focus][0]} · ${o.min} min · ${STR_INT[o.int][0].toLowerCase()}`;ui.view='sessedit';render(true);break}
     case 'senew':ui.se=seDraft(null);ui.seDel=false;ui.view='sessedit';render(true);break;
     case 'seedit':ui.se=seDraft(b.dataset.key);ui.seDel=false;ui.view='sessedit';render(true);break;
     case 'sebask':ui.view=ui.se&&ui.se.key?'sess':'train';render(true);break;
     case 'sekind':ui.se.kind=b.dataset.v;render();break;
-    case 'sefocus':ui.seFocus=b.dataset.v;render();break;
+    case 'segen':{const o=strOpts();o[b.dataset.f]=b.dataset.f==='min'?+b.dataset.v:b.dataset.v;state.strGen=o;save();render();break}
     case 'seeqtog':ui.seEq=!ui.seEq;render();break;
     case 'seeq':{let have=strHave().slice();const u=b.dataset.v;have=have.includes(u)?have.filter(x=>x!==u):have.concat(u);state.strUdstyr=have.length===STR_EQ.length?null:have;save();render();break}
-    case 'sesuggest':{const ex=strSuggest(ui.seFocus||'hel');if(!ex.length){toast('Vælg mere udstyr');break}ui.se.ex=ex;if(!ui.se.name.trim())ui.se.name=STR_FOCUS[ui.seFocus||'hel'][0];render();toast('Forslag klar');break}
+    case 'sesuggest':{const o=strOpts(),ex=strSuggest(o);if(!ex.length){toast('Vælg mere udstyr');break}ui.se.ex=ex;
+      const nm=`${STR_FOCUS[o.focus][0]} · ${o.min} min · ${STR_INT[o.int][0].toLowerCase()}`;if(!ui.se.name.trim()||ui.se.name===ui.seAuto)ui.se.name=nm;ui.seAuto=nm;render();
+      {const el=document.querySelector('.exblk');if(el)el.scrollIntoView({behavior:'smooth',block:'center'})}break}
     case 'seswap':{const i=+b.dataset.i,x=strSwap(ui.se.ex[i].n);if(!x){toast('Ingen anden lignende øvelse med dit udstyr');break}ui.se.ex[i]={n:x[0],s:String(x[4]),r:String(x[5]),q:String(x[6])};render();break}
     case 'sepick':ui.pick={g:''};ui.seScroll=scrollY;ui.view='expick';render(true);break;
     case 'pickback':ui.view='sessedit';render(true);if(ui.seScroll){scrollTo(0,ui.seScroll);ui.seScroll=0}break;
@@ -1503,7 +1525,7 @@ document.addEventListener('click',e=>{
     case 'sesave':{const e=ui.se,name=e.name.trim();if(!name){toast('Giv passet et navn');break}
       const data={name,note:e.note.trim()};
       if(e.kind==='styrke'){const ex=e.ex.filter(x=>x.n.trim()).map(x=>[x.n.trim(),Math.max(1,parseInt(x.s)||3),Math.max(1,parseInt(x.r)||8),Math.max(0,parseInt(x.q)||0)]);if(!ex.length){toast('Tilføj mindst én øvelse');break}
-        data.ex=ex;const m=ex.reduce((a,x)=>a+x[1],0)*3+10;data.dur='ca. '+Math.round(m/5)*5+' min'}
+        data.ex=ex;const m=ex.reduce((a,x)=>a+x[1],0)*2.2+8;data.dur='ca. '+Math.round(m/5)*5+' min'}
       else{const st=e.steps.split('\n').map(x=>x.trim()).filter(Boolean),mn=parseInt(e.min)||null;data.steps=st.length?st:[name];if(mn){data.min=mn;data.dur=mn+' min'}}
       if(e.key&&SESS_BASE[e.key]){state.sessEdits={...(state.sessEdits||{}),[e.key]:data}}
       else{const k=e.key||('U'+Date.now().toString(36));state.customSess={...(state.customSess||{}),[k]:{...data,kind:e.kind}};e.key=k}
