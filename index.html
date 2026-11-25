@@ -175,6 +175,16 @@ section{display:flex;flex-direction:column;gap:12px}
 .progsw button{appearance:none;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);border-radius:16px;padding:14px 12px;font:500 14px/1.3 var(--font);cursor:pointer;text-align:left}
 .progsw button.on{background:var(--pill);color:var(--pill-fg);border-color:var(--pill)}
 .progsw.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.tr-row{appearance:none;border:0;width:100%;display:flex;align-items:center;gap:10px;padding:15px 16px;border-radius:16px;background:var(--surface);color:var(--fg);font:500 16px/1.2 var(--font);text-align:left;cursor:pointer;box-shadow:var(--shadow)}
+.tr-row .nm{flex:1;min-width:0}
+.tr-row .tag{font-size:12px;font-weight:500;color:var(--accent)}
+.tr-row .chev{color:var(--muted);font-size:18px}
+.tr-row.today{outline:2px solid var(--accent);outline-offset:-2px}
+.exed{display:grid;grid-template-columns:minmax(0,1fr) 44px 44px 50px 30px;gap:6px;align-items:end}
+.exed input{padding:10px 6px;text-align:center}
+.exed input.exn-in{text-align:left;padding:10px 10px}
+.exed span{font-size:11px;color:var(--muted);text-align:center}
+.exed .rm{appearance:none;border:0;background:var(--surface-2);color:var(--muted);height:40px;border-radius:10px;cursor:pointer;font-size:16px}
 .tr-grp{display:flex;flex-direction:column;gap:8px}
 .tr-card{background:var(--surface);border-radius:20px;padding:16px;display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;box-shadow:var(--shadow)}
 .tr-card b{font-weight:500;font-size:17px;display:flex;align-items:center;gap:8px}
@@ -444,7 +454,7 @@ function load(){
     if(st.program==='blueprint'&&st.plan[2]==='I4'&&st.plan[0]==='Z2L')st.plan[2]='I5';
     /* v9: move 30/15 to Friday and Styrke C to Saturday, so intervals never follow a heavy leg day */
     if(st.program==='blueprint'&&st.plan[5]==='C'&&st.plan[6]==='I30B'){st.plan[5]='I30B';st.plan[6]='C';if(st.addons[5]==='MOB'){delete st.addons[5];st.addons[6]='MOB'}}
-    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.customPlan=d.customPlan||null;st.customAddons=d.customAddons||null;st.customDeload=d.customDeload;st.overrides=d.overrides||{};st.cfDays=d.cfDays||{};st.cfPrefs=d.cfPrefs||null;st.shifts=Array.isArray(d.shifts)?d.shifts:[];
+    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.sessEdits=d.sessEdits||{};st.customSess=d.customSess||{};st.customPlan=d.customPlan||null;st.customAddons=d.customAddons||null;st.customDeload=d.customDeload;st.overrides=d.overrides||{};st.cfDays=d.cfDays||{};st.cfPrefs=d.cfPrefs||null;st.shifts=Array.isArray(d.shifts)?d.shifts:[];
     if(!st.program){const untouched=Object.keys(DEFAULT_PLAN).every(k=>st.plan[k]===DEFAULT_PLAN[k]);if(untouched)st.plan={...BP_PLAN};st.addons={...BP_ADDONS}}
     /* v20: one program only — your own week. Existing data counts as already set up. */
     if(st.program!=='custom'&&!d.customPlan)st.customDeload=d.customDeload??true;
@@ -455,6 +465,14 @@ function load(){
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state));storageOK=true}catch(e){storageOK=false}}
 let state=load();
+/* Your own sessions and edits to built-in ones live in state; SESS is rebuilt from the built-ins plus these */
+const SESS_BASE=JSON.parse(JSON.stringify(SESS));
+function applySess(){Object.keys(SESS).forEach(k=>{if(!SESS_BASE[k])delete SESS[k]});
+  for(const k in SESS_BASE)SESS[k]=JSON.parse(JSON.stringify(SESS_BASE[k]));
+  for(const [k,e] of Object.entries(state.sessEdits||{}))if(SESS[k])Object.assign(SESS[k],e);
+  for(const [k,c] of Object.entries(state.customSess||{}))SESS[k]={...c,custom:true}}
+applySess();
+const customKeys=kind=>Object.keys(state.customSess||{}).filter(k=>state.customSess[k].kind===kind);
 
 /* ---------- data queries ---------- */
 const mondayOf=s=>weekDates(s)[0];
@@ -570,7 +588,7 @@ function loadDraft(){try{const d=JSON.parse(localStorage.getItem(DKEY)||'null');
 function clearDraft(){try{localStorage.removeItem(DKEY)}catch(e){}}
 function initStyrke(date){
   const d=loadDraft();if(d&&d.date===date){ui.sess=d.sess;ui.rows=d.rows;ui.wStart=d.wStart||null;return}
-  const key=sessKey(date);ui.sess=['A','B','C'].includes(key)?key:(['A','B','C'].includes(ui.sess)?ui.sess:'A');initRows(ui.sess)}
+  const key=sessKey(date),ok=k=>SESS[k]&&SESS[k].kind==='styrke'&&SESS[k].ex;ui.sess=ok(key)?key:(ok(ui.sess)?ui.sess:'A');initRows(ui.sess)}
 function openLog(date){
   ui.logDate=date;const key=sessKey(date),k=SESS[key].kind;
   if(k==='styrke')ui.logType='styrke';else if(k==='interval'||k==='zone2'){ui.logType='kondition';ui.k.sess=key}
@@ -785,16 +803,48 @@ function dayCard(sel){
   </section>`;
 }
 /* ---------- Træn: start any session, any day ---------- */
-const TRAIN_GROUPS=[['Styrke',['A','B','C']],['Intervaller',['I4','I5','I30','I30B']],['Rolig kondition (zone 2)',['Z2','Z2L']],['Mobilitet',['MOB','BAL']]];
-function trainCard(k){const se=SESS[k],isToday=sessKey(TODAY)===k;
-  const sub=se.ex?se.ex.map(e=>e[0]).join(', '):[se.dur,(se.steps||[])[1]||''].filter(Boolean).join(' · ');
-  return `<div class="tr-card k-${se.kind}${isToday?' today':''}"><b><span class="bar"></span>${esc(se.name)}</b><small>${isToday?'Dagens pas · ':''}${esc(se.ex?se.dur+' · '+sub:sub)}</small><button class="go" data-act="trstart" data-key="${k}">Start</button></div>`}
+const trainGroups=()=>[['Styrke',['A','B','C'].concat(customKeys('styrke'))],['Intervaller',['I4','I5','I30','I30B'].concat(customKeys('interval'))],['Rolig kondition (zone 2)',['Z2','Z2L'].concat(customKeys('zone2'))],['Mobilitet',['MOB','BAL'].concat(customKeys('mobilitet'))]];
+function trainRow(k){const se=SESS[k],t=sessKey(TODAY)===k;
+  return `<button class="tr-row k-${se.kind}${t?' today':''}" data-act="trsess" data-key="${k}"><span class="bar"></span><span class="nm">${esc(se.name)}</span>${t?'<span class="tag">I dag</span>':''}<span class="chev">›</span></button>`}
 function viewTrain(){
   const cfToday=cfSaved(TODAY);
-  return `<h2 class="h2">Træn</h2><p class="note">Start et pas, når det passer dig. Det behøver ikke være dagens pas.</p>
-  <button class="tr-empty" data-act="trempty">+ Start tom træning<small style="display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:6px">Vælg selv øvelserne undervejs</small></button>
-  ${TRAIN_GROUPS.map(([g,ks])=>`<section class="tr-grp"><h3 class="sec">${g}</h3>${ks.map(trainCard).join('')}</section>`).join('')}
-  <section class="tr-grp"><h3 class="sec">CrossFit</h3><div class="tr-card k-crossfit${sessKey(TODAY)==='CF'?' today':''}"><b><span class="bar"></span>CrossFit</b><small>${cfToday?esc(cfToday.title||'Dagens pas er bygget'):'Vælg format og tid, så bygger appen et pas'}</small><button class="go" data-act="cfopen" data-date="${TODAY}">${cfToday?'Åbn':'Byg'}</button></div></section>`;
+  return `<h2 class="h2">Træn</h2><p class="note">Tryk på et pas for at se det, starte det eller rette i det.</p>
+  <div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn accent" data-act="trempty">+ Tom træning</button><button class="btn ghost" data-act="senew">+ Nyt pas</button></div>
+  ${trainGroups().map(([g,ks])=>`<section class="tr-grp"><h3 class="sec">${g}</h3>${ks.map(trainRow).join('')}</section>`).join('')}
+  <section class="tr-grp"><h3 class="sec">CrossFit</h3><button class="tr-row k-crossfit${sessKey(TODAY)==='CF'?' today':''}" data-act="cfopen" data-date="${TODAY}"><span class="bar"></span><span class="nm">CrossFit${cfToday?` · ${esc(cfToday.title||'')}`:''}</span>${sessKey(TODAY)==='CF'?'<span class="tag">I dag</span>':''}<span class="chev">›</span></button></section>`;
+}
+function viewSess(){
+  const k=ui.trKey,se=SESS[k];if(!se){ui.view='train';return viewTrain()}
+  return `<div class="habit-head"><button class="icon-btn" data-act="view" data-view="train" aria-label="Tilbage">‹</button><h2 class="h2">${esc(se.name)}</h2></div>
+  <section class="card k-${se.kind}"><div class="row-between">${chip(se.kind,KIND_LABEL[se.kind])}${se.dur?`<span class="muted small">${esc(se.dur)}</span>`:''}</div>
+    ${sessionBody(se)}${se.note?`<p class="note">${esc(se.note)}</p>`:''}
+    <button class="btn accent" data-act="trstart" data-key="${k}">Start</button>
+    <button class="btn ghost" data-act="seedit" data-key="${k}">Rediger pas</button></section>`;
+}
+const SE_KINDS=[['styrke','Styrke','Øvelser med sæt og vægt'],['interval','Hård kondition','Fx intervaller'],['zone2','Rolig kondition','Fx en rolig tur'],['mobilitet','Mobilitet','Smidighed og udstrækning']];
+function seDraft(k){const se=k?SESS[k]:null;
+  return {key:k||null,name:se?se.name:'',kind:se?se.kind:'styrke',ex:se&&se.ex?se.ex.map(e=>({n:e[0],s:String(e[1]),r:String(e[2]),q:String(e[3])})):[{n:'',s:'3',r:'8',q:'2'}],
+    steps:se&&se.steps?se.steps.join('\n'):'',min:se?String(se.min||parseInt(String(se.dur||'').replace(/\D+/g,' ').trim().split(' ').pop())||''):'',note:se?se.note||'':''}}
+function viewSessEdit(){
+  const e=ui.se,builtIn=e.key&&SESS_BASE[e.key],edited=builtIn&&(state.sessEdits||{})[e.key],cardioBuiltIn=builtIn&&(e.kind==='interval'||e.kind==='zone2');
+  return `<div class="habit-head"><button class="icon-btn" data-act="sebask" aria-label="Tilbage">‹</button><h2 class="h2">${e.key?'Rediger pas':'Nyt pas'}</h2></div>
+  <section class="card">
+    <label class="field"><span>Navn</span><input id="se-name" data-bind="se.name" value="${esc(e.name)}" placeholder="Fx Overkrop"></label>
+    ${builtIn?'':`<div class="field"><span>Type</span><div class="fmt-grid">${SE_KINDS.map(([v,l,d])=>`<button class="fmt${e.kind===v?' on':''}" data-act="sekind" data-v="${v}"><b>${l}</b><small>${d}</small></button>`).join('')}</div></div>`}
+  </section>
+  ${e.kind==='styrke'?`<section class="card"><h3 class="sec">Øvelser</h3>
+    <div class="exed"><span style="text-align:left">Øvelse</span><span>Sæt</span><span>Gent.</span><span>Tilbage</span><span></span></div>
+    ${e.ex.map((x,i)=>`<div class="exed"><input class="exn-in" id="se-n${i}" data-bind="se.ex.${i}.n" value="${esc(x.n)}" list="exlist2" placeholder="Øvelse"><input id="se-s${i}" inputmode="numeric" data-bind="se.ex.${i}.s" value="${esc(x.s)}"><input id="se-r${i}" inputmode="numeric" data-bind="se.ex.${i}.r" value="${esc(x.r)}"><input id="se-q${i}" inputmode="numeric" data-bind="se.ex.${i}.q" value="${esc(x.q)}"><button class="rm" data-act="serm" data-i="${i}" aria-label="Fjern øvelse">×</button></div>`).join('')}
+    <datalist id="exlist2">${allExercises().map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
+    <button class="restbtn" data-act="seadd">+ Tilføj øvelse</button>
+    <p class="hint">Tilbage = hvor mange gentagelser man stopper før, man ikke kan mere.</p></section>`
+  :`<section class="card"><label class="field"><span>Varighed (min)</span><input id="se-min" inputmode="numeric" data-bind="se.min" value="${esc(e.min)}" placeholder="30"></label>
+    <label class="field"><span>Sådan gør du (én linje pr. trin)</span><textarea id="se-steps" rows="5" data-bind="se.steps" placeholder="10 min roligt&#10;…">${esc(e.steps)}</textarea></label>
+    ${cardioBuiltIn?'<p class="hint">Timeren følger stadig det oprindelige pas. Teksten her er det, du ser.</p>':''}</section>`}
+  <section class="card"><label class="field"><span>Note (valgfri)</span><input id="se-note" data-bind="se.note" value="${esc(e.note)}" placeholder="Fx et godt råd til dig selv"></label></section>
+  <button class="btn accent" data-act="sesave">Gem pas</button>
+  ${edited?'<button class="btn ghost" data-act="sereset">Gendan det oprindelige pas</button>':''}
+  ${e.key&&!builtIn?`<button class="btn danger${ui.seDel?' armed':''}" data-act="sedel">${ui.seDel?'Tryk igen for at slette':'Slet pas'}</button>`:''}`;
 }
 function logItem(l){
   const map={styrke:['styrke','Styrke'],kondition:['interval','Kondition'],vaegt:['vaegt','Vægt'],test:['test','Test'],mobilitet:['mobilitet','Mobilitet'],kulde:['kulde','Koldt bad'],meditation:['meditation','Meditation'],tak:['tak','Taknemmelighed'],crossfit:['crossfit','CrossFit']};
@@ -834,7 +884,7 @@ function setLine(i,j,s,p,tq){
 }
 function formStyrke(){
   const doneN=ui.rows.reduce((a,r)=>a+r.sets.filter(s=>s.done).length,0),allN=ui.rows.reduce((a,r)=>a+r.sets.length,0);
-  return `<label class="field"><span>Pas</span><select id="f-sess">${['A','B','C'].map(k=>`<option value="${k}"${ui.sess===k?' selected':''}>${SESS[k].name}</option>`).join('')}<option value="X"${ui.sess==='X'?' selected':''}>Andet styrkepas</option></select></label>
+  return `<label class="field"><span>Pas</span><select id="f-sess">${['A','B','C'].concat(customKeys('styrke')).map(k=>`<option value="${k}"${ui.sess===k?' selected':''}>${SESS[k].name}</option>`).join('')}<option value="X"${ui.sess==='X'?' selected':''}>Andet styrkepas</option></select></label>
   <p class="hint">Udfyldt med dine tal fra sidst og dagens vægtforslag. Ret tallene og tryk ✓ efter hvert sæt, så starter pausen. Tilbage = hvor mange gentagelser du kunne have taget mere.</p>
   <div class="rows">${ui.rows.map((r,i)=>{const g=suggest(r.ex),prev=lastSets(r.ex);const tq=r.tRir??(target(r.ex)||{}).rir;const tr=r.tReps??(target(r.ex)||{}).reps;
     const wu=warmup(r.ex,num(r.sets[0]&&r.sets[0].kg));const dn=r.sets.filter(s=>s.done).length;return `<div class="srow card">
@@ -901,7 +951,7 @@ function viewHabits(){
   <button class="btn ghost" data-act="nhopen">+ Tilføj vane</button>
   <section class="card"><h3 class="sec">Streak</h3><div class="goals">${habits().map(h=>{const st=habitStreak(h.id);return `<div class="goal k-${h.id}"><span class="gl">${h.name}</span><span class="gv num"><b>${st}</b> ${st===1?'dag':'dage'} i træk</span></div>`}).join('')}</div></section>`;
 }
-const PLAN_GROUPS=[['Styrke',['S']],['Intervaller',['I4','I5','I30','I30B']],['Rolig kondition (zone 2)',['Z2','Z2L']],['CrossFit',['CF']],['Mobilitet',['MOB','BAL']],['Hvile',['R']]];
+const planGroups=()=>[['Styrke',['S'].concat(customKeys('styrke'))],['Intervaller',['I4','I5','I30','I30B'].concat(customKeys('interval'))],['Rolig kondition (zone 2)',['Z2','Z2L'].concat(customKeys('zone2'))],['CrossFit',['CF']],['Mobilitet',['MOB','BAL'].concat(customKeys('mobilitet'))],['Hvile',['R']]];
 const SHORT={S:'Styrke',A:'Styrke A',B:'Styrke B',C:'Styrke C',I4:'4 × 4 min',I5:'5 × 4 min',I30:'30/15 sek',I30B:'30/15 sek · 4 serier',Z2:'Rolig · 45 min',Z2L:'Rolig · 60 min',CF:'CrossFit',MOB:'Mobilitet',BAL:'Balance',R:'Hvile'};
 /* One row per day; tap a day to pick its session with buttons. ctx 'st' edits the saved plan, 'ob' the first-run draft. */
 function weekEditor(ctx,plan,addons){
@@ -909,7 +959,7 @@ function weekEditor(ctx,plan,addons){
     const sub=[se.dur,ad?'+ '+SHORT[ad].toLowerCase():''].filter(Boolean).join(' · ');
     return `<button class="wkrow k-${se.kind}${open?' open':''}${k==='R'?' rest':''}" data-act="wkopen" data-v="${ctx+d}"><span class="wd-d">${DAYS[d].slice(0,3)}</span>
       <span class="wd-n"><span class="bar"></span><span>${esc(se.name)}${sub?`<small>${esc(sub)}</small>`:''}</span></span><span class="chev">›</span></button>
-      ${open?`<div class="wkpick">${PLAN_GROUPS.map(([g,ks])=>`<div><p class="lbl">${g}</p><div class="chips">${ks.map(x=>`<button class="${k===x?'on':''}" data-act="wkset" data-ctx="${ctx}" data-d="${d}" data-v="${x}">${SHORT[x]}</button>`).join('')}</div></div>`).join('')}
+      ${open?`<div class="wkpick">${planGroups().map(([g,ks])=>`<div><p class="lbl">${g}</p><div class="chips">${ks.map(x=>`<button class="${k===x?'on':''}" data-act="wkset" data-ctx="${ctx}" data-d="${d}" data-v="${x}">${esc(SHORT[x]||SESS[x].name)}</button>`).join('')}</div></div>`).join('')}
         ${se.kind==='hvile'||se.kind==='mobilitet'?'':`<div><p class="lbl">Bagefter</p><div class="chips">${[['','Intet'],['MOB','+ Mobilitet'],['BAL','+ Balance']].map(([v,l])=>`<button class="${ad===v?'on':''}" data-act="wkadd" data-ctx="${ctx}" data-d="${d}" data-v="${v}">${l}</button>`).join('')}</div></div>`}
         <button class="restbtn" data-act="wkopen" data-v="">Færdig</button></div>`:''}`}).join('')}</div>`;
 }
@@ -1106,6 +1156,7 @@ function buildPhases(key){
   if(key==='I4'||key==='I5'){const n=key==='I5'?5:4;add('Opvarmning',600,'easy');for(let i=1;i<=n;i++){add(`Interval ${i} af ${n} · hårdt`,240,'work');if(i<n)add('Aktiv pause',180,'rest')}add('Nedvarmning',300,'easy')}
   else if(key==='I30'){add('Opvarmning',600,'easy');for(let s=1;s<=3;s++){for(let r=1;r<=10;r++){add(`Serie ${s} · ${r}/10 · hårdt`,30,'work');if(r<10)add(`Serie ${s} · ${r}/10 · let`,15,'rest')}if(s<3)add('Seriepause',180,'rest')}add('Nedvarmning',300,'easy')}
   else if(key==='I30B'){add('Opvarmning',600,'easy');for(let s=1;s<=4;s++){for(let r=1;r<=10;r++){add(`Serie ${s} · ${r}/10 · hårdt`,30,'work');if(r<10)add(`Serie ${s} · ${r}/10 · let`,15,'rest')}if(s<4)add('Seriepause',180,'rest')}add('Nedvarmning',300,'easy')}
+  else if(SESS[key]&&SESS[key].custom){const S=SESS[key];add(S.name,Math.max(60,(S.min||30)*60),S.kind==='interval'?'work':'easy')}
   else add('Zone 2 · roligt tempo',key==='Z2L'?3600:2700,'easy');
   return P;
 }
@@ -1228,9 +1279,9 @@ function render(top){habitCss();
   const v=ui.view;$('.tabs').hidden=v==='onboard';$('.top .icon-btn').hidden=v==='onboard';
   $('#main').innerHTML=(storageOK?'':'<p class="warn">Browseren tillader ikke at gemme her. Åbn siden i Chrome og tilføj den til startskærmen, ellers forsvinder dine logs.</p>')+
     (timer&&v!=='timer'?'<button class="btn primary" data-act="view" data-view="timer">Timeren kører · gå tilbage</button>':'')+
-    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():v==='train'?viewTrain():v==='day'?viewDay():viewSettings());
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))));
-  {const st=sessFor(TODAY);$('#hdr-hi').textContent=(state.name?'Hej '+state.name+'! · ':'')+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='onboard'?'Styrke & VO₂ log':v==='train'?'Hvad har du lyst til i dag?':v==='day'?cap(niceDate(ui.sel)):v==='cf'?'Byg dagens WOD':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
+    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():v==='train'?viewTrain():v==='day'?viewDay():v==='sess'?viewSess():v==='sessedit'?viewSessEdit():viewSettings());
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))||((v==='sess'||v==='sessedit')&&t.dataset.view==='train')));
+  {const st=sessFor(TODAY);$('#hdr-hi').textContent=(state.name?'Hej '+state.name+'! · ':'')+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='onboard'?'Styrke & VO₂ log':v==='train'||v==='sess'?'Hvad har du lyst til i dag?':v==='sessedit'?'Byg dit eget pas':v==='day'?cap(niceDate(ui.sel)):v==='cf'?'Byg dagens WOD':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
   if(top)window.scrollTo(0,0);
 }
 let tt;function toast(msg){const el=$('#toast');el.textContent=msg;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>{el.hidden=true},2200)}
@@ -1273,7 +1324,7 @@ function doRestore(){
   let d;try{d=JSON.parse(ui.impText)}catch(e){d=null}
   if(!d||!Array.isArray(d.logs)){ui.pendingRestore=false;render();return toast('Teksten er ikke en gyldig backup')}
   if(!ui.pendingRestore){ui.pendingRestore=true;return render()}
-  state={plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:'custom',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,name:d.name,onboarded:true,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);
+  state={sessEdits:d.sessEdits||{},customSess:d.customSess||{},plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:'custom',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,name:d.name,onboarded:true,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);applySess();
 }
 function guessUnit(name){
   const prev=logsOf('test').filter(l=>l.name===name);if(prev.length)return prev[prev.length-1].unit;
@@ -1284,7 +1335,7 @@ function guessUnit(name){
 
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
-  if(a!=='del')ui.pendingDel=null;if(a!=='hdel')ui.delHabit=null;if(a!=='wipe')ui.pendingWipe=false;if(a!=='restore')ui.pendingRestore=false;if(a!=='tstop'&&timer)timer.stopArmed=false;
+  if(a!=='del')ui.pendingDel=null;if(a!=='hdel')ui.delHabit=null;if(a!=='sedel')ui.seDel=false;if(a!=='wipe')ui.pendingWipe=false;if(a!=='restore')ui.pendingRestore=false;if(a!=='tstop'&&timer)timer.stopArmed=false;
   switch(a){
     case 'timer':startTimer(b.dataset.key);break;
     case 'tpause':if(timer.paused){timer.end=Date.now()+timer.left;timer.paused=false;keepAwake()}else{timer.left=timer.end-Date.now();timer.paused=true}render();break;
@@ -1310,6 +1361,24 @@ document.addEventListener('click',e=>{
       else if(se.kind==='interval'||se.kind==='zone2')startTimer(k);
       else if(se.kind==='mobilitet'){state.logs.push({id:Date.now().toString(36),date:TODAY,type:'mobilitet',name:se.name,dur:se.min*60});save();render();toast(se.name+' logget · '+se.min+' min')}
       break}
+    case 'trsess':ui.trKey=b.dataset.key;ui.view='sess';render(true);break;
+    case 'senew':ui.se=seDraft(null);ui.seDel=false;ui.view='sessedit';render(true);break;
+    case 'seedit':ui.se=seDraft(b.dataset.key);ui.seDel=false;ui.view='sessedit';render(true);break;
+    case 'sebask':ui.view=ui.se&&ui.se.key?'sess':'train';render(true);break;
+    case 'sekind':ui.se.kind=b.dataset.v;render();break;
+    case 'seadd':ui.se.ex.push({n:'',s:'3',r:'8',q:'2'});render();{const el=$('#se-n'+(ui.se.ex.length-1));if(el)el.focus()}break;
+    case 'serm':ui.se.ex.splice(+b.dataset.i,1);if(!ui.se.ex.length)ui.se.ex.push({n:'',s:'3',r:'8',q:'2'});render();break;
+    case 'sesave':{const e=ui.se,name=e.name.trim();if(!name){toast('Giv passet et navn');break}
+      const data={name,note:e.note.trim()};
+      if(e.kind==='styrke'){const ex=e.ex.filter(x=>x.n.trim()).map(x=>[x.n.trim(),Math.max(1,parseInt(x.s)||3),Math.max(1,parseInt(x.r)||8),Math.max(0,parseInt(x.q)||0)]);if(!ex.length){toast('Tilføj mindst én øvelse');break}
+        data.ex=ex;const m=ex.reduce((a,x)=>a+x[1],0)*3+10;data.dur='ca. '+Math.round(m/5)*5+' min'}
+      else{const st=e.steps.split('\n').map(x=>x.trim()).filter(Boolean),mn=parseInt(e.min)||null;data.steps=st.length?st:[name];if(mn){data.min=mn;data.dur=mn+' min'}}
+      if(e.key&&SESS_BASE[e.key]){state.sessEdits={...(state.sessEdits||{}),[e.key]:data}}
+      else{const k=e.key||('U'+Date.now().toString(36));state.customSess={...(state.customSess||{}),[k]:{...data,kind:e.kind}};e.key=k}
+      save();applySess();ui.trKey=e.key;ui.view='sess';render(true);toast('Pas gemt');break}
+    case 'sereset':{const k=ui.se.key,x={...(state.sessEdits||{})};delete x[k];state.sessEdits=x;save();applySess();ui.trKey=k;ui.view='sess';render(true);toast('Oprindeligt pas gendannet');break}
+    case 'sedel':{if(!ui.seDel){ui.seDel=true;render();break}const k=ui.se.key,x={...(state.customSess||{})};delete x[k];state.customSess=x;
+      for(const d in state.plan)if(state.plan[d]===k)state.plan[d]='R';syncCustom();save();applySess();ui.seDel=false;ui.view='train';render(true);toast('Pas slettet');break}
     case 'trempty':ui.logDate=TODAY;ui.logType='styrke';ui.sess='X';ui.rows=[makeRow('',3,8,2)];ui.dirty=true;ui.view='log';render(true);break;
     case 'mprev':if(--ui.calM<0){ui.calM=11;ui.calY--}render();break;
     case 'mnext':if(++ui.calM>11){ui.calM=0;ui.calY++}render();break;
