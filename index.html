@@ -617,13 +617,13 @@ function viewCF(){
   return `${back}
   <section class="card k-crossfit"><div class="row-between">${chip('crossfit',esc(p.format.id==='rft'?'For time':p.format.navn))}<span class="muted small">${p.minutter} min · ${esc(p.niveau)}</span></div>
     ${cfWod(p)}
-    <p class="note">${esc(p.strategi)}</p></section>
+    <p class="note">${esc(p.strategi)}</p>
+    <div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn accent" data-act="cfgen">🎲 Nyt pas</button><button class="btn ghost" data-act="cfmenu">Skift format</button></div></section>
   <section class="card"><div class="row-between"><h3 class="sec">Øvelser</h3><span class="muted small">Tryk Byt for at udskifte</span></div><div>
     ${p.movs.map((m,i)=>`<div class="mvrow"><b>${esc(CF.navnVis(m))}</b><small>Skalering: ${esc(m.skal)} · ${esc(m.udstyr)}</small>
       <button class="restbtn swap" data-act="cfswap" data-i="${i}">${c.swapI===i?'Luk':'Byt'}</button>
       ${c.swapI===i?`<div class="alts">${(()=>{const A=cfAlts(i);return A.length?`<button data-act="cfpick" data-i="${i}" data-v="${A[Math.floor(Math.random()*A.length)].id}" style="background:var(--pill);color:var(--pill-fg)">🎲 Tilfældig erstatning</button>`+A.slice(0,14).map(a=>`<button data-act="cfpick" data-i="${i}" data-v="${a.id}">${esc(CF.navnVis(a))}</button>`).join(''):'<p class="hint">Ingen lovlige erstatninger med dine valg.</p>'})()}</div>`:''}</div>`).join('')}
   </div></section>
-  <div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn ghost" data-act="cfgen">🎲 Nyt pas</button><button class="btn ghost" data-act="cfmenu">Skift format</button></div>
   <button class="btn ${isSaved?'ghost':'accent'}" data-act="cfsave">${isSaved?'✓ Gemt til '+(c.date===TODAY?'i dag':niceDate(c.date)):'Gem til '+(c.date===TODAY?'i dag':niceDate(c.date))}</button>
   ${isSaved&&c.date<=TODAY?`<section class="card"><h3 class="sec">${logged?'✓ Resultat logget':'Log resultat'}</h3>
     ${logged?`<p class="note">${esc(logged.score||'')}${logged.rpe?' · RPE '+logged.rpe:''}</p>`:`
@@ -1251,7 +1251,7 @@ document.addEventListener('click',e=>{
     case 'cfpref':{const k=b.dataset.k,v=k==='antal'?+b.dataset.v:b.dataset.v;state.cfPrefs={...cfPrefs(),[k]:v};save();render();break}
     case 'cfudstyr':ui.cf.showUdstyr=!ui.cf.showUdstyr;render();break;
     case 'cfeq':{const all=cfUdstyrAlle(),P=cfPrefs();let have=(P.udstyr||all).slice();const u=b.dataset.v;have=have.includes(u)?have.filter(x=>x!==u):have.concat(u);state.cfPrefs={...P,udstyr:have.length===all.length?null:have};save();render();break}
-    case 'cfgen':{const p=cfGenerate();ui.cf.step='pas';if(p&&ui.cf.fmt===null){}render(true);if(!p)toast('Ingen gyldige pas med de valg');break}
+    case 'cfgen':{const wasPas=ui.cf.step==='pas';const p=cfGenerate();ui.cf.step='pas';render(!wasPas);if(!p)toast('Ingen gyldige pas med de valg');break}
     case 'cfswap':{const i=+b.dataset.i;ui.cf.swapI=ui.cf.swapI===i?null:i;render();break}
     case 'cfpick':cfSwap(+b.dataset.i,b.dataset.v);render();toast('Øvelse byttet');break;
     case 'cfsave':{const p=ui.cf.pas;if(!p)break;state.cfDays={...(state.cfDays||{}),[ui.cf.date]:cfSerialize(p)};if(sessKey(ui.cf.date)!=='CF')state.overrides={...(state.overrides||{}),[ui.cf.date]:'CF'};save();render();toast('Pas gemt');break}
