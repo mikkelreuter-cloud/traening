@@ -377,6 +377,7 @@ const SESS={
   BAL:{name:'Balance og mobilitet',kind:'mobilitet',dur:'15 min',min:15,
      steps:['Etbensstand med lukkede øjne · 3 × 30 sek pr. ben','Etbens rumænsk dødløft · 2 × 8 pr. ben','Kosakker-squat · 2 × 6 pr. side','Tå-gang og hæl-gang · 2 × 20 m','Hoftebøjer- og baglårsstræk · 1 min pr. side','Rolig vejrtrækning på ryggen · 2 min'],
      note:'Balance holder ankler, knæ og hofter skadefri.'},
+  S:{name:'Styrke',kind:'styrke',dur:'ca. 60 min',steps:['Appen vælger dagens styrkepas.'],note:''},
   CF:{name:'CrossFit',kind:'crossfit',dur:'',steps:['Vælg format og tid, og byg dagens pas.'],note:''},
   R:{name:'Hvile',kind:'hvile',dur:'',steps:['Gåtur eller let mobilitet','Søvn og mad er dagens træning'],note:''}
 };
@@ -440,6 +441,7 @@ function load(){
     if(!st.program){const untouched=Object.keys(DEFAULT_PLAN).every(k=>st.plan[k]===DEFAULT_PLAN[k]);if(untouched)st.plan={...BP_PLAN};st.addons={...BP_ADDONS}}
     /* v20: one program only — your own week. Existing data counts as already set up. */
     if(st.program!=='custom'&&!d.customPlan)st.customDeload=d.customDeload??true;
+    ['plan','customPlan'].forEach(f=>{if(st[f])for(const d in st[f])if(['A','B','C'].includes(st[f][d]))st[f][d]='S'});
     st.program='custom';st.onboarded=d.onboarded!==false;st.name=d.name!=null?d.name:'Mikkel';
     return st}}catch(e){}
   return {plan:{0:'R',1:'R',2:'R',3:'R',4:'R',5:'R',6:'R'},logs:[],program:'custom',addons:{},cycleStart:null,hrmax:null,habitStart:null,onboarded:false,name:'',customDeload:true};
@@ -455,7 +457,9 @@ const isDeload=s=>(state.program==='blueprint'||(state.program==='custom'&&state
 /* Skips make a day a rest day. Shifts push every later session one day forward (plan of day d comes from d minus the shifts before it). */
 const isSkipped=s=>!!(state.skips||{})[s];
 function planDate(s){const n=(state.shifts||[]).filter(x=>x<s).length;if(!n)return s;const d=pd(s);d.setDate(d.getDate()-n);return ds(d)}
-const baseKey=s=>state.plan[pd(planDate(s)).getDay()]||'R';
+/* 'S' in the plan = a strength day. The app rotates Styrke A, B, C over the strength days of the week, so the whole body gets trained. */
+function baseKey(s){const wd=pd(planDate(s)).getDay(),k=state.plan[wd]||'R';if(k!=='S')return k;
+  const sDays=[1,2,3,4,5,6,0].filter(d=>state.plan[d]==='S');return ['A','B','C'][sDays.indexOf(wd)%3]}
 function sessKey(s){if(isSkipped(s))return 'R';const ov=(state.overrides||{})[s];if(ov&&SESS[ov])return ov;const k=baseKey(s);
   if(SESS[k]&&SESS[k].kind==='interval'&&isDeload(s)){const wk=weekDates(s);const first=wk.find(d=>!isSkipped(d)&&SESS[baseKey(d)].kind==='interval');if(first!==s)return 'Z2'}
   return k}
@@ -871,8 +875,8 @@ function viewHabits(){
   <button class="btn ghost" data-act="nhopen">+ Tilføj vane</button>
   <section class="card"><h3 class="sec">Streak</h3><div class="goals">${habits().map(h=>{const st=habitStreak(h.id);return `<div class="goal k-${h.id}"><span class="gl">${h.name}</span><span class="gv num"><b>${st}</b> ${st===1?'dag':'dage'} i træk</span></div>`}).join('')}</div></section>`;
 }
-const PLAN_GROUPS=[['Styrke',['A','B','C']],['Intervaller',['I4','I5','I30','I30B']],['Zone 2',['Z2','Z2L']],['CrossFit',['CF']],['Mobilitet',['MOB','BAL']],['Hvile',['R']]];
-const SHORT={A:'Styrke A',B:'Styrke B',C:'Styrke C',I4:'4×4',I5:'5×4',I30:'30/15',I30B:'30/15 · 4 serier',Z2:'Zone 2 · 45 min',Z2L:'Zone 2 · 60 min',CF:'CrossFit',MOB:'Mobilitet',BAL:'Balance',R:'Hvile'};
+const PLAN_GROUPS=[['Styrke',['S']],['Intervaller',['I4','I5','I30','I30B']],['Zone 2',['Z2','Z2L']],['CrossFit',['CF']],['Mobilitet',['MOB','BAL']],['Hvile',['R']]];
+const SHORT={S:'Styrke',A:'Styrke A',B:'Styrke B',C:'Styrke C',I4:'4×4',I5:'5×4',I30:'30/15',I30B:'30/15 · 4 serier',Z2:'Zone 2 · 45 min',Z2L:'Zone 2 · 60 min',CF:'CrossFit',MOB:'Mobilitet',BAL:'Balance',R:'Hvile'};
 /* One row per day; tap a day to pick its session with buttons. ctx 'st' edits the saved plan, 'ob' the first-run draft. */
 function weekEditor(ctx,plan,addons){
   return `<div class="wk">${[1,2,3,4,5,6,0].map(d=>{const k=plan[d]||'R',se=SESS[k],ad=addons[d]||'',open=ui.wkOpen===ctx+d;
@@ -897,7 +901,7 @@ function syncCustom(){if(state.program==='custom'){state.customPlan={...state.pl
 const GOALS=[{id:'styrke',name:'Styrke',desc:'Tunge løft med vægtforslag'},{id:'kondition',name:'Kondition',desc:'Intervaller og zone 2 for VO₂max'},{id:'crossfit',name:'CrossFit',desc:'Pas bygget efter regler'},{id:'mobilitet',name:'Mobilitet',desc:'10 min efter træning'}];
 function obSuggest(days,goals){
   const plan={0:'R',1:'R',2:'R',3:'R',4:'R',5:'R',6:'R'},addons={};
-  const pools={styrke:['A','B','C','A','B','C'],kondition:['I5','Z2L','I30B','Z2','I4','Z2L'],crossfit:['CF','CF','CF','CF','CF','CF']};
+  const pools={styrke:['S','S','S','S','S','S'],kondition:['I5','Z2L','I30B','Z2','I4','Z2L'],crossfit:['CF','CF','CF','CF','CF','CF']};
   let main=goals.filter(g=>pools[g]);
   if(!main.length&&goals.includes('mobilitet')){days.forEach((d,i)=>plan[d]=i%2?'BAL':'MOB');return {plan,addons}}
   if(!main.length)main=['styrke'];
