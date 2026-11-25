@@ -267,7 +267,7 @@ textarea{resize:vertical}
 .sets{display:flex;flex-direction:column;gap:6px}
 .set{display:grid;grid-template-columns:24px minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr) 46px;gap:6px;align-items:center;padding:6px;border-radius:16px;background:var(--surface-2)}
 .set.head{background:transparent;padding-block:0}
-.set.head span{font-size:12px;font-weight:400;color:var(--muted);text-align:center}
+.set.head span{font-size:11px;font-weight:400;color:var(--muted);text-align:center;line-height:1.15;align-self:end}
 .set .sn{font-weight:300;font-size:20px;text-align:center;color:var(--muted)}
 .card .set input{text-align:center;font-weight:500;padding:11px 4px;background:var(--surface);border-radius:12px}
 .set input::placeholder{color:var(--muted);opacity:.7;font-weight:400}
@@ -406,7 +406,7 @@ const TESTS=['3 km løb','5 km løb','Cooper 12 min','1RM squat','1RM bænkpres'
 
 const SESS={
   A:{name:'Styrke A',kind:'styrke',dur:'ca. 60 min',ex:[['Squat',4,5,2],['Bænkpres',4,5,2],['Rotræk med stang',3,8,1],['Bulgarsk splitsquat',3,8,2],['Farmer\'s walk (meter)',3,40,1]],
-     note:'4×5 betyder 4 sæt med 5 gentagelser. "2 tilbage" betyder: stop sættet, når du kunne have taget 2 gentagelser mere. Log hvordan det gik, så foreslår appen vægten til næste gang.'},
+     note:'4×5 betyder 4 sæt med 5 gentagelser. "2 i tanken" betyder: stop sættet, når du kunne have taget 2 gentagelser mere. Log hvordan det gik, så foreslår appen vægten til næste gang.'},
   B:{name:'Styrke B',kind:'styrke',dur:'ca. 60 min',ex:[['Dødløft',3,5,3],['Militærpres',4,5,2],['Pull-ups',4,6,1],['Hip thrust',3,8,1],['Ab wheel',3,8,2]],
      note:'Dødløft med 3 tilbage, så teknikken holder. Pull-ups får ekstra vægt, når appen foreslår det.'},
   C:{name:'Styrke C',kind:'styrke',dur:'ca. 50 min',ex:[['Frontsquat',3,6,2],['Skrå håndvægtpres',4,8,1],['Chin-ups',3,8,1],['Rumænsk dødløft',3,8,2],['Pallof press (pr. side)',3,10,2]],
@@ -601,7 +601,7 @@ function suggest(ex){
   next=Math.max(step,Math.round(next/step)*step);
   return {kg:next,bw:false,text:fnum(next)+' kg',l,rir,delta};
 }
-const rirTxt=r=>(r===null||r===undefined||r==='')?'':` · ${r} tilbage`;
+const rirTxt=r=>(r===null||r===undefined||r==='')?'':` · ${r} i tanken`;
 function loggedExercises(){const m=new Map();logsOf('styrke').forEach(l=>l.sets.forEach(s=>m.set(s.ex.toLowerCase(),s.ex)));return [...m.values()]}
 /* ---------- Strength exercise library: [name, equipment, muscle group, movement pattern, sets, reps, reps in reserve] ---------- */
 const EQ_ST='Stang og stativ',EQ_DB='Håndvægte',EQ_KB='Kettlebells',EQ_CB='Kabeltræk',EQ_MA='Maskiner',EQ_PU='Pull-up-stang',EQ_DI='Dip-stang',EQ_TB='Trap bar',EQ_RI='Ringe eller TRX',EQ_EL='Elastikker',EQ_SL='Slæde',EQ_SM='Ab wheel, kasse og bold',EQ_NO='Ingen udstyr';
@@ -705,7 +705,7 @@ function sessionBody(s,date){
   if(s.ex)return `<ul class="ex">${s.ex.map(([n,a,b,q])=>{const g=suggest(n);if(dl)a=Math.ceil(a/2);
     const line=g?`<span class="sug num">${dl?`Deload: ${g.l.kg?fnum(g.l.kg)+' kg':'kropsvægt'} (samme vægt)`:`Forslag: ${esc(g.text)}`}</span><span class="exl num">Sidst ${g.l.kg?fnum(g.l.kg)+' kg':'kropsvægt'} × ${g.l.reps}${rirTxt(g.l.rir)} (${shortDate(g.l.date)})</span>`
       :`<span class="exl">Første gang: vælg en vægt, hvor du kunne have taget ${q} ${q===1?'gentagelse':'gentagelser'} mere i sidste sæt.</span>`;
-    return `<li><span class="exn">${esc(n)}</span><span class="exp num">${a}×${b}<small>${q} tilbage</small></span>${line}</li>`}).join('')}</ul>`;
+    return `<li><span class="exn">${esc(n)}</span><span class="exp num">${a}×${b}<small>${q} i tanken</small></span>${line}</li>`}).join('')}</ul>`;
   if(s.kind==='crossfit'){const p=cfRebuild(cfSaved(date||TODAY));return p?cfWod(p):'<p class="note">Intet pas endnu. Vælg format og tid, så bygger appen et pas efter reglerne.</p>'}
   return `<ol class="steps">${s.steps.map(t=>`<li>${esc(t)}</li>`).join('')}</ol>${s.kind==='interval'||s.kind==='zone2'?hrLine(s)+kondTip(s):''}`;
 }
@@ -942,15 +942,15 @@ function strEditor(e){const m=e.mode,has=e.ex.some(x=>x.n.trim());
     <button class="restbtn" data-act="seeqtog">${ui.seEq?'Skjul udstyr':`Udstyr · ${strHave().length} af ${STR_EQ.length} valgt`}</button>
     ${ui.seEq?`<div class="chips">${STR_EQ.map(u=>`<button class="${strHave().includes(u)?'on':''}" data-act="seeq" data-v="${esc(u)}">${esc(u)}</button>`).join('')}</div><p class="hint">Øvelser uden udstyr er altid med.</p>`:''}
     <button class="btn accent" data-act="sesuggest">🎲 Bland igen</button></section>
-    ${has?`<section class="card" id="se-result"><h3 class="sec">Dit pas</h3>${e.ex.map((x,i)=>!x.n.trim()?'':`<div class="mvrow"><div><b>${esc(x.n)}</b><small class="exmeta" style="display:block">${x.s} × ${x.r} · ${x.q} tilbage</small></div><button class="rm sw" data-act="seswap" data-i="${i}" aria-label="Byt øvelse">↻</button></div>`).join('')}
+    ${has?`<section class="card" id="se-result"><h3 class="sec">Dit pas</h3>${e.ex.map((x,i)=>!x.n.trim()?'':`<div class="mvrow"><div><b>${esc(x.n)}</b><small class="exmeta" style="display:block">${x.s} × ${x.r} · ${x.q} i tanken</small></div><button class="rm sw" data-act="seswap" data-i="${i}" aria-label="Byt øvelse">↻</button></div>`).join('')}
       <button class="restbtn" data-act="semode" data-v="self">Ret øvelserne selv</button><p class="hint">↻ bytter til en lignende øvelse.</p></section>`:''}`}
   if(m==='self')return choose+`<section class="card"><h3 class="sec">Øvelser</h3>
     ${e.ex.map((x,i)=>{const lx=strFor(x.n),miss=lx&&!strOk(lx);return `<div class="exblk"><div class="exblk-top"><input class="exn-in" id="se-n${i}" data-bind="se.ex.${i}.n" value="${esc(x.n)}" data-ac="ex" autocomplete="off" placeholder="Skriv eller vælg øvelse"><button class="rm" data-act="seswap" data-i="${i}" aria-label="Byt øvelse" title="Byt">↻</button><button class="rm" data-act="serm" data-i="${i}" aria-label="Fjern øvelse">×</button></div>
       ${lx?`<small class="exmeta${miss?' warn':''}">${miss?'Kræver ':''}${esc(lx[1])} · ${esc(lx[2])}</small>`:''}
-      <div class="exnums"><label><span>Sæt</span><input id="se-s${i}" inputmode="numeric" data-bind="se.ex.${i}.s" value="${esc(x.s)}"></label><label><span>Gent.</span><input id="se-r${i}" inputmode="numeric" data-bind="se.ex.${i}.r" value="${esc(x.r)}"></label><label><span>Tilbage</span><input id="se-q${i}" inputmode="numeric" data-bind="se.ex.${i}.q" value="${esc(x.q)}"></label></div></div>`}).join('')}
+      <div class="exnums"><label><span>Sæt</span><input id="se-s${i}" inputmode="numeric" data-bind="se.ex.${i}.s" value="${esc(x.s)}"></label><label><span>Gentagelser</span><input id="se-r${i}" inputmode="numeric" data-bind="se.ex.${i}.r" value="${esc(x.r)}"></label><label><span>Tilbage i tanken</span><input id="se-q${i}" inputmode="numeric" data-bind="se.ex.${i}.q" value="${esc(x.q)}"></label></div></div>`}).join('')}
     <datalist id="exlist2">${allExercises().map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
     <button class="restbtn" data-act="sepick">+ Tilføj øvelse</button>
-    <p class="hint">Tilbage = hvor mange gentagelser man stopper før, man ikke kan mere. ↻ bytter til en lignende øvelse.</p></section>`;
+    <p class="hint">Tilbage i tanken = hvor mange gentagelser du stopper før, du ikke kan mere. ↻ bytter til en lignende øvelse.</p></section>`;
   return choose}
 function viewSessEdit(){
   const e=ui.se,builtIn=e.key&&SESS_BASE[e.key],edited=builtIn&&(state.sessEdits||{})[e.key],cardioBuiltIn=builtIn&&(e.kind==='interval'||e.kind==='zone2');
@@ -1013,13 +1013,13 @@ function setLine(i,j,s,p,tq){
 function formStyrke(){
   const doneN=ui.rows.reduce((a,r)=>a+r.sets.filter(s=>s.done).length,0),allN=ui.rows.reduce((a,r)=>a+r.sets.length,0);
   return `<label class="field"><span>Pas</span><select id="f-sess">${['A','B','C'].concat(customKeys('styrke')).map(k=>`<option value="${k}"${ui.sess===k?' selected':''}>${SESS[k].name}</option>`).join('')}<option value="X"${ui.sess==='X'?' selected':''}>Andet styrkepas</option></select></label>
-  <p class="hint">Udfyldt med dine tal fra sidst og dagens vægtforslag. Ret tallene og tryk ✓ efter hvert sæt, så starter pausen. Tilbage = hvor mange gentagelser du kunne have taget mere.</p>
+  <p class="hint">Udfyldt med dine tal fra sidst og dagens vægtforslag. Ret tallene og tryk ✓ efter hvert sæt, så starter pausen. Tilbage i tanken = hvor mange gentagelser du kunne have taget mere.</p>
   <div class="rows">${ui.rows.map((r,i)=>{const g=suggest(r.ex),prev=lastSets(r.ex);const tq=r.tRir??(target(r.ex)||{}).rir;const tr=r.tReps??(target(r.ex)||{}).reps;
     const wu=warmup(r.ex,num(r.sets[0]&&r.sets[0].kg));const dn=r.sets.filter(s=>s.done).length;return `<div class="srow card">
     <div class="row-between"><input id="r${i}-ex" class="exin" value="${esc(r.ex)}" placeholder="Øvelse" data-row="${i}" data-f="ex" data-ac="ex" autocomplete="off" aria-label="Øvelse"><span class="muted small num">${dn}/${r.sets.length}</span><button class="x" data-act="rmrow" data-i="${i}" aria-label="Fjern øvelse">×</button></div>
-    ${tr||tq!=null||g?`<p class="hint num">${tr?`Mål: ${r.sets.length} sæt × ${tr}`:''}${tq!=null?` · ${tq} tilbage`:''}${g?` · Forslag <b class="sugb">${esc(g.text)}</b>`:''}</p>`:''}
+    ${tr||tq!=null||g?`<p class="hint num">${tr?`Mål: ${r.sets.length} sæt × ${tr}`:''}${tq!=null?` · ${tq} i tanken`:''}${g?` · Forslag <b class="sugb">${esc(g.text)}</b>`:''}</p>`:''}
     ${wu?`<p class="hint num">Opvarmning: ${wu}</p>`:''}
-    <div class="sets"><div class="set head"><span>Sæt</span><span>kg</span><span>Gent.</span><span>Tilbage</span><span></span></div>
+    <div class="sets"><div class="set head"><span>Sæt</span><span>kg</span><span>Gentagelser</span><span>Tilbage i tanken</span><span></span></div>
       ${r.sets.map((s,j)=>setLine(i,j,s,prev[j],tq)).join('')}</div>
     <div class="setbtns"><button type="button" class="restbtn" data-act="addset" data-i="${i}">+ Sæt</button>${r.sets.length>1?`<button type="button" class="restbtn" data-act="rmset" data-i="${i}">− Sæt</button>`:''}</div>
   </div>`}).join('')}</div>
@@ -1262,7 +1262,7 @@ function viewSettings(){
     </ul></section>
   <section class="card"><h3 class="sec">Sådan regnes vægtforslaget</h3>
     <ul class="facts">
-      <li>Rammer du målet for gentagelser og "tilbage", lægges 2,5 kg på næste gang (2 kg på håndvægte).</li>
+      <li>Rammer du målet for gentagelser og "tilbage i tanken", lægges 2,5 kg på næste gang (2 kg på håndvægte).</li>
       <li>Var det lettere end målet, går vægten mere op. Var det hårdere, går den ned. Højst 10 % ad gangen.</li>
       <li>Øvelser uden vægt, fx pull-ups: én gentagelse mere pr. sæt. Klarer du 3 mere end målet, så tag 2,5 kg på.</li>
     </ul></section>
