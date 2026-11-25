@@ -905,8 +905,7 @@ function trainRow(k){const se=SESS[k],t=sessKey(TODAY)===k;
 function viewTrain(){
   const cfToday=cfSaved(TODAY);
   return `<h2 class="h2">Træn</h2><p class="note">Tryk på et pas for at se det, starte det eller rette i det.</p>
-  <button class="btn accent" data-act="trrand">🎲 Tilfældigt styrkepas</button>
-  <div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn ghost" data-act="trempty">+ Tom træning</button><button class="btn ghost" data-act="senew">+ Nyt pas</button></div>
+  <button class="btn accent" data-act="senew">+ Nyt pas</button>
   ${trainGroups().map(([g,ks])=>`<section class="tr-grp"><h3 class="sec">${g}</h3>${ks.map(trainRow).join('')}</section>`).join('')}
   <section class="tr-grp"><h3 class="sec">CrossFit</h3><button class="tr-row k-crossfit${sessKey(TODAY)==='CF'?' today':''}" data-act="cfopen" data-date="${TODAY}"><span class="bar"></span><span class="nm">CrossFit${cfToday?` · ${esc(cfToday.title||'')}`:''}</span>${sessKey(TODAY)==='CF'?'<span class="tag">I dag</span>':''}<span class="chev">›</span></button></section>`;
 }
