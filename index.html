@@ -180,6 +180,23 @@ section{display:flex;flex-direction:column;gap:12px}
 .tr-row .tag{font-size:12px;font-weight:500;color:var(--accent)}
 .tr-row .chev{color:var(--muted);font-size:18px}
 .tr-row.today{outline:2px solid var(--accent);outline-offset:-2px}
+.exblk{padding:12px 0;border-top:1px solid var(--line);display:grid;gap:8px}
+.exblk:first-of-type{border-top:0;padding-top:4px}
+.exblk-top{display:grid;grid-template-columns:minmax(0,1fr) 40px 40px;gap:6px}
+.exblk-top input{padding:10px 12px}
+.exblk .rm{appearance:none;border:0;background:var(--surface-2);color:var(--muted);height:42px;border-radius:10px;cursor:pointer;font-size:16px}
+.exmeta{font-size:12px;color:var(--muted);margin-top:-2px}
+.exmeta.warn{color:var(--accent)}
+.exnums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.exnums label{display:grid;gap:4px}
+.exnums span{font-size:11px;color:var(--muted)}
+.exnums input{padding:9px 6px;text-align:center}
+.pk-grp{margin-bottom:6px}
+.pk-grp[hidden],.pk-row[hidden]{display:none}
+.pk-row{appearance:none;display:grid;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:12px 2px;color:var(--fg);font:inherit;cursor:pointer;gap:2px}
+.pk-row b{font-weight:600;font-size:15px}
+.pk-row small{color:var(--muted);font-size:12px}
+#pk-q{width:100%;margin-bottom:10px}
 .exed{display:grid;grid-template-columns:minmax(0,1fr) 44px 44px 50px 30px;gap:6px;align-items:end}
 .exed input{padding:10px 6px;text-align:center}
 .exed input.exn-in{text-align:left;padding:10px 10px}
@@ -470,7 +487,7 @@ function load(){
     if(st.program==='blueprint'&&st.plan[2]==='I4'&&st.plan[0]==='Z2L')st.plan[2]='I5';
     /* v9: move 30/15 to Friday and Styrke C to Saturday, so intervals never follow a heavy leg day */
     if(st.program==='blueprint'&&st.plan[5]==='C'&&st.plan[6]==='I30B'){st.plan[5]='I30B';st.plan[6]='C';if(st.addons[5]==='MOB'){delete st.addons[5];st.addons[6]='MOB'}}
-    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.sessEdits=d.sessEdits||{};st.customSess=d.customSess||{};st.customPlan=d.customPlan||null;st.customAddons=d.customAddons||null;st.customDeload=d.customDeload;st.overrides=d.overrides||{};st.cfDays=d.cfDays||{};st.cfPrefs=d.cfPrefs||null;st.shifts=Array.isArray(d.shifts)?d.shifts:[];
+    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.sessEdits=d.sessEdits||{};st.customSess=d.customSess||{};st.customPlan=d.customPlan||null;st.customAddons=d.customAddons||null;st.customDeload=d.customDeload;st.overrides=d.overrides||{};st.cfDays=d.cfDays||{};st.cfPrefs=d.cfPrefs||null;st.strUdstyr=d.strUdstyr||null;st.shifts=Array.isArray(d.shifts)?d.shifts:[];
     if(!st.program){const untouched=Object.keys(DEFAULT_PLAN).every(k=>st.plan[k]===DEFAULT_PLAN[k]);if(untouched)st.plan={...BP_PLAN};st.addons={...BP_ADDONS}}
     /* v20: one program only — your own week. Existing data counts as already set up. */
     if(st.program!=='custom'&&!d.customPlan)st.customDeload=d.customDeload??true;
@@ -569,7 +586,7 @@ function suggest(ex){
     if(delta>=0)return {kg:0,bw:true,text:'Prøv 1 rep mere',l,rir,delta};
     return {kg:0,bw:true,text:'Samme som sidst',l,rir,delta};
   }
-  const step=/håndvægt|bulgarsk|farmer|pallof/i.test(ex)?2:2.5;
+  const lx=strFor(ex),step=lx&&lx[1]===EQ_KB?4:(lx&&lx[1]===EQ_DB)||/håndvægt|bulgarsk|farmer|pallof/i.test(ex)?2:2.5;
   let next;
   if(delta===0)next=l.kg+step;
   else{next=l.kg*Math.max(.9,Math.min(1.1,1+.035*delta));if(delta>0)next=Math.max(next,l.kg+step)}
@@ -578,7 +595,53 @@ function suggest(ex){
 }
 const rirTxt=r=>(r===null||r===undefined||r==='')?'':` · ${r} tilbage`;
 function loggedExercises(){const m=new Map();logsOf('styrke').forEach(l=>l.sets.forEach(s=>m.set(s.ex.toLowerCase(),s.ex)));return [...m.values()]}
-function allExercises(){const set=new Set();Object.values(SESS).forEach(s=>(s.ex||[]).forEach(e=>set.add(e[0])));loggedExercises().forEach(e=>set.add(e));return [...set]}
+/* ---------- Strength exercise library: [name, equipment, muscle group, movement pattern, sets, reps, reps in reserve] ---------- */
+const EQ_ST='Stang og stativ',EQ_DB='Håndvægte',EQ_KB='Kettlebells',EQ_CB='Kabeltræk',EQ_MA='Maskiner',EQ_PU='Pull-up-stang',EQ_DI='Dip-stang',EQ_TB='Trap bar',EQ_RI='Ringe eller TRX',EQ_EL='Elastikker',EQ_SL='Slæde',EQ_SM='Ab wheel, kasse og bold',EQ_NO='Ingen udstyr';
+const STR_EQ=[EQ_ST,EQ_DB,EQ_KB,EQ_CB,EQ_MA,EQ_PU,EQ_DI,EQ_TB,EQ_RI,EQ_EL,EQ_SL,EQ_SM];
+const STR_GROUPS=['Ben','Bagside','Bryst','Ryg','Skuldre','Arme','Core','Helkrop'];
+const STR_LIB=[
+ ['Squat',EQ_ST,'Ben','squat',4,5,2],['Frontsquat',EQ_ST,'Ben','squat',3,6,2],['Pause squat',EQ_ST,'Ben','squat',3,4,2],['Box squat',EQ_ST,'Ben','squat',4,5,2],
+ ['Dødløft',EQ_ST,'Bagside','hinge',3,5,3],['Rumænsk dødløft',EQ_ST,'Bagside','hinge',3,8,2],['Sumo-dødløft',EQ_ST,'Bagside','hinge',3,5,3],['Good morning',EQ_ST,'Bagside','hinge',3,10,2],
+ ['Hip thrust',EQ_ST,'Bagside','glute',3,8,1],['Bænkpres',EQ_ST,'Bryst','push_h',4,5,2],['Skrå bænkpres',EQ_ST,'Bryst','push_h',3,8,2],['Smal bænkpres',EQ_ST,'Arme','push_h',3,8,2],
+ ['Militærpres',EQ_ST,'Skuldre','push_v',4,5,2],['Push press',EQ_ST,'Skuldre','push_v',4,4,2],['Landmine press (pr. arm)',EQ_ST,'Skuldre','push_v',3,10,2],
+ ['Rotræk med stang',EQ_ST,'Ryg','pull_h',3,8,1],['Pendlay row',EQ_ST,'Ryg','pull_h',4,6,2],['Reverse lunges med stang',EQ_ST,'Ben','lunge',3,8,2],
+ ['Stang-curl',EQ_ST,'Arme','arms',3,10,1],['Power clean',EQ_ST,'Helkrop','power',5,3,3],['Hang power clean',EQ_ST,'Helkrop','power',5,3,3],
+ ['Håndvægt-bænkpres',EQ_DB,'Bryst','push_h',3,8,2],['Skrå håndvægtpres',EQ_DB,'Bryst','push_h',4,8,1],['Håndvægt-flyes',EQ_DB,'Bryst','chest_iso',3,12,2],
+ ['Håndvægt-skulderpres',EQ_DB,'Skuldre','push_v',3,8,2],['Arnold press',EQ_DB,'Skuldre','push_v',3,10,2],['Sidehæv med håndvægte',EQ_DB,'Skuldre','delt',3,12,1],['Bagside-flyes med håndvægte',EQ_DB,'Skuldre','delt',3,12,1],
+ ['Enarms-roning (pr. arm)',EQ_DB,'Ryg','pull_h',3,10,1],['Bulgarsk splitsquat',EQ_DB,'Ben','lunge',3,8,2],['Goblet squat',EQ_DB,'Ben','squat',3,10,2],['Walking lunges med håndvægte',EQ_DB,'Ben','lunge',3,10,2],['Step-ups med håndvægte',EQ_DB,'Ben','lunge',3,8,2],
+ ['Håndvægt-RDL',EQ_DB,'Bagside','hinge',3,10,2],['Bicepscurl med håndvægte',EQ_DB,'Arme','arms',3,10,1],['Hammer curl',EQ_DB,'Arme','arms',3,10,1],['Triceps extension over hovedet',EQ_DB,'Arme','arms',3,12,1],
+ ["Farmer's walk (meter)",EQ_DB,'Helkrop','carry',3,40,1],['Suitcase carry (meter pr. side)',EQ_DB,'Core','carry',3,30,2],
+ ['Kettlebell swing',EQ_KB,'Bagside','hinge',4,15,2],['Dobbelt kettlebell frontsquat',EQ_KB,'Ben','squat',3,8,2],['Kettlebell clean & press (pr. arm)',EQ_KB,'Skuldre','push_v',3,6,2],
+ ['Kettlebell-roning (pr. arm)',EQ_KB,'Ryg','pull_h',3,10,2],['Turkish get-up (pr. side)',EQ_KB,'Helkrop','core',3,2,2],['Kettlebell snatch (pr. arm)',EQ_KB,'Helkrop','power',4,6,2],
+ ['Kabelroning siddende',EQ_CB,'Ryg','pull_h',3,10,1],['Lat pulldown',EQ_CB,'Ryg','pull_v',3,10,1],['Straight-arm pulldown',EQ_CB,'Ryg','pull_v',3,12,2],['Face pulls',EQ_CB,'Skuldre','delt',3,15,2],
+ ['Kabel-flyes',EQ_CB,'Bryst','chest_iso',3,12,2],['Triceps pushdown',EQ_CB,'Arme','arms',3,12,1],['Kabel-curl',EQ_CB,'Arme','arms',3,12,1],['Pallof press (pr. side)',EQ_CB,'Core','core',3,10,2],['Kabel-woodchop (pr. side)',EQ_CB,'Core','core',3,10,2],
+ ['Benpres',EQ_MA,'Ben','squat',3,10,2],['Hack squat',EQ_MA,'Ben','squat',3,8,2],['Leg extension',EQ_MA,'Ben','leg_iso',3,12,1],['Leg curl',EQ_MA,'Bagside','leg_iso',3,10,1],
+ ['Lægpres i maskine',EQ_MA,'Ben','calves',3,12,1],['Brystpres i maskine',EQ_MA,'Bryst','push_h',3,10,1],['Skulderpres i maskine',EQ_MA,'Skuldre','push_v',3,10,1],['Roning i maskine',EQ_MA,'Ryg','pull_h',3,10,1],
+ ['Assisteret pull-ups',EQ_MA,'Ryg','pull_v',3,8,1],['Pec deck',EQ_MA,'Bryst','chest_iso',3,12,1],['Rygstræk (back extension)',EQ_MA,'Bagside','hinge',3,12,2],['Hip abduction',EQ_MA,'Bagside','glute',3,15,1],
+ ['Pull-ups',EQ_PU,'Ryg','pull_v',4,6,1],['Chin-ups',EQ_PU,'Ryg','pull_v',3,8,1],['Hængende knæløft',EQ_PU,'Core','core',3,12,2],['Toes to bar',EQ_PU,'Core','core',3,10,2],
+ ['Dips',EQ_DI,'Bryst','push_h',3,8,1],['Trap bar-dødløft',EQ_TB,'Bagside','hinge',3,5,2],['Trap bar carry (meter)',EQ_TB,'Helkrop','carry',3,40,1],
+ ['Ring-roning',EQ_RI,'Ryg','pull_h',3,10,2],['Ring-dips',EQ_RI,'Bryst','push_h',3,6,2],['Ring push-ups',EQ_RI,'Bryst','push_h',3,10,2],['Body saw',EQ_RI,'Core','core',3,10,2],
+ ['Band pull-aparts',EQ_EL,'Skuldre','delt',3,20,2],['Elastik-roning',EQ_EL,'Ryg','pull_h',3,15,2],
+ ['Slædeskub (meter)',EQ_SL,'Helkrop','carry',4,20,2],['Slædetræk baglæns (meter)',EQ_SL,'Ben','carry',4,20,2],
+ ['Ab wheel',EQ_SM,'Core','core',3,8,2],['Box jumps',EQ_SM,'Ben','power',4,5,3],['Medicinbold-slam',EQ_SM,'Helkrop','power',3,10,3],['Wall balls',EQ_SM,'Helkrop','squat',3,15,2],
+ ['Push-ups',EQ_NO,'Bryst','push_h',3,12,2],['Pike push-ups',EQ_NO,'Skuldre','push_v',3,8,2],['Split squat',EQ_NO,'Ben','lunge',3,10,2],['Lunges',EQ_NO,'Ben','lunge',3,12,2],
+ ['Glute bridge på et ben (pr. ben)',EQ_NO,'Bagside','glute',3,12,2],['Nordic curl',EQ_NO,'Bagside','leg_iso',3,5,2],['Lægløft på et ben (pr. ben)',EQ_NO,'Ben','calves',3,12,1],
+ ['Plank (sek)',EQ_NO,'Core','core',3,45,2],['Sideplank (sek pr. side)',EQ_NO,'Core','core',3,30,2],['Dead bug (pr. side)',EQ_NO,'Core','core',3,10,2],['Hollow hold (sek)',EQ_NO,'Core','core',3,30,2]];
+const STR_BY=new Map(STR_LIB.map(x=>[x[0].toLowerCase(),x]));
+const strHave=()=>state.strUdstyr||STR_EQ;
+const strOk=x=>x[1]===EQ_NO||strHave().includes(x[1]);
+const strFor=n=>STR_BY.get(String(n||'').trim().toLowerCase());
+/* Build a session: one exercise per slot, picking from what the equipment allows. Earlier slots are the heavy lifts. */
+const STR_FOCUS={hel:['Helkrop',[['squat'],['hinge'],['push_h','push_v'],['pull_v','pull_h'],['lunge'],['core','carry']]],
+ over:['Overkrop',[['push_h'],['pull_v'],['push_v'],['pull_h'],['delt','chest_iso'],['arms']]],
+ under:['Underkrop',[['squat'],['hinge'],['lunge'],['glute','leg_iso'],['calves','carry'],['core']]]};
+const pickRand=a=>a[Math.floor(Math.random()*a.length)];
+function strSuggest(focus){const used=new Set(),out=[];
+  STR_FOCUS[focus][1].forEach(pats=>{const c=STR_LIB.filter(x=>pats.includes(x[3])&&strOk(x)&&!used.has(x[0]));const f=c.length?c:STR_LIB.filter(x=>pats.includes(x[3])&&x[1]===EQ_NO&&!used.has(x[0]));
+    if(f.length){const x=pickRand(f);used.add(x[0]);out.push({n:x[0],s:String(x[4]),r:String(x[5]),q:String(x[6])})}});
+  return out}
+function strSwap(name){const x=strFor(name);const pats=x?[x[3]]:['squat','hinge','push_h','pull_h'];const c=STR_LIB.filter(y=>pats.includes(y[3])&&strOk(y)&&y[0]!==name&&!(ui.se.ex||[]).some(e=>e.n===y[0]));return c.length?pickRand(c):null}
+function allExercises(){const set=new Set();Object.values(SESS).forEach(s=>(s.ex||[]).forEach(e=>set.add(e[0])));loggedExercises().forEach(e=>set.add(e));STR_LIB.forEach(x=>set.add(x[0]));return [...set]}
 const testNames=()=>[...new Set(logsOf('test').map(l=>l.name))];
 
 /* ---------- UI state ---------- */
@@ -848,12 +911,19 @@ function viewSessEdit(){
     <label class="field"><span>Navn</span><input id="se-name" data-bind="se.name" value="${esc(e.name)}" placeholder="Fx Overkrop"></label>
     ${builtIn?'':`<div class="field"><span>Type</span><div class="fmt-grid">${SE_KINDS.map(([v,l,d])=>`<button class="fmt${e.kind===v?' on':''}" data-act="sekind" data-v="${v}"><b>${l}</b><small>${d}</small></button>`).join('')}</div></div>`}
   </section>
-  ${e.kind==='styrke'?`<section class="card"><h3 class="sec">Øvelser</h3>
-    <div class="exed"><span style="text-align:left">Øvelse</span><span>Sæt</span><span>Gent.</span><span>Tilbage</span><span></span></div>
-    ${e.ex.map((x,i)=>`<div class="exed"><input class="exn-in" id="se-n${i}" data-bind="se.ex.${i}.n" value="${esc(x.n)}" list="exlist2" placeholder="Øvelse"><input id="se-s${i}" inputmode="numeric" data-bind="se.ex.${i}.s" value="${esc(x.s)}"><input id="se-r${i}" inputmode="numeric" data-bind="se.ex.${i}.r" value="${esc(x.r)}"><input id="se-q${i}" inputmode="numeric" data-bind="se.ex.${i}.q" value="${esc(x.q)}"><button class="rm" data-act="serm" data-i="${i}" aria-label="Fjern øvelse">×</button></div>`).join('')}
+  ${e.kind==='styrke'?`<section class="card"><h3 class="sec">Byg et forslag</h3>
+    <div class="chips">${Object.entries(STR_FOCUS).map(([k,[l]])=>`<button class="${(ui.seFocus||'hel')===k?'on':''}" data-act="sefocus" data-v="${k}">${l}</button>`).join('')}</div>
+    <button class="restbtn" data-act="seeqtog">${ui.seEq?'Skjul udstyr':`Udstyr · ${strHave().length} af ${STR_EQ.length} valgt`}</button>
+    ${ui.seEq?`<div class="chips">${STR_EQ.map(u=>`<button class="${strHave().includes(u)?'on':''}" data-act="seeq" data-v="${esc(u)}">${esc(u)}</button>`).join('')}</div><p class="hint">Øvelser uden udstyr er altid med.</p>`:''}
+    <button class="btn accent" data-act="sesuggest">${e.ex.some(x=>x.n.trim())?'Byg nyt forslag':'Byg forslag'}</button>
+    <p class="hint">Appen vælger øvelser ud fra dit udstyr. Du kan bytte eller rette dem bagefter.</p></section>
+  <section class="card"><h3 class="sec">Øvelser</h3>
+    ${e.ex.map((x,i)=>{const lx=strFor(x.n),miss=lx&&!strOk(lx);return `<div class="exblk"><div class="exblk-top"><input class="exn-in" id="se-n${i}" data-bind="se.ex.${i}.n" value="${esc(x.n)}" list="exlist2" placeholder="Skriv eller vælg øvelse"><button class="rm" data-act="seswap" data-i="${i}" aria-label="Byt øvelse" title="Byt">↻</button><button class="rm" data-act="serm" data-i="${i}" aria-label="Fjern øvelse">×</button></div>
+      ${lx?`<small class="exmeta${miss?' warn':''}">${miss?'Kræver ':''}${esc(lx[1])} · ${esc(lx[2])}</small>`:''}
+      <div class="exnums"><label><span>Sæt</span><input id="se-s${i}" inputmode="numeric" data-bind="se.ex.${i}.s" value="${esc(x.s)}"></label><label><span>Gent.</span><input id="se-r${i}" inputmode="numeric" data-bind="se.ex.${i}.r" value="${esc(x.r)}"></label><label><span>Tilbage</span><input id="se-q${i}" inputmode="numeric" data-bind="se.ex.${i}.q" value="${esc(x.q)}"></label></div></div>`}).join('')}
     <datalist id="exlist2">${allExercises().map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
-    <button class="restbtn" data-act="seadd">+ Tilføj øvelse</button>
-    <p class="hint">Tilbage = hvor mange gentagelser man stopper før, man ikke kan mere.</p></section>`
+    <button class="restbtn" data-act="sepick">+ Tilføj øvelse</button>
+    <p class="hint">Tilbage = hvor mange gentagelser man stopper før, man ikke kan mere. ↻ bytter til en lignende øvelse.</p></section>`
   :`<section class="card"><label class="field"><span>Varighed (min)</span><input id="se-min" inputmode="numeric" data-bind="se.min" value="${esc(e.min)}" placeholder="30"></label>
     <label class="field"><span>Sådan gør du (én linje pr. trin)</span><textarea id="se-steps" rows="5" data-bind="se.steps" placeholder="10 min roligt&#10;…">${esc(e.steps)}</textarea></label>
     ${cardioBuiltIn?'<p class="hint">Timeren følger stadig det oprindelige pas. Teksten her er det, du ser.</p>':''}</section>`}
@@ -862,6 +932,12 @@ function viewSessEdit(){
   ${edited?'<button class="btn ghost" data-act="sereset">Gendan det oprindelige pas</button>':''}
   ${e.key&&!builtIn?`<button class="btn danger${ui.seDel?' armed':''}" data-act="sedel">${ui.seDel?'Tryk igen for at slette':'Slet pas'}</button>`:''}`;
 }
+function viewPick(){const g=ui.pick.g||'',have=STR_LIB.filter(strOk),list=g?have.filter(x=>x[2]===g):have;
+  return `<div class="habit-head"><button class="icon-btn" data-act="pickback" aria-label="Tilbage" data-back>‹</button><h2 class="h2">Vælg øvelse</h2></div>
+  <section class="card"><input id="pk-q" type="search" placeholder="Søg, fx squat eller roning" autocomplete="off">
+    <div class="chips"><button class="${g?'':'on'}" data-act="pickg" data-v="">Alle</button>${STR_GROUPS.map(x=>`<button class="${g===x?'on':''}" data-act="pickg" data-v="${x}">${x}</button>`).join('')}</div></section>
+  <section class="card" id="pk-list">${(g?[g]:STR_GROUPS).map(gr=>{const xs=list.filter(x=>x[2]===gr);return xs.length?`<div class="pk-grp"><h3 class="sec">${gr}</h3>${xs.map(x=>`<button class="pk-row" data-act="pickex" data-n="${esc(x[0])}" data-q="${esc((x[0]+' '+x[1]+' '+x[2]).toLowerCase())}"><b>${esc(x[0])}</b><small>${esc(x[1])} · ${x[4]}×${x[5]}</small></button>`).join('')}</div>`:''}).join('')}
+    <p class="hint">Mangler en øvelse? Skriv navnet direkte i feltet på passet.</p></section>`}
 function logItem(l){
   const map={styrke:['styrke','Styrke'],kondition:['interval','Kondition'],vaegt:['vaegt','Vægt'],test:['test','Test'],mobilitet:['mobilitet','Mobilitet'],kulde:['kulde','Koldt bad'],meditation:['meditation','Meditation'],tak:['tak','Taknemmelighed'],crossfit:['crossfit','CrossFit']};
   const [k,lab]=map[l.type]||(findHabit(l.type)?[l.type,'Vane']:['hvile','Log']);let title='',detail='';
@@ -1301,16 +1377,17 @@ function syncHistory(){const k=navKey();if(k===lastNav)return;
 addEventListener('popstate',e=>{const st=e.state;if(!st||!st.view)return;navDepth=Math.max(0,navDepth-1);
   if(st.view==='onboard'&&state.onboarded){history.back();return}
   navFromPop=true;ui.view=st.view;if(st.sel)ui.sel=st.sel;if(st.trKey)ui.trKey=st.trKey;if(ui.cf&&st.cfStep)ui.cf.step=st.cfStep;if(ui.ob&&st.obStep)ui.ob.step=st.obStep;
-  if(st.view==='sessedit'&&!ui.se)ui.view='train';render(true)});
+  if((st.view==='sessedit'||st.view==='expick')&&!ui.se)ui.view='train';if(st.view==='expick'&&!ui.pick)ui.view='sessedit';
+  render(true);if(ui.view==='sessedit'&&ui.seScroll){scrollTo(0,ui.seScroll);ui.seScroll=0}});
 function render(top){habitCss();
   if(!state.onboarded&&ui.view!=='onboard')ui.view='onboard';
   const v=ui.view;$('.tabs').hidden=v==='onboard';$('.top .icon-btn').hidden=v==='onboard';
   $('#main').innerHTML=(storageOK?'':'<p class="warn">Browseren tillader ikke at gemme her. Åbn siden i Chrome og tilføj den til startskærmen, ellers forsvinder dine logs.</p>')+
     (timer&&v!=='timer'?'<button class="btn primary" data-act="view" data-view="timer">Timeren kører · gå tilbage</button>':'')+
-    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():v==='train'?viewTrain():v==='day'?viewDay():v==='sess'?viewSess():v==='sessedit'?viewSessEdit():viewSettings());
+    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():v==='train'?viewTrain():v==='day'?viewDay():v==='sess'?viewSess():v==='sessedit'?viewSessEdit():v==='expick'?viewPick():viewSettings());
   syncHistory();
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))||((v==='sess'||v==='sessedit')&&t.dataset.view==='train')));
-  {const st=sessFor(TODAY);$('#hdr-hi').textContent=(state.name?'Hej '+state.name+'! · ':'')+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='onboard'?'Styrke & VO₂ log':v==='train'||v==='sess'?'Hvad har du lyst til i dag?':v==='sessedit'?'Byg dit eget pas':v==='day'?cap(niceDate(ui.sel)):v==='cf'?'Byg dagens WOD':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))||((v==='sess'||v==='sessedit'||v==='expick')&&t.dataset.view==='train')));
+  {const st=sessFor(TODAY);$('#hdr-hi').textContent=(state.name?'Hej '+state.name+'! · ':'')+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='onboard'?'Styrke & VO₂ log':v==='train'||v==='sess'?'Hvad har du lyst til i dag?':v==='sessedit'||v==='expick'?'Byg dit eget pas':v==='day'?cap(niceDate(ui.sel)):v==='cf'?'Byg dagens WOD':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
   if(top)window.scrollTo(0,0);
 }
 /* ---------- Intro tour: a few swipeable cards shown once after setup ---------- */
@@ -1367,7 +1444,7 @@ function doRestore(){
   let d;try{d=JSON.parse(ui.impText)}catch(e){d=null}
   if(!d||!Array.isArray(d.logs)){ui.pendingRestore=false;render();return toast('Teksten er ikke en gyldig backup')}
   if(!ui.pendingRestore){ui.pendingRestore=true;return render()}
-  state={sessEdits:d.sessEdits||{},customSess:d.customSess||{},plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:'custom',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,name:d.name,onboarded:true,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);applySess();
+  state={sessEdits:d.sessEdits||{},customSess:d.customSess||{},plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:'custom',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,name:d.name,onboarded:true,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,strUdstyr:d.strUdstyr||null,shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);applySess();
 }
 function guessUnit(name){
   const prev=logsOf('test').filter(l=>l.name===name);if(prev.length)return prev[prev.length-1].unit;
@@ -1410,6 +1487,17 @@ document.addEventListener('click',e=>{
     case 'seedit':ui.se=seDraft(b.dataset.key);ui.seDel=false;ui.view='sessedit';render(true);break;
     case 'sebask':ui.view=ui.se&&ui.se.key?'sess':'train';render(true);break;
     case 'sekind':ui.se.kind=b.dataset.v;render();break;
+    case 'sefocus':ui.seFocus=b.dataset.v;render();break;
+    case 'seeqtog':ui.seEq=!ui.seEq;render();break;
+    case 'seeq':{let have=strHave().slice();const u=b.dataset.v;have=have.includes(u)?have.filter(x=>x!==u):have.concat(u);state.strUdstyr=have.length===STR_EQ.length?null:have;save();render();break}
+    case 'sesuggest':{const ex=strSuggest(ui.seFocus||'hel');if(!ex.length){toast('Vælg mere udstyr');break}ui.se.ex=ex;if(!ui.se.name.trim())ui.se.name=STR_FOCUS[ui.seFocus||'hel'][0];render();toast('Forslag klar');break}
+    case 'seswap':{const i=+b.dataset.i,x=strSwap(ui.se.ex[i].n);if(!x){toast('Ingen anden lignende øvelse med dit udstyr');break}ui.se.ex[i]={n:x[0],s:String(x[4]),r:String(x[5]),q:String(x[6])};render();break}
+    case 'sepick':ui.pick={g:''};ui.seScroll=scrollY;ui.view='expick';render(true);break;
+    case 'pickback':ui.view='sessedit';render(true);if(ui.seScroll){scrollTo(0,ui.seScroll);ui.seScroll=0}break;
+    case 'pickg':ui.pick.g=b.dataset.v;render();break;
+    case 'pickex':{const x=strFor(b.dataset.n);if(!x)break;const ex=ui.se.ex;const row={n:x[0],s:String(x[4]),r:String(x[5]),q:String(x[6])};
+      if(ex.length===1&&!ex[0].n.trim())ex[0]=row;else ex.push(row);ui.seScroll=(ui.seScroll||0)+140;
+      if(navDepth>0){history.back()}else{ui.view='sessedit';render(true)}toast(x[0]+' tilføjet');break}
     case 'seadd':ui.se.ex.push({n:'',s:'3',r:'8',q:'2'});render();{const el=$('#se-n'+(ui.se.ex.length-1));if(el)el.focus()}break;
     case 'serm':ui.se.ex.splice(+b.dataset.i,1);if(!ui.se.ex.length)ui.se.ex.push({n:'',s:'3',r:'8',q:'2'});render();break;
     case 'sesave':{const e=ui.se,name=e.name.trim();if(!name){toast('Giv passet et navn');break}
@@ -1502,6 +1590,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('input',e=>{
   const t=e.target;
+  if(t.id==='pk-q'){const q=t.value.trim().toLowerCase();document.querySelectorAll('.pk-row').forEach(r=>r.hidden=!!q&&!r.dataset.q.includes(q));document.querySelectorAll('.pk-grp').forEach(g=>g.hidden=![...g.querySelectorAll('.pk-row')].some(r=>!r.hidden));return}
   if(t.dataset.row!==undefined){const r=ui.rows[+t.dataset.row];if(r){r[t.dataset.f]=t.value;ui.dirty=true}return}
   if(t.dataset.set!==undefined){const [i,j]=t.dataset.set.split('.').map(Number),r=ui.rows[i];if(!r)return;const s=r.sets[j],f=t.dataset.f,old=s[f];s[f]=t.value;ui.dirty=true;
     /* changing kg or reps carries forward to later sets that aren't done and still had the old value */
