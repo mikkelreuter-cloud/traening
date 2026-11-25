@@ -638,7 +638,7 @@ function cfOpen(date,fresh){const sv=cfSaved(date),P=cfPrefs();
   ui.view='cf';render(true)}
 function viewCF(){
   const c=ui.cf;if(!c){ui.view='today';return viewToday()}
-  const P=cfPrefs(),back=`<div class="habit-head"><button class="icon-btn" data-act="cfback" aria-label="Tilbage">‹</button><div><p class="eyebrow">${cap(niceDate(c.date))}</p><h2 class="h2">CrossFit</h2></div></div>`;
+  const P=cfPrefs(),back=`<div class="habit-head"><button class="icon-btn" data-act="cfback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">${cap(niceDate(c.date))}</p><h2 class="h2">CrossFit</h2></div></div>`;
   if(c.step==='menu'){
     const mins=c.fmt?cfMinFor(c.fmt):CF_MIN;if(!mins.includes(c.min))c.min=mins.reduce((a,b)=>Math.abs(b-c.min)<Math.abs(a-c.min)?b:a,mins[0]);
     const iv=c.fmt?CF.slotInterval(c.fmt):[2,6];
@@ -778,7 +778,7 @@ function dial(done,total){
     <div class="dial-c"><span class="ic">⚡</span><b class="num">${done}/${total}</b><span>pas gennemført</span></div></div>`;
 }
 function viewCal(){return calMonth()+dayCard(ui.sel)}
-function viewDay(){return `<div class="habit-head"><button class="icon-btn" data-act="dayback" aria-label="Tilbage">‹</button><h2 class="h2">${cap(DAYS[pd(ui.sel).getDay()])}</h2></div>`+dayCard(ui.sel)}
+function viewDay(){return `<div class="habit-head"><button class="icon-btn" data-act="dayback" aria-label="Tilbage" data-back>‹</button><h2 class="h2">${cap(DAYS[pd(ui.sel).getDay()])}</h2></div>`+dayCard(ui.sel)}
 function calMonth(){
   const y=ui.calY,m=ui.calM,first=new Date(y,m,1),start=(first.getDay()+6)%7,n=new Date(y,m+1,0).getDate();
   let cells='';for(let i=0;i<start;i++)cells+='<span class="cd empty"></span>';
@@ -815,7 +815,7 @@ function viewTrain(){
 }
 function viewSess(){
   const k=ui.trKey,se=SESS[k];if(!se){ui.view='train';return viewTrain()}
-  return `<div class="habit-head"><button class="icon-btn" data-act="view" data-view="train" aria-label="Tilbage">‹</button><h2 class="h2">${esc(se.name)}</h2></div>
+  return `<div class="habit-head"><button class="icon-btn" data-act="view" data-view="train" aria-label="Tilbage" data-back>‹</button><h2 class="h2">${esc(se.name)}</h2></div>
   <section class="card k-${se.kind}"><div class="row-between">${chip(se.kind,KIND_LABEL[se.kind])}${se.dur?`<span class="muted small">${esc(se.dur)}</span>`:''}</div>
     ${sessionBody(se)}${se.note?`<p class="note">${esc(se.note)}</p>`:''}
     <button class="btn accent" data-act="trstart" data-key="${k}">Start</button>
@@ -827,7 +827,7 @@ function seDraft(k){const se=k?SESS[k]:null;
     steps:se&&se.steps?se.steps.join('\n'):'',min:se?String(se.min||parseInt(String(se.dur||'').replace(/\D+/g,' ').trim().split(' ').pop())||''):'',note:se?se.note||'':''}}
 function viewSessEdit(){
   const e=ui.se,builtIn=e.key&&SESS_BASE[e.key],edited=builtIn&&(state.sessEdits||{})[e.key],cardioBuiltIn=builtIn&&(e.kind==='interval'||e.kind==='zone2');
-  return `<div class="habit-head"><button class="icon-btn" data-act="sebask" aria-label="Tilbage">‹</button><h2 class="h2">${e.key?'Rediger pas':'Nyt pas'}</h2></div>
+  return `<div class="habit-head"><button class="icon-btn" data-act="sebask" aria-label="Tilbage" data-back>‹</button><h2 class="h2">${e.key?'Rediger pas':'Nyt pas'}</h2></div>
   <section class="card">
     <label class="field"><span>Navn</span><input id="se-name" data-bind="se.name" value="${esc(e.name)}" placeholder="Fx Overkrop"></label>
     ${builtIn?'':`<div class="field"><span>Type</span><div class="fmt-grid">${SE_KINDS.map(([v,l,d])=>`<button class="fmt${e.kind===v?' on':''}" data-act="sekind" data-v="${v}"><b>${l}</b><small>${d}</small></button>`).join('')}</div></div>`}
@@ -1274,12 +1274,24 @@ function viewTimer(){
 /* ---------- render ---------- */
 function habitCss(){let el=document.getElementById('hab-css');if(!el){el=document.createElement('style');el.id='hab-css';document.head.appendChild(el)}
   el.textContent=(state.customHabits||[]).map(c=>`.k-${c.id}{--k:${c.color}}`).join('')}
+/* ---------- Back gesture: every screen is a history entry, so swiping back steps back inside the app ---------- */
+let lastNav=null,navFromPop=false,replaceNext=false,navDepth=0;
+function navKey(){return [ui.view,ui.view==='cf'&&ui.cf?ui.cf.step:'',ui.view==='onboard'&&ui.ob?ui.ob.step:'',ui.view==='day'?ui.sel:'',ui.view==='sess'?ui.trKey:''].join('|')}
+function syncHistory(){const k=navKey();if(k===lastNav)return;
+  const st={k,view:ui.view,sel:ui.sel,trKey:ui.trKey,cfStep:ui.cf&&ui.cf.step,obStep:ui.ob&&ui.ob.step};
+  try{if(lastNav===null||navFromPop||replaceNext)history.replaceState(st,'');else{history.pushState(st,'');navDepth++}}catch(e){}
+  lastNav=k;navFromPop=false;replaceNext=false}
+addEventListener('popstate',e=>{const st=e.state;if(!st||!st.view)return;navDepth=Math.max(0,navDepth-1);
+  if(st.view==='onboard'&&state.onboarded){history.back();return}
+  navFromPop=true;ui.view=st.view;if(st.sel)ui.sel=st.sel;if(st.trKey)ui.trKey=st.trKey;if(ui.cf&&st.cfStep)ui.cf.step=st.cfStep;if(ui.ob&&st.obStep)ui.ob.step=st.obStep;
+  if(st.view==='sessedit'&&!ui.se)ui.view='train';render(true)});
 function render(top){habitCss();
   if(!state.onboarded&&ui.view!=='onboard')ui.view='onboard';
   const v=ui.view;$('.tabs').hidden=v==='onboard';$('.top .icon-btn').hidden=v==='onboard';
   $('#main').innerHTML=(storageOK?'':'<p class="warn">Browseren tillader ikke at gemme her. Åbn siden i Chrome og tilføj den til startskærmen, ellers forsvinder dine logs.</p>')+
     (timer&&v!=='timer'?'<button class="btn primary" data-act="view" data-view="timer">Timeren kører · gå tilbage</button>':'')+
     (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():v==='train'?viewTrain():v==='day'?viewDay():v==='sess'?viewSess():v==='sessedit'?viewSessEdit():viewSettings());
+  syncHistory();
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))||((v==='sess'||v==='sessedit')&&t.dataset.view==='train')));
   {const st=sessFor(TODAY);$('#hdr-hi').textContent=(state.name?'Hej '+state.name+'! · ':'')+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='onboard'?'Styrke & VO₂ log':v==='train'||v==='sess'?'Hvad har du lyst til i dag?':v==='sessedit'?'Byg dit eget pas':v==='day'?cap(niceDate(ui.sel)):v==='cf'?'Byg dagens WOD':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
   if(top)window.scrollTo(0,0);
@@ -1335,6 +1347,7 @@ function guessUnit(name){
 
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
+  if(b.dataset.back!==undefined&&navDepth>0){history.back();return}
   if(a!=='del')ui.pendingDel=null;if(a!=='hdel')ui.delHabit=null;if(a!=='sedel')ui.seDel=false;if(a!=='wipe')ui.pendingWipe=false;if(a!=='restore')ui.pendingRestore=false;if(a!=='tstop'&&timer)timer.stopArmed=false;
   switch(a){
     case 'timer':startTimer(b.dataset.key);break;
@@ -1375,7 +1388,7 @@ document.addEventListener('click',e=>{
       else{const st=e.steps.split('\n').map(x=>x.trim()).filter(Boolean),mn=parseInt(e.min)||null;data.steps=st.length?st:[name];if(mn){data.min=mn;data.dur=mn+' min'}}
       if(e.key&&SESS_BASE[e.key]){state.sessEdits={...(state.sessEdits||{}),[e.key]:data}}
       else{const k=e.key||('U'+Date.now().toString(36));state.customSess={...(state.customSess||{}),[k]:{...data,kind:e.kind}};e.key=k}
-      save();applySess();ui.trKey=e.key;ui.view='sess';render(true);toast('Pas gemt');break}
+      save();applySess();ui.trKey=e.key;ui.se=null;replaceNext=true;ui.view='sess';render(true);toast('Pas gemt');break}
     case 'sereset':{const k=ui.se.key,x={...(state.sessEdits||{})};delete x[k];state.sessEdits=x;save();applySess();ui.trKey=k;ui.view='sess';render(true);toast('Oprindeligt pas gendannet');break}
     case 'sedel':{if(!ui.seDel){ui.seDel=true;render();break}const k=ui.se.key,x={...(state.customSess||{})};delete x[k];state.customSess=x;
       for(const d in state.plan)if(state.plan[d]===k)state.plan[d]='R';syncCustom();save();applySess();ui.seDel=false;ui.view='train';render(true);toast('Pas slettet');break}
@@ -1442,7 +1455,7 @@ document.addEventListener('click',e=>{
     case 'obgoal':{const g=b.dataset.v,o=ui.ob;o.goals=o.goals.includes(g)?o.goals.filter(x=>x!==g):o.goals.concat(g);render();break}
     case 'obnext':{const o=ui.ob;if(o.step===2){const order=[1,2,3,4,5,6,0],sug=obSuggest(order.filter(d=>o.days.includes(d)),o.goals);o.plan=sug.plan;o.addons=sug.addons}o.step++;render(true);break}
     case 'obback':ui.ob.step--;render(true);break;
-    case 'obdone':{const o=ui.ob;state.plan={...o.plan};state.addons={...o.addons};state.program='custom';state.name=o.name.trim();state.onboarded=true;state.shifts=[];state.skips={};state.overrides=state.overrides||{};
+    case 'obdone':{replaceNext=true;const o=ui.ob;state.plan={...o.plan};state.addons={...o.addons};state.program='custom';state.name=o.name.trim();state.onboarded=true;state.shifts=[];state.skips={};state.overrides=state.overrides||{};
       state.cycleStart=mondayOf(TODAY);syncCustom();save();ui.ob=null;ui.view='today';render(true);toast('Din uge er klar');break}
     case 'customfrom':{const bp=b.dataset.p==='blueprint';state.plan=bp?{...BP_PLAN}:{...DEFAULT_PLAN};state.addons=bp?{...BP_ADDONS}:{};syncCustom();save();render();toast('Kopieret. Ret dagene til.');break}
     case 'program':if(b.dataset.p==='custom'){if(state.program!=='custom'){state.plan=state.customPlan?{...state.customPlan}:{...state.plan};state.addons=state.customAddons?{...state.customAddons}:{...(state.addons||{})};state.program='custom';if(!state.cycleStart)state.cycleStart=mondayOf(TODAY);syncCustom();save()}render();toast('Egen plan valgt');break}
