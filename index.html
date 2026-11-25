@@ -324,6 +324,21 @@ textarea{resize:vertical}
 .tab{appearance:none;border:0;background:transparent;color:var(--nav-fg);font:500 11px/1 var(--font);height:56px;border-radius:999px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer}
 .tab svg,.icon-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .tab.on{color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent-2))}
+.tour{position:fixed;inset:0;z-index:20;background:rgb(0 0 0 / .55);display:flex;align-items:flex-end;justify-content:center}
+.tour[hidden]{display:none}
+.tour-box{background:var(--surface);color:var(--fg);width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:18px 0 calc(18px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 40px rgb(0 0 0 / .3)}
+.tour-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.tour-track::-webkit-scrollbar{display:none}
+.tour-slide{flex:0 0 100%;scroll-snap-align:center;padding:8px 28px 4px;text-align:center}
+.tour-ic{width:72px;height:72px;border-radius:22px;margin:6px auto 16px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff}
+.tour-ic svg{width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tour-slide h3{margin:0 0 8px;font-size:22px}
+.tour-slide p{margin:0;color:var(--muted);font-size:15px;line-height:1.45;min-height:66px}
+.tour-dots{display:flex;gap:6px;justify-content:center;margin:14px 0}
+.tour-dots i{width:7px;height:7px;border-radius:99px;background:var(--line);transition:width .2s,background .2s}
+.tour-dots i.on{width:20px;background:var(--accent)}
+.tour-btns{display:flex;gap:10px;padding:0 20px}
+.tour-btns button{flex:1}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(160px + env(safe-area-inset-bottom,0px));background:var(--nav);color:#fff;padding:11px 18px;border-radius:999px;font-weight:500;font-size:14px;z-index:6;max-width:calc(100% - 32px);text-align:center;box-shadow:0 10px 30px rgb(0 0 0 / .25)}
 </style>
 </head>
@@ -353,6 +368,7 @@ textarea{resize:vertical}
 </nav>
 <div class="restbar" id="restbar" hidden><span id="rest-t" class="num">Pause</span><button data-act="reststop">Stop</button></div>
 <div class="toast" id="toast" hidden></div>
+<div class="tour" id="tour" hidden></div>
 
 <script src="sw.js"></script>
 <script>
@@ -459,7 +475,7 @@ function load(){
     /* v20: one program only — your own week. Existing data counts as already set up. */
     if(st.program!=='custom'&&!d.customPlan)st.customDeload=d.customDeload??true;
     ['plan','customPlan'].forEach(f=>{if(st[f])for(const d in st[f])if(['A','B','C'].includes(st[f][d]))st[f][d]='S'});
-    st.program='custom';st.onboarded=d.onboarded!==false;st.tipSeen=d.tipSeen!=null?d.tipSeen:d.onboarded!==false;st.name=d.name!=null?d.name:'Mikkel';
+    st.program='custom';st.onboarded=d.onboarded!==false;st.tipSeen=d.tipSeen!=null?d.tipSeen:d.onboarded!==false;st.tourSeen=d.tourSeen!=null?d.tourSeen:d.onboarded!==false;st.name=d.name!=null?d.name:'Mikkel';
     return st}}catch(e){}
   return {plan:{0:'R',1:'R',2:'R',3:'R',4:'R',5:'R',6:'R'},logs:[],program:'custom',addons:{},cycleStart:null,hrmax:null,habitStart:null,onboarded:false,name:'',customDeload:true};
 }
@@ -701,7 +717,7 @@ function viewToday(){
   const backupDue=state.logs.length>=5&&(!state.lastBackup||daysSince(state.lastBackup)>=14);
   const B=bestLift();
   const wDelta=W.length>1?W[W.length-1].kg-W[0].kg:null;
-  const tips=!state.tipSeen?`<section class="card"><div class="row-between"><h3 class="sec">Sådan virker appen</h3></div>
+  const tips=false?`<section class="card"><div class="row-between"><h3 class="sec">Sådan virker appen</h3></div>
     <ul class="facts"><li><b>I dag</b> viser dagens pas. Tryk på den orange knap for at gå i gang.</li><li>Log hvert sæt med ✓. Appen husker dine tal og foreslår vægten til næste gang.</li><li><b>Træn</b> lader dig starte et hvilket som helst pas, når det passer dig. Tryk på en dag i ugen herunder for at se den eller lægge CrossFit ind.</li><li><b>Udvikling</b> viser dine fremskridt og en kalender. Ugen ændrer du via knappen øverst til højre.</li></ul>
     <button class="btn ghost" data-act="tipok">Forstået</button></section>`:'';
   return `${tips}${isDeload(TODAY)?`<section class="banner" style="background:linear-gradient(135deg,var(--k-zone2),var(--k-styrke))"><span class="bi">↓</span><div><b>Deload-uge</b><p>Halvdelen af sættene, samme vægt og kun ét intervalpas. Kroppen bygger op, så du kommer stærkere tilbage næste uge.</p></div></section>`:''}
@@ -1124,6 +1140,7 @@ function viewSettings(){
     <textarea id="exp" readonly rows="3" hidden aria-label="Backup-tekst"></textarea>
     <label class="field"><span>Gendan fra backup</span><textarea id="imp" rows="3" data-bind="impText" placeholder="Indsæt backup-tekst her">${esc(ui.impText)}</textarea></label>
     <button class="btn ${ui.pendingRestore?'danger armed':'ghost'}" data-act="restore">${ui.pendingRestore?'Tryk igen: erstat alle data':'Gendan'}</button></section>
+  <section class="card"><h3 class="sec">Ny i appen?</h3><button class="btn ghost" data-act="tourshow">Vis rundvisning</button></section>
   <section class="card"><h3 class="sec">Bag planen</h3>
     <ul class="facts">
       <li>Intervaller på 2 min eller mere giver mest forbedring af konditionen.</li>
@@ -1296,6 +1313,20 @@ function render(top){habitCss();
   {const st=sessFor(TODAY);$('#hdr-hi').textContent=(state.name?'Hej '+state.name+'! · ':'')+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='onboard'?'Styrke & VO₂ log':v==='train'||v==='sess'?'Hvad har du lyst til i dag?':v==='sessedit'?'Byg dit eget pas':v==='day'?cap(niceDate(ui.sel)):v==='cf'?'Byg dagens WOD':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
   if(top)window.scrollTo(0,0);
 }
+/* ---------- Intro tour: a few swipeable cards shown once after setup ---------- */
+const TOUR=[
+ {ic:'<path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/>',h:'I dag',p:'Viser dagens pas. Tryk Start træning, og appen guider dig igennem.'},
+ {ic:'<path d="M6.5 9v6M17.5 9v6M3.5 10.5v3M20.5 10.5v3M6.5 12h11"/>',h:'Log sæt',p:'Tryk ✓ efter hvert sæt. Pausen starter, og appen foreslår vægten til næste gang.'},
+ {ic:'<path d="M8 5v14l11-7z"/>',h:'Træn',p:'Alle dine pas. Start et når det passer, ret i dem eller lav dit eget.'},
+ {ic:'<path d="M5 20V12M10 20V6M15 20v-9M20 20V9"/>',h:'Udvikling',p:'Se dine løft, tider og vægt gå frem over tid.'},
+ {ic:'<path d="M4 7h9M18 7h2M4 17h4M13 17h7"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="10.5" cy="17" r="2.3"/>',h:'Din uge',p:'Knappen øverst til højre. Her ændrer du dage, puls og tager backup.'}];
+function showTour(){const el=$('#tour');
+  el.innerHTML=`<div class="tour-box" role="dialog" aria-label="Rundvisning"><div class="tour-track" id="tour-track">${TOUR.map(t=>`<div class="tour-slide"><div class="tour-ic"><svg viewBox="0 0 24 24">${t.ic}</svg></div><h3>${t.h}</h3><p>${t.p}</p></div>`).join('')}</div>
+  <div class="tour-dots">${TOUR.map((_,i)=>`<i class="${i?'':'on'}"></i>`).join('')}</div>
+  <div class="tour-btns"><button class="btn ghost" data-act="tourend">Spring over</button><button class="btn accent" data-act="tournext" id="tour-next">Næste</button></div></div>`;
+  el.hidden=false;const tr=$('#tour-track');
+  tr.addEventListener('scroll',()=>{const i=Math.round(tr.scrollLeft/tr.clientWidth);el.querySelectorAll('.tour-dots i').forEach((d,j)=>d.classList.toggle('on',j===i));$('#tour-next').textContent=i===TOUR.length-1?'Kom i gang':'Næste'},{passive:true})}
+function endTour(){$('#tour').hidden=true;$('#tour').innerHTML='';state.tourSeen=true;state.tipSeen=true;save()}
 let tt;function toast(msg){const el=$('#toast');el.textContent=msg;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>{el.hidden=true},2200)}
 
 /* ---------- actions ---------- */
@@ -1449,6 +1480,9 @@ document.addEventListener('click',e=>{
     case 'wkset':case 'wkadd':{const ob=b.dataset.ctx==='ob',d=b.dataset.d,v=b.dataset.v;const P=ob?ui.ob.plan:state.plan;let A=ob?ui.ob.addons:{...(state.addons||{})};
       if(a==='wkset'){P[d]=v;const kk=SESS[v].kind;if(kk==='hvile'||kk==='mobilitet')delete A[d]}else{if(v)A[d]=v;else delete A[d]}
       if(ob)ui.ob.addons=A;else{state.addons=A;syncCustom();save()}render();break}
+    case 'tournext':{const tr=$('#tour-track'),i=Math.round(tr.scrollLeft/tr.clientWidth);if(i>=TOUR.length-1)endTour();else tr.scrollTo({left:(i+1)*tr.clientWidth,behavior:'smooth'});break}
+    case 'tourend':endTour();break;
+    case 'tourshow':showTour();break;
     case 'tipok':state.tipSeen=true;save();render();break;
     case 'obstart':obInit();ui.view='onboard';render(true);break;
     case 'obday':{const d=+b.dataset.v,o=ui.ob;o.days=o.days.includes(d)?o.days.filter(x=>x!==d):o.days.concat(d);render();break}
@@ -1456,7 +1490,7 @@ document.addEventListener('click',e=>{
     case 'obnext':{const o=ui.ob;if(o.step===2){const order=[1,2,3,4,5,6,0],sug=obSuggest(order.filter(d=>o.days.includes(d)),o.goals);o.plan=sug.plan;o.addons=sug.addons}o.step++;render(true);break}
     case 'obback':ui.ob.step--;render(true);break;
     case 'obdone':{replaceNext=true;const o=ui.ob;state.plan={...o.plan};state.addons={...o.addons};state.program='custom';state.name=o.name.trim();state.onboarded=true;state.shifts=[];state.skips={};state.overrides=state.overrides||{};
-      state.cycleStart=mondayOf(TODAY);syncCustom();save();ui.ob=null;ui.view='today';render(true);toast('Din uge er klar');break}
+      state.cycleStart=mondayOf(TODAY);syncCustom();save();ui.ob=null;ui.view='today';render(true);if(!state.tourSeen)showTour();else toast('Din uge er klar');break}
     case 'customfrom':{const bp=b.dataset.p==='blueprint';state.plan=bp?{...BP_PLAN}:{...DEFAULT_PLAN};state.addons=bp?{...BP_ADDONS}:{};syncCustom();save();render();toast('Kopieret. Ret dagene til.');break}
     case 'program':if(b.dataset.p==='custom'){if(state.program!=='custom'){state.plan=state.customPlan?{...state.customPlan}:{...state.plan};state.addons=state.customAddons?{...state.customAddons}:{...(state.addons||{})};state.program='custom';if(!state.cycleStart)state.cycleStart=mondayOf(TODAY);syncCustom();save()}render();toast('Egen plan valgt');break}
     {const bp=b.dataset.p==='blueprint';state.program=bp?'blueprint':'egen';state.plan=bp?{...BP_PLAN}:{...DEFAULT_PLAN};state.addons=bp?{...BP_ADDONS}:{};state.cycleStart=mondayOf(TODAY);save();render();toast(bp?'Blueprint-program valgt':'Standardplan valgt');break}
