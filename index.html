@@ -175,6 +175,19 @@ section{display:flex;flex-direction:column;gap:12px}
 .progsw button{appearance:none;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);border-radius:16px;padding:14px 12px;font:500 14px/1.3 var(--font);cursor:pointer;text-align:left}
 .progsw button.on{background:var(--pill);color:var(--pill-fg);border-color:var(--pill)}
 .progsw.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.wk{display:flex;flex-direction:column;gap:6px}
+.wkrow{appearance:none;border:0;width:100%;display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;padding:12px 14px;border-radius:16px;background:var(--surface-2);color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.wkrow .wd-d{font-weight:500;font-size:14px;color:var(--muted);text-transform:capitalize}
+.wkrow .wd-n{display:flex;align-items:center;gap:8px;min-width:0;font-weight:500}
+.wkrow .wd-n .bar{flex:none}
+.wkrow small{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:2px}
+.wkrow .chev{color:var(--muted);font-size:18px;transition:transform .15s}
+.wkrow.open{background:var(--pill);color:var(--pill-fg)}
+.wkrow.open .wd-d,.wkrow.open small,.wkrow.open .chev{color:inherit;opacity:.75}
+.wkrow.open .chev{transform:rotate(90deg)}
+.wkrow.rest .wd-n{color:var(--muted);font-weight:400}
+.wkpick{display:flex;flex-direction:column;gap:12px;padding:12px 4px 8px}
+.wkpick .lbl{font-size:12px;color:var(--muted);margin:0 0 6px}
 .dayrow{display:flex;flex-direction:column;gap:6px;padding:12px 0;border-top:1px solid var(--line)}
 .dayrow:first-of-type{border-top:0;padding-top:0}
 .dayrow b{font-weight:500;display:flex;align-items:center;gap:8px}
@@ -859,13 +872,22 @@ function viewHabits(){
   <section class="card"><h3 class="sec">Streak</h3><div class="goals">${habits().map(h=>{const st=habitStreak(h.id);return `<div class="goal k-${h.id}"><span class="gl">${h.name}</span><span class="gv num"><b>${st}</b> ${st===1?'dag':'dage'} i træk</span></div>`}).join('')}</div></section>`;
 }
 const PLAN_GROUPS=[['Styrke',['A','B','C']],['Intervaller',['I4','I5','I30','I30B']],['Zone 2',['Z2','Z2L']],['CrossFit',['CF']],['Mobilitet',['MOB','BAL']],['Hvile',['R']]];
+const SHORT={A:'Styrke A',B:'Styrke B',C:'Styrke C',I4:'4×4',I5:'5×4',I30:'30/15',I30B:'30/15 · 4 serier',Z2:'Zone 2 · 45 min',Z2L:'Zone 2 · 60 min',CF:'CrossFit',MOB:'Mobilitet',BAL:'Balance',R:'Hvile'};
+/* One row per day; tap a day to pick its session with buttons. ctx 'st' edits the saved plan, 'ob' the first-run draft. */
+function weekEditor(ctx,plan,addons){
+  return `<div class="wk">${[1,2,3,4,5,6,0].map(d=>{const k=plan[d]||'R',se=SESS[k],ad=addons[d]||'',open=ui.wkOpen===ctx+d;
+    const sub=[se.dur,ad?'+ '+SHORT[ad].toLowerCase():''].filter(Boolean).join(' · ');
+    return `<button class="wkrow k-${se.kind}${open?' open':''}${k==='R'?' rest':''}" data-act="wkopen" data-v="${ctx+d}"><span class="wd-d">${DAYS[d].slice(0,3)}</span>
+      <span class="wd-n"><span class="bar"></span><span>${esc(se.name)}${sub?`<small>${esc(sub)}</small>`:''}</span></span><span class="chev">›</span></button>
+      ${open?`<div class="wkpick">${PLAN_GROUPS.map(([g,ks])=>`<div><p class="lbl">${g}</p><div class="chips">${ks.map(x=>`<button class="${k===x?'on':''}" data-act="wkset" data-ctx="${ctx}" data-d="${d}" data-v="${x}">${SHORT[x]}</button>`).join('')}</div></div>`).join('')}
+        ${se.kind==='hvile'||se.kind==='mobilitet'?'':`<div><p class="lbl">Bagefter</p><div class="chips">${[['','Intet'],['MOB','+ Mobilitet'],['BAL','+ Balance']].map(([v,l])=>`<button class="${ad===v?'on':''}" data-act="wkadd" data-ctx="${ctx}" data-d="${d}" data-v="${v}">${l}</button>`).join('')}</div></div>`}
+        <button class="restbtn" data-act="wkopen" data-v="">Færdig</button></div>`:''}`}).join('')}</div>`;
+}
 function customWeekCard(){
   const cnt={};[1,2,3,4,5,6,0].forEach(d=>{const k=SESS[state.plan[d]||'R'].kind;cnt[k]=(cnt[k]||0)+1});
   const sum=['styrke','interval','zone2','crossfit','mobilitet','hvile'].filter(k=>cnt[k]).map(k=>`${cnt[k]} ${KIND_LABEL[k].toLowerCase()}`).join(' · ');
   return `<section class="card"><div class="row-between"><h3 class="sec">Din uge</h3><span class="muted small">${sum}</span></div>
-    ${[1,2,3,4,5,6,0].map(d=>{const k=state.plan[d]||'R',se=SESS[k],ad=(state.addons||{})[d]||'';return `<div class="dayrow"><b class="k-${se.kind}"><span class="bar"></span>${cap(DAYS[d])}</b>
-      <div class="duo"><select id="cp-${d}" data-plan="${d}" aria-label="${cap(DAYS[d])}: pas">${PLAN_GROUPS.map(([g,ks])=>`<optgroup label="${g}">${ks.map(x=>`<option value="${x}"${k===x?' selected':''}>${esc(SESS[x].name)}</option>`).join('')}</optgroup>`).join('')}</select>
-      <select id="ca-${d}" data-addon="${d}" aria-label="${cap(DAYS[d])}: bagefter"${se.kind==='hvile'||se.kind==='mobilitet'?' disabled':''}><option value="">Intet bagefter</option><option value="MOB"${ad==='MOB'?' selected':''}>+ Mobilitet</option><option value="BAL"${ad==='BAL'?' selected':''}>+ Balance</option></select></div></div>`}).join('')}
+    ${weekEditor('st',state.plan,state.addons||{})}
     <label class="field inline"><span>Deload hver ${DELOAD_EVERY}. uge</span><select id="cdl" data-cdeload="1"><option value="1"${state.customDeload!==false?' selected':''}>Til</option><option value="0"${state.customDeload===false?' selected':''}>Fra</option></select></label>
     <button class="btn ghost" data-act="obstart">Planlæg ugen forfra</button>
   </section>`;
@@ -898,10 +920,8 @@ function viewOnboard(){
   if(o.step===2)return `${dots}<h2 class="h2">Hvad vil du træne?</h2><p class="note">Vælg en eller flere. Appen fordeler dem på dine ${o.days.length} dage.</p>
     <div class="fmt-grid">${GOALS.map(g=>`<button class="fmt${o.goals.includes(g.id)?' on':''}" data-act="obgoal" data-v="${g.id}"><b>${g.name}</b><small>${g.desc}</small></button>`).join('')}</div>
     <div class="btns3" style="grid-template-columns:1fr 2fr"><button class="btn ghost" data-act="obback">Tilbage</button><button class="btn accent" data-act="obnext"${o.goals.length?'':' disabled'}>Lav min uge</button></div>`;
-  return `${dots}<h2 class="h2">Din uge</h2><p class="note">Her er et forslag. Ret de dage, du vil have anderledes.</p>
-    <section class="card">${order.map(d=>{const k=o.plan[d]||'R',se=SESS[k],ad=o.addons[d]||'';return `<div class="dayrow"><b class="k-${se.kind}"><span class="bar"></span>${cap(DAYS[d])}</b>
-      <div class="duo"><select id="ob-p-${d}" data-obplan="${d}">${PLAN_GROUPS.map(([g,ks])=>`<optgroup label="${g}">${ks.map(x=>`<option value="${x}"${k===x?' selected':''}>${esc(SESS[x].name)}</option>`).join('')}</optgroup>`).join('')}</select>
-      <select id="ob-a-${d}" data-obaddon="${d}"${se.kind==='hvile'||se.kind==='mobilitet'?' disabled':''}><option value="">Intet bagefter</option><option value="MOB"${ad==='MOB'?' selected':''}>+ Mobilitet</option><option value="BAL"${ad==='BAL'?' selected':''}>+ Balance</option></select></div></div>`}).join('')}</section>
+  return `${dots}<h2 class="h2">Din uge</h2><p class="note">Her er et forslag. Tryk på en dag for at ændre den.</p>
+    <section class="card">${weekEditor('ob',o.plan,o.addons)}</section>
     <div class="btns3" style="grid-template-columns:1fr 2fr"><button class="btn ghost" data-act="obback">Tilbage</button><button class="btn accent" data-act="obdone">Start træningen</button></div>`;
 }
 function viewHabitNew(){
@@ -1306,6 +1326,10 @@ document.addEventListener('click',e=>{
     case 'taksave':{const txt=(ui.takText||'').trim();const ex=state.logs.find(l=>l.type==='tak'&&l.date===TODAY);if(ex){if(txt)ex.text=txt}else state.logs.push({id:Date.now().toString(36),date:TODAY,type:'tak',text:txt});ui.takText='';save();render();toast('Gemt');break}
     case 'habitreset':state.habitStart=mondayOf(TODAY);save();render();toast('Vaner starter forfra i uge 1');break;
     case 'cyclereset':state.cycleStart=mondayOf(TODAY);save();render();toast('Uge 1 af '+DELOAD_EVERY);break;
+    case 'wkopen':ui.wkOpen=ui.wkOpen===b.dataset.v?null:(b.dataset.v||null);render();break;
+    case 'wkset':case 'wkadd':{const ob=b.dataset.ctx==='ob',d=b.dataset.d,v=b.dataset.v;const P=ob?ui.ob.plan:state.plan;let A=ob?ui.ob.addons:{...(state.addons||{})};
+      if(a==='wkset'){P[d]=v;const kk=SESS[v].kind;if(kk==='hvile'||kk==='mobilitet')delete A[d]}else{if(v)A[d]=v;else delete A[d]}
+      if(ob)ui.ob.addons=A;else{state.addons=A;syncCustom();save()}render();break}
     case 'obstart':obInit();ui.view='onboard';render(true);break;
     case 'obday':{const d=+b.dataset.v,o=ui.ob;o.days=o.days.includes(d)?o.days.filter(x=>x!==d):o.days.concat(d);render();break}
     case 'obgoal':{const g=b.dataset.v,o=ui.ob;o.goals=o.goals.includes(g)?o.goals.filter(x=>x!==g):o.goals.concat(g);render();break}
