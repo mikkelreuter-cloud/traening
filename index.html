@@ -20,7 +20,7 @@
   --bg:#ECEDEF; --surface:#FFFFFF; --surface-2:#F3F3F5; --fg:#17181B; --muted:#7D8089; --line:#E3E4E8;
   --accent:#F26A1B; --accent-2:#FF9A4D; --pill:#17181B; --pill-fg:#FFFFFF; --nav:#1C1D21; --nav-fg:#9C9EA6; --on-accent:#FFFFFF;
   --shadow:0 1px 2px rgb(20 20 30 / .04),0 8px 24px rgb(20 20 30 / .06);
-  --k-styrke:#2F6FEB; --k-interval:#F26A1B; --k-zone2:#14A37A; --k-hvile:#B3B5BC; --k-test:#E3B11B; --k-vaegt:#8B5CF6; --k-mobilitet:#D9468F; --k-kulde:#139FC4; --k-meditation:#8B63E8; --k-tak:#D98E12;
+  --k-styrke:#2F6FEB; --k-interval:#F26A1B; --k-zone2:#14A37A; --k-hvile:#B3B5BC; --k-test:#E3B11B; --k-vaegt:#8B5CF6; --k-mobilitet:#D9468F; --k-kulde:#139FC4; --k-meditation:#8B63E8; --k-tak:#D98E12; --k-crossfit:#E5484D;
   --font:"Outfit",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --display:var(--font); --body:var(--font);
 }
@@ -28,13 +28,13 @@
   --bg:#0F1012; --surface:#1B1C20; --surface-2:#25262B; --fg:#F2F2F4; --muted:#8E909A; --line:#2E3036;
   --accent:#FF7A2E; --accent-2:#FFA766; --pill:#F2F2F4; --pill-fg:#111214; --nav:#000000; --nav-fg:#8E909A; --on-accent:#FFFFFF;
   --shadow:0 1px 2px rgb(0 0 0 / .3),0 8px 24px rgb(0 0 0 / .25);
-  --k-styrke:#5B93FF; --k-interval:#FF8A3D; --k-zone2:#2FD3A0; --k-hvile:#6B6E77; --k-test:#F5CB45; --k-vaegt:#B394FF; --k-mobilitet:#FF79B8; --k-kulde:#4FD3F2; --k-meditation:#B59AFF; --k-tak:#FFC15A;
+  --k-styrke:#5B93FF; --k-interval:#FF8A3D; --k-zone2:#2FD3A0; --k-hvile:#6B6E77; --k-test:#F5CB45; --k-vaegt:#B394FF; --k-mobilitet:#FF79B8; --k-kulde:#4FD3F2; --k-meditation:#B59AFF; --k-tak:#FFC15A; --k-crossfit:#FF6369;
   color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0F1012; --surface:#1B1C20; --surface-2:#25262B; --fg:#F2F2F4; --muted:#8E909A; --line:#2E3036;
   --accent:#FF7A2E; --accent-2:#FFA766; --pill:#F2F2F4; --pill-fg:#111214; --nav:#000000; --nav-fg:#8E909A; --on-accent:#FFFFFF;
   --shadow:0 1px 2px rgb(0 0 0 / .3),0 8px 24px rgb(0 0 0 / .25);
-  --k-styrke:#5B93FF; --k-interval:#FF8A3D; --k-zone2:#2FD3A0; --k-hvile:#6B6E77; --k-test:#F5CB45; --k-vaegt:#B394FF; --k-mobilitet:#FF79B8; --k-kulde:#4FD3F2; --k-meditation:#B59AFF; --k-tak:#FFC15A;
+  --k-styrke:#5B93FF; --k-interval:#FF8A3D; --k-zone2:#2FD3A0; --k-hvile:#6B6E77; --k-test:#F5CB45; --k-vaegt:#B394FF; --k-mobilitet:#FF79B8; --k-kulde:#4FD3F2; --k-meditation:#B59AFF; --k-tak:#FFC15A; --k-crossfit:#FF6369;
   color-scheme:dark}
 
 *{box-sizing:border-box}
@@ -62,7 +62,7 @@ section{display:flex;flex-direction:column;gap:12px}
 .row-between{display:flex;justify-content:space-between;align-items:center;gap:10px}
 
 .k-styrke{--k:var(--k-styrke)} .k-interval{--k:var(--k-interval)} .k-zone2{--k:var(--k-zone2)}
-.k-hvile{--k:var(--k-hvile)} .k-test{--k:var(--k-test)} .k-vaegt{--k:var(--k-vaegt)} .k-mobilitet{--k:var(--k-mobilitet)} .k-kulde{--k:var(--k-kulde)} .k-meditation{--k:var(--k-meditation)} .k-tak{--k:var(--k-tak)}
+.k-hvile{--k:var(--k-hvile)} .k-test{--k:var(--k-test)} .k-vaegt{--k:var(--k-vaegt)} .k-mobilitet{--k:var(--k-mobilitet)} .k-kulde{--k:var(--k-kulde)} .k-meditation{--k:var(--k-meditation)} .k-tak{--k:var(--k-tak)} .k-crossfit{--k:var(--k-crossfit)}
 .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--fg);white-space:nowrap;background:var(--surface-2);padding:5px 10px 5px 8px;border-radius:999px}
 .chip i{width:9px;height:9px;border-radius:50%;border:2px solid var(--k)}
 
@@ -138,6 +138,30 @@ section{display:flex;flex-direction:column;gap:12px}
 .tak-entry{padding:12px 0;border-top:1px solid var(--line)}
 .tak-entry:first-child{border-top:0;padding-top:0}
 .tak-entry p{margin:4px 0 0;white-space:pre-wrap;font-size:15px}
+.fmt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fmt{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:18px;padding:14px;text-align:left;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:3px;min-width:0}
+.fmt b{font-weight:500;font-size:16px}
+.fmt small{font-size:12px;color:var(--muted);line-height:1.35}
+.fmt.on{background:var(--pill);color:var(--pill-fg);border-color:var(--pill)}
+.fmt.on small{color:inherit;opacity:.7}
+.fmt.any{grid-column:1/-1;border-style:dashed}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{appearance:none;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);border-radius:999px;padding:9px 14px;font:500 14px/1 var(--font);cursor:pointer}
+.chips button.on{background:var(--pill);color:var(--pill-fg);border-color:var(--pill)}
+.wod{background:var(--surface-2);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.wod h3{margin:0;font-weight:600;font-size:22px;letter-spacing:-.01em}
+.wod p{margin:0;font-size:16px}
+.mvrow{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.mvrow:first-child{border-top:0;padding-top:0}
+.mvrow b{font-weight:500}
+.mvrow small{grid-column:1;font-size:12px;color:var(--muted)}
+.mvrow .swap{grid-row:1/3;grid-column:2}
+.alts{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.alts button{appearance:none;border:0;background:var(--surface-2);color:var(--fg);border-radius:12px;padding:11px 12px;font:500 14px/1.3 var(--font);text-align:left;cursor:pointer}
+.rules{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.rules li{display:grid;grid-template-columns:20px 1fr;gap:8px}
+.rules li i{font-style:normal;color:var(--k-zone2);font-weight:700}
+.rules li.warn i{color:var(--k-test)}
 .goals{display:flex;flex-direction:column;gap:12px}
 .goal{display:grid;grid-template-columns:1fr auto;gap:5px 10px;align-items:baseline}
 .goal .gl{font-size:14px}
@@ -150,6 +174,11 @@ section{display:flex;flex-direction:column;gap:12px}
 .progsw{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .progsw button{appearance:none;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);border-radius:16px;padding:14px 12px;font:500 14px/1.3 var(--font);cursor:pointer;text-align:left}
 .progsw button.on{background:var(--pill);color:var(--pill-fg);border-color:var(--pill)}
+.progsw.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.dayrow{display:flex;flex-direction:column;gap:6px;padding:12px 0;border-top:1px solid var(--line)}
+.dayrow:first-of-type{border-top:0;padding-top:0}
+.dayrow b{font-weight:500;display:flex;align-items:center;gap:8px}
+.dayrow select{padding:11px 10px;font-size:15px}
 .progsw small{display:block;font-weight:400;font-size:12px;opacity:.7;margin-top:2px}
 .banner{display:flex;gap:12px;align-items:flex-start;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:var(--on-accent);border-radius:22px;padding:16px 18px;box-shadow:var(--shadow)}
 .banner .bi{flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid currentColor;display:grid;place-items:center;font-size:13px;font-weight:600;margin-top:1px}
@@ -296,11 +325,12 @@ textarea{resize:vertical}
 <div class="restbar" id="restbar" hidden><span id="rest-t" class="num">Pause</span><button data-act="reststop">Stop</button></div>
 <div class="toast" id="toast" hidden></div>
 
+<script src="sw.js"></script>
 <script>
 const KEY='styrke-vo2-log.v1';
 const DAYS=['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'];
 const MONTHS=['januar','februar','marts','april','maj','juni','juli','august','september','oktober','november','december'];
-const KIND_LABEL={styrke:'Styrke',interval:'Intervaller',zone2:'Zone 2',hvile:'Hvile',mobilitet:'Mobilitet'};
+const KIND_LABEL={styrke:'Styrke',interval:'Intervaller',zone2:'Zone 2',hvile:'Hvile',mobilitet:'Mobilitet',crossfit:'CrossFit'};
 const LOGTYPE={styrke:'Styrke',kondition:'Kondition',vaegt:'Vægt',test:'Test'};
 const TESTS=['3 km løb','5 km løb','Cooper 12 min','1RM squat','1RM bænkpres','1RM dødløft','Max pull-ups','VO₂max (ur)'];
 
@@ -335,6 +365,7 @@ const SESS={
   BAL:{name:'Balance og mobilitet',kind:'mobilitet',dur:'15 min',min:15,
      steps:['Etbensstand med lukkede øjne · 3 × 30 sek pr. ben','Etbens rumænsk dødløft · 2 × 8 pr. ben','Kosakker-squat · 2 × 6 pr. side','Tå-gang og hæl-gang · 2 × 20 m','Hoftebøjer- og baglårsstræk · 1 min pr. side','Rolig vejrtrækning på ryggen · 2 min'],
      note:'Balance holder ankler, knæ og hofter skadefri.'},
+  CF:{name:'CrossFit',kind:'crossfit',dur:'',steps:['Vælg format og tid, og byg dagens pas.'],note:''},
   R:{name:'Hvile',kind:'hvile',dur:'',steps:['Gåtur eller let mobilitet','Søvn og mad er dagens træning'],note:''}
 };
 const DEFAULT_PLAN={0:'R',1:'A',2:'I4',3:'B',4:'Z2',5:'C',6:'I30'};
@@ -393,7 +424,7 @@ function load(){
     if(st.program==='blueprint'&&st.plan[2]==='I4'&&st.plan[0]==='Z2L')st.plan[2]='I5';
     /* v9: move 30/15 to Friday and Styrke C to Saturday, so intervals never follow a heavy leg day */
     if(st.program==='blueprint'&&st.plan[5]==='C'&&st.plan[6]==='I30B'){st.plan[5]='I30B';st.plan[6]='C';if(st.addons[5]==='MOB'){delete st.addons[5];st.addons[6]='MOB'}}
-    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.shifts=Array.isArray(d.shifts)?d.shifts:[];
+    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.customPlan=d.customPlan||null;st.customAddons=d.customAddons||null;st.customDeload=d.customDeload;st.overrides=d.overrides||{};st.cfDays=d.cfDays||{};st.cfPrefs=d.cfPrefs||null;st.shifts=Array.isArray(d.shifts)?d.shifts:[];
     if(!st.program){const untouched=Object.keys(DEFAULT_PLAN).every(k=>st.plan[k]===DEFAULT_PLAN[k]);st.program='blueprint';if(untouched)st.plan={...BP_PLAN};st.addons={...BP_ADDONS}}
     return st}}catch(e){}
   return {plan:{...BP_PLAN},logs:[],program:'blueprint',addons:{...BP_ADDONS},cycleStart:null,hrmax:null,habitStart:null};
@@ -405,12 +436,12 @@ let state=load();
 const mondayOf=s=>weekDates(s)[0];
 /* Deload: every DELOAD_EVERY-th week of the cycle → half the sets, same weight, one interval session */
 function cycleWeek(s){if(!state.cycleStart)return 0;return Math.floor((pd(mondayOf(s))-pd(state.cycleStart))/(7*864e5))}
-const isDeload=s=>state.program==='blueprint'&&!!state.cycleStart&&cycleWeek(s)>=0&&cycleWeek(s)%DELOAD_EVERY===DELOAD_EVERY-1;
+const isDeload=s=>(state.program==='blueprint'||(state.program==='custom'&&state.customDeload!==false))&&!!state.cycleStart&&cycleWeek(s)>=0&&cycleWeek(s)%DELOAD_EVERY===DELOAD_EVERY-1;
 /* Skips make a day a rest day. Shifts push every later session one day forward (plan of day d comes from d minus the shifts before it). */
 const isSkipped=s=>!!(state.skips||{})[s];
 function planDate(s){const n=(state.shifts||[]).filter(x=>x<s).length;if(!n)return s;const d=pd(s);d.setDate(d.getDate()-n);return ds(d)}
 const baseKey=s=>state.plan[pd(planDate(s)).getDay()]||'R';
-function sessKey(s){if(isSkipped(s))return 'R';const k=baseKey(s);
+function sessKey(s){if(isSkipped(s))return 'R';const ov=(state.overrides||{})[s];if(ov&&SESS[ov])return ov;const k=baseKey(s);
   if(SESS[k]&&SESS[k].kind==='interval'&&isDeload(s)){const wk=weekDates(s);const first=wk.find(d=>!isSkipped(d)&&SESS[baseKey(d)].kind==='interval');if(first!==s)return 'Z2'}
   return k}
 const hr=p=>state.hrmax?Math.round(state.hrmax*p):null;
@@ -423,8 +454,8 @@ const sessFor=s=>SESS[sessKey(s)];
 const logsOn=s=>state.logs.filter(l=>l.date===s);
 const byDate=(a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.id<b.id?-1:1);
 const logsOf=t=>state.logs.filter(l=>l.type===t).sort(byDate);
-function isDone(s){const k=sessFor(s).kind,L=logsOn(s);if(k==='hvile')return false;return L.some(l=>l.type===(k==='styrke'?'styrke':k==='mobilitet'?'mobilitet':'kondition'))}
-const addonFor=s=>{if(isSkipped(s))return null;const k=(state.addons||{})[pd(planDate(s)).getDay()];return k&&SESS[k]?{key:k,s:SESS[k]}:null};
+function isDone(s){const k=sessFor(s).kind,L=logsOn(s);if(k==='hvile')return false;return L.some(l=>l.type===(k==='styrke'?'styrke':k==='mobilitet'?'mobilitet':k==='crossfit'?'crossfit':'kondition'))}
+const addonFor=s=>{if(isSkipped(s)||(state.overrides||{})[s])return null;const k=(state.addons||{})[pd(planDate(s)).getDay()];return k&&SESS[k]?{key:k,s:SESS[k]}:null};
 const addonDone=(d,a)=>logsOn(d).some(l=>l.type==='mobilitet'&&l.name===a.s.name);
 const keyByName=n=>Object.keys(SESS).find(k=>SESS[k].name===n);
 /* Minutes this week toward the Blueprint targets */
@@ -433,6 +464,7 @@ function weekStats(date){
   state.logs.forEach(l=>{if(!set.has(l.date))return;
     if(l.type==='styrke'){o.str++;o.total+=Math.round((l.dur||55*60)/60)}
     else if(l.type==='mobilitet'){const m=Math.round((l.dur||600)/60);o.mob+=m;o.total+=m}
+    else if(l.type==='crossfit'){const m=Math.round((l.dur||900)/60);o.total+=m;o.vig+=m}
     else if(l.type==='kondition'){const m=Math.round(l.dur/60),k=keyByName(l.name);o.total+=m;
       if(k&&SESS[k].kind==='interval'){const P=buildPhases(k),hard=Math.round(P.filter(p=>p.type!=='easy').reduce((a,p)=>a+p.sec,0)/60),v=Math.min(m,hard);o.vig+=v;o.z2+=m-v}
       else if(k&&SESS[k].kind==='zone2')o.z2+=m;
@@ -524,6 +556,7 @@ function sessionBody(s,date){
     const line=g?`<span class="sug num">${dl?`Deload: ${g.l.kg?fnum(g.l.kg)+' kg':'kropsvægt'} (samme vægt)`:`Forslag: ${esc(g.text)}`}</span><span class="exl num">Sidst ${g.l.kg?fnum(g.l.kg)+' kg':'kropsvægt'} × ${g.l.reps}${rirTxt(g.l.rir)} (${shortDate(g.l.date)})</span>`
       :`<span class="exl">Første gang: vælg en vægt hvor du har ${q} reps tilbage i sidste sæt.</span>`;
     return `<li><span class="exn">${esc(n)}</span><span class="exp num">${a}×${b}<small>RIR ${q}</small></span>${line}</li>`}).join('')}</ul>`;
+  if(s.kind==='crossfit'){const p=cfRebuild(cfSaved(date||TODAY));return p?cfWod(p):'<p class="note">Intet pas endnu. Vælg format og tid, så bygger appen et pas efter reglerne.</p>'}
   return `<ol class="steps">${s.steps.map(t=>`<li>${esc(t)}</li>`).join('')}</ol>${s.kind==='interval'||s.kind==='zone2'?hrLine(s)+kondTip(s):''}`;
 }
 function kondTip(s){
@@ -534,6 +567,72 @@ function kondTip(s){
   else if(s.kind==='zone2')tip=l.rpe>=7?'Det var for hårdt til zone 2. Sænk tempoet i dag.':'God intensitet. Hold det roligt igen.';
   else tip=l.rpe<=8?'Lidt for let (målet er RPE 9). Gå hårdere i intervallerne i dag.':l.rpe>=10?'Det var helt maks. Hold samme tempo i dag.':'Rigtig intensitet. Prøv at komme lidt længere eller op i watt i dag.';
   return `<p class="sug num">Sidst (${shortDate(l.date)}): ${b.join(' · ')}</p><p class="hint">${tip}</p>`;
+}
+/* ---------- CrossFit ---------- */
+const CF_DESC={amrap:'Så mange runder som muligt',rft:'Et antal runder på tid',stige_ned:'Faldende reps, fx 21-15-9',stige_op:'Stigende reps, 1-2-3 …',emom:'Arbejde i starten af hvert minut',exmom:'Arbejde hvert 2. eller 3. minut',interval:'Arbejde og pause i sæt',chipper:'Lang liste, én gang igennem',tabata:'20 sek arbejde, 10 sek pause',doedved:'Én rep mere hvert minut'};
+const CF_MIN=[5,8,10,12,15,20,25,30,40,50];
+const NIVEAUER=['Begynder','Øvet','Avanceret'];
+const cfUdstyrAlle=()=>[...new Set(CF.BEVAEGELSER.map(m=>m.udstyr))].filter(u=>u!=='Ingen udstyr').sort();
+const cfMovById=id=>CF.BEVAEGELSER.find(m=>m.id===id);
+function cfMinFor(fmtId){const f=CF.formatFor(fmtId);return f?CF_MIN.filter(m=>f.domaener.includes(CF.domaeneFor(m).id)):CF_MIN}
+function cfPrefs(){return {niveau:'Øvet',fokus:'',antal:0,udstyr:null,...(state.cfPrefs||{})}}
+function cfOpt(){const c=ui.cf,P=cfPrefs();return {format:c.fmt,minutter:c.min,niveau:P.niveau,fokus:P.fokus,antal:P.antal,udstyr:P.udstyr||[]}}
+function cfGenerate(seed){const o=cfOpt();o.seed=seed==null?Math.floor(Math.random()*4294967295):seed;const p=CF.byggePas(o);ui.cf.pas=p;ui.cf.swapI=null;return p}
+/* Rebuild a saved workout exactly: same movements, same seed → same reps, rounds and order */
+function cfRebuild(sv){if(!sv)return null;const fmt=CF.formatFor(sv.fmtId),movs=sv.ids.map(cfMovById).filter(Boolean);if(!fmt||!movs.length)return null;
+  const p=CF.formater(fmt,CF.domaeneFor(sv.min),sv.min,movs,sv.opt,CF.prng(sv.seed));p.seed=sv.seed;p.opt=sv.opt;return p}
+const cfSerialize=p=>({fmtId:p.format.id,min:p.minutter,seed:p.seed,opt:p.opt,ids:p.movs.map(m=>m.id),title:p.overskrift});
+const cfSaved=d=>(state.cfDays||{})[d]||null;
+function cfSwap(i,newId){const p=ui.cf.pas,movs=p.movs.slice();movs[i]=cfMovById(newId);
+  const np=CF.formater(p.format,p.domaene,p.minutter,movs,p.opt,CF.prng(p.seed));np.seed=p.seed;np.opt=p.opt;ui.cf.pas=np;ui.cf.swapI=null}
+function cfAlts(i){const p=ui.cf.pas;return CF.alternativer(p.movs,i,null,p.opt).filter(m=>m.id!==p.movs[i].id&&!p.movs.some(x=>x.id===m.id))}
+function cfWod(p){return `<div class="wod"><h3>${esc(p.overskrift)}</h3>${p.linjer.map(l=>`<p>${esc(l)}</p>`).join('')}<span class="muted small">Score: ${esc(p.score)}</span></div>`}
+function cfOpen(date,fresh){const sv=cfSaved(date),P=cfPrefs();
+  ui.cf={date,step:sv&&!fresh?'pas':'menu',fmt:sv?sv.fmtId:(ui.cf&&ui.cf.fmt)||'amrap',min:sv?sv.min:(ui.cf&&ui.cf.min)||15,pas:sv&&!fresh?cfRebuild(sv):null,swapI:null,showUdstyr:false,res:{score:'',rpe:'',note:''}};
+  ui.view='cf';render(true)}
+function viewCF(){
+  const c=ui.cf;if(!c){ui.view='today';return viewToday()}
+  const P=cfPrefs(),back=`<div class="habit-head"><button class="icon-btn" data-act="cfback" aria-label="Tilbage">‹</button><div><p class="eyebrow">${cap(niceDate(c.date))}</p><h2 class="h2">CrossFit</h2></div></div>`;
+  if(c.step==='menu'){
+    const mins=c.fmt?cfMinFor(c.fmt):CF_MIN;if(!mins.includes(c.min))c.min=mins.reduce((a,b)=>Math.abs(b-c.min)<Math.abs(a-c.min)?b:a,mins[0]);
+    const iv=c.fmt?CF.slotInterval(c.fmt):[2,6];
+    const all=cfUdstyrAlle(),have=P.udstyr||all;
+    return `${back}
+    <section class="card"><h3 class="sec">1 · Vælg format</h3><div class="fmt-grid">
+      ${CF.FORMATER.map(f=>`<button class="fmt${c.fmt===f.id?' on':''}" data-act="cffmt" data-v="${f.id}"><b>${esc(f.id==='rft'?'For time':f.navn)}</b><small>${esc(CF_DESC[f.id]||'')}</small></button>`).join('')}
+      <button class="fmt any${c.fmt===null?' on':''}" data-act="cffmt" data-v=""><b>Overrask mig</b><small>Reglerne vælger et format, der passer til tiden</small></button></div></section>
+    <section class="card"><h3 class="sec">2 · Hvor lang tid?</h3><div class="chips">${mins.map(m=>`<button class="${c.min===m?'on':''}" data-act="cfmin" data-v="${m}">${m} min</button>`).join('')}</div></section>
+    <section class="card"><h3 class="sec">3 · Tilpas</h3>
+      <div class="field"><span>Niveau</span><div class="chips">${NIVEAUER.map(n=>`<button class="${P.niveau===n?'on':''}" data-act="cfpref" data-k="niveau" data-v="${n}">${n}</button>`).join('')}</div></div>
+      <div class="field"><span>Fokus</span><div class="chips">${[['','Alsidigt'],['Styrke','Styrke'],['Udholdenhed','Udholdenhed'],['Gymnastik','Gymnastik']].map(([v,l])=>`<button class="${P.fokus===v?'on':''}" data-act="cfpref" data-k="fokus" data-v="${v}">${l}</button>`).join('')}</div></div>
+      <div class="field"><span>Antal øvelser</span><div class="chips">${[0,1,2,3,4,5,6].filter(n=>n===0||(n>=iv[0]&&n<=iv[1])).map(n=>`<button class="${P.antal===n?'on':''}" data-act="cfpref" data-k="antal" data-v="${n}">${n?n:'Auto'}</button>`).join('')}</div></div>
+      <button class="restbtn" data-act="cfudstyr">${c.showUdstyr?'Skjul udstyr':`Udstyr · ${have.length} af ${all.length} valgt`}</button>
+      ${c.showUdstyr?`<div class="chips">${all.map(u=>`<button class="${have.includes(u)?'on':''}" data-act="cfeq" data-v="${esc(u)}">${esc(u)}</button>`).join('')}</div><p class="hint">Øvelser uden udstyr er altid med.</p>`:''}
+    </section>
+    <button class="btn accent" data-act="cfgen">Byg pas</button>`;
+  }
+  const p=c.pas;if(!p)return `${back}<section class="card"><p class="empty">Der kunne ikke bygges et pas med de valg. Prøv flere typer udstyr eller et andet antal øvelser.</p><button class="btn ghost" data-act="cfmenu">Tilbage til valg</button></section>`;
+  const saved=cfSaved(c.date),isSaved=saved&&saved.seed===p.seed&&saved.ids.join()===p.movs.map(m=>m.id).join();
+  const logged=logsOn(c.date).find(l=>l.type==='crossfit');
+  return `${back}
+  <section class="card k-crossfit"><div class="row-between">${chip('crossfit',esc(p.format.id==='rft'?'For time':p.format.navn))}<span class="muted small">${p.minutter} min · ${esc(p.niveau)}</span></div>
+    ${cfWod(p)}
+    <p class="note">${esc(p.strategi)}</p></section>
+  <section class="card"><div class="row-between"><h3 class="sec">Øvelser</h3><span class="muted small">Tryk Byt for at udskifte</span></div><div>
+    ${p.movs.map((m,i)=>`<div class="mvrow"><b>${esc(CF.navnVis(m))}</b><small>Skalering: ${esc(m.skal)} · ${esc(m.udstyr)}</small>
+      <button class="restbtn swap" data-act="cfswap" data-i="${i}">${c.swapI===i?'Luk':'Byt'}</button>
+      ${c.swapI===i?`<div class="alts">${(()=>{const A=cfAlts(i);return A.length?`<button data-act="cfpick" data-i="${i}" data-v="${A[Math.floor(Math.random()*A.length)].id}" style="background:var(--pill);color:var(--pill-fg)">🎲 Tilfældig erstatning</button>`+A.slice(0,14).map(a=>`<button data-act="cfpick" data-i="${i}" data-v="${a.id}">${esc(CF.navnVis(a))}</button>`).join(''):'<p class="hint">Ingen lovlige erstatninger med dine valg.</p>'})()}</div>`:''}</div>`).join('')}
+  </div></section>
+  <div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn ghost" data-act="cfgen">🎲 Nyt pas</button><button class="btn ghost" data-act="cfmenu">Skift format</button></div>
+  <button class="btn ${isSaved?'ghost':'accent'}" data-act="cfsave">${isSaved?'✓ Gemt til '+(c.date===TODAY?'i dag':niceDate(c.date)):'Gem til '+(c.date===TODAY?'i dag':niceDate(c.date))}</button>
+  ${isSaved&&c.date<=TODAY?`<section class="card"><h3 class="sec">${logged?'✓ Resultat logget':'Log resultat'}</h3>
+    ${logged?`<p class="note">${esc(logged.score||'')}${logged.rpe?' · RPE '+logged.rpe:''}</p>`:`
+    <div class="duo"><label><span>Score (${esc(p.score.toLowerCase())})</span><input id="cf-score" data-bind="cf.res.score" value="${esc(c.res.score)}" placeholder="${/tid/i.test(p.score)?'fx 12:34':/runder/i.test(p.score)?'fx 7 runder + 12':'fx 18'}"></label>
+    <label><span>RPE</span><select id="cf-rpe" data-bind="cf.res.rpe"><option value="">–</option>${[6,7,8,9,10].map(n=>`<option${String(c.res.rpe)===String(n)?' selected':''}>${n}</option>`).join('')}</select></label></div>
+    <label class="field"><span>Note</span><input id="cf-note" data-bind="cf.res.note" value="${esc(c.res.note)}" placeholder="Fx skaleret pull-ups til ring rows"></label>
+    <button class="btn accent" data-act="cflog">Gem resultat</button>`}</section>`:''}
+  <section class="card"><h3 class="sec">Derfor virker passet</h3><ul class="rules">${p.opfyldte.map(r=>`<li class="${r.advarsel?'warn':''}"><i>${r.advarsel?'!':'✓'}</i><span>${esc(r.tekst)}</span></li>`).join('')}</ul>
+    <p class="hint">Skalering: ${esc(p.skalering)}</p></section>`;
 }
 function nextSession(from){const d=pd(from);for(let i=1;i<=7;i++){const n=ds(new Date(d.getFullYear(),d.getMonth(),d.getDate()+i)),s=sessFor(n);if(s.kind!=='hvile')return {d:n,s,i}}return null}
 const daysSince=d=>Math.round((pd(TODAY)-pd(d))/864e5);
@@ -549,6 +648,7 @@ function viewToday(){
   let actions;
   if(s.kind==='styrke')actions=`<button class="btn accent" data-act="logday" data-date="${TODAY}">${loadDraft()?'Fortsæt træning':done?'Log mere':'Start træning'}</button>`;
   else if(s.kind==='hvile'){const n=nextSession(TODAY);actions=(isSkipped(TODAY)?`<p class="note">${(state.shifts||[]).includes(TODAY)?'Du rykkede planen. Dagens pas ligger nu i morgen.':'Du sprang dagens pas over.'}</p><button class="btn ghost" data-act="unskip">Fortryd</button>`:'')+(n?`<p class="note">Næste pas: <b>${esc(n.s.name)}</b> ${n.i===1?'i morgen':'på '+DAYS[pd(n.d).getDay()]}.</p>`:'')}
+  else if(s.kind==='crossfit')actions=`<button class="btn accent" data-act="cfopen" data-date="${TODAY}">${cfSaved(TODAY)?(done?'Se pas':'Start og log'):'Byg dagens pas'}</button>`;
   else if(s.kind==='mobilitet')actions=done?'':`<button class="btn accent" data-act="mobdone" data-key="${key}">Færdig · ${s.min} min</button>`;
   else actions=`<div class="btns"><button class="btn accent" data-act="timer" data-key="${key}">${s.kind==='zone2'?'Start timer':'Start intervaltimer'}</button><button class="btn ghost" data-act="logday" data-date="${TODAY}">Log uden timer</button></div>`;
   const T=logsOf('test'),lastT=T.length?T[T.length-1].date:null,testDue=!lastT||daysSince(lastT)>=42;
@@ -637,7 +737,7 @@ function viewCal(){
   const sel=ui.sel,se=sessFor(sel),L=logsOn(sel).sort(byDate);
   return `<div class="cal-head"><button class="icon-btn" data-act="mprev" aria-label="Forrige måned">‹</button><h2 class="month">${MONTHS[m]} ${y}</h2><button class="icon-btn" data-act="mnext" aria-label="Næste måned">›</button></div>
   <div class="card cal-card"><div class="cal-grid">${['Ma','Ti','On','To','Fr','Lø','Sø'].map(x=>`<span class="cw">${x}</span>`).join('')}${cells}</div></div>
-  <div class="legend">${['styrke','interval','zone2','hvile'].map(k=>chip(k,KIND_LABEL[k])).join('')}</div>
+  <div class="legend">${['styrke','interval','zone2','crossfit','hvile'].map(k=>chip(k,KIND_LABEL[k])).join('')}</div>
   <p class="hint">Tom ring = planlagt · udfyldt ring = gennemført</p>
   <section class="card">
     <p class="eyebrow">${cap(niceDate(sel))}${sel===TODAY?' · i dag':''}</p>
@@ -645,11 +745,13 @@ function viewCal(){
     ${sessionBody(se,sel)}
     ${addonFor(sel)?`<p class="note">+ ${esc(addonFor(sel).s.name)} (${addonFor(sel).s.dur}) bagefter</p>`:''}
     ${L.length?`<h3 class="sec">Logget</h3><div>${L.map(logItem).join('')}</div>`:''}
-    <button class="btn primary" data-act="logday" data-date="${sel}">Log denne dag</button>
+    ${se.kind==='crossfit'?`<button class="btn accent" data-act="cfopen" data-date="${sel}">${cfSaved(sel)?'Se og rediger pas':'Byg CrossFit-pas'}</button>`:''}
+    ${se.kind!=='crossfit'?`<button class="btn ghost" data-act="cfday" data-date="${sel}">Læg CrossFit ind på dagen</button>`:(state.overrides||{})[sel]==='CF'?`<button class="restbtn" data-act="cfundo" data-date="${sel}">Fjern CrossFit · tilbage til ${esc(SESS[baseKey(sel)].name)}</button>`:''}
+    ${se.kind!=='crossfit'?`<button class="btn primary" data-act="logday" data-date="${sel}">Log denne dag</button>`:''}
   </section>`;
 }
 function logItem(l){
-  const map={styrke:['styrke','Styrke'],kondition:['interval','Kondition'],vaegt:['vaegt','Vægt'],test:['test','Test'],mobilitet:['mobilitet','Mobilitet'],kulde:['kulde','Koldt bad'],meditation:['meditation','Meditation'],tak:['tak','Taknemmelighed']};
+  const map={styrke:['styrke','Styrke'],kondition:['interval','Kondition'],vaegt:['vaegt','Vægt'],test:['test','Test'],mobilitet:['mobilitet','Mobilitet'],kulde:['kulde','Koldt bad'],meditation:['meditation','Meditation'],tak:['tak','Taknemmelighed'],crossfit:['crossfit','CrossFit']};
   const [k,lab]=map[l.type]||(findHabit(l.type)?[l.type,'Vane']:['hvile','Log']);let title='',detail='';
   if(l.type==='styrke'){title=esc(l.sess||'Styrke');
     const g=new Map();l.sets.forEach(s=>{const k=s.ex;if(!g.has(k))g.set(k,[]);g.get(k).push(s)});
@@ -659,6 +761,7 @@ function logItem(l){
   else if(l.type==='mobilitet'){title=esc(l.name);detail=Math.round(l.dur/60)+' min'}
   else if(l.type==='kulde'||l.type==='meditation'){title=fmtTime(l.sec)}
   else if(l.type==='tak'){title=l.text?esc(l.text.split('\n')[0]).slice(0,80):'Skrevet på papir'}
+  else if(l.type==='crossfit'){title=esc(l.name);detail=[l.score,l.rpe?'RPE '+l.rpe:'',l.note].filter(Boolean).map(esc).join(' · ')}
   else if(l.type==='test'){title=esc(l.name);detail=fmtVal(l.value,l.unit)}
   else{const h=findHabit(l.type);title=h?esc(h.name):'Vane';detail=l.sec?fmtTime(l.sec):'Gjort'}
   const armed=ui.pendingDel===l.id;
@@ -752,6 +855,19 @@ function viewHabits(){
   <button class="btn ghost" data-act="nhopen">+ Tilføj vane</button>
   <section class="card"><h3 class="sec">Streak</h3><div class="goals">${habits().map(h=>{const st=habitStreak(h.id);return `<div class="goal k-${h.id}"><span class="gl">${h.name}</span><span class="gv num"><b>${st}</b> ${st===1?'dag':'dage'} i træk</span></div>`}).join('')}</div></section>`;
 }
+const PLAN_GROUPS=[['Styrke',['A','B','C']],['Intervaller',['I4','I5','I30','I30B']],['Zone 2',['Z2','Z2L']],['CrossFit',['CF']],['Mobilitet',['MOB','BAL']],['Hvile',['R']]];
+function customWeekCard(){
+  const cnt={};[1,2,3,4,5,6,0].forEach(d=>{const k=SESS[state.plan[d]||'R'].kind;cnt[k]=(cnt[k]||0)+1});
+  const sum=['styrke','interval','zone2','crossfit','mobilitet','hvile'].filter(k=>cnt[k]).map(k=>`${cnt[k]} ${KIND_LABEL[k].toLowerCase()}`).join(' · ');
+  return `<section class="card"><div class="row-between"><h3 class="sec">Din uge</h3><span class="muted small">${sum}</span></div>
+    ${[1,2,3,4,5,6,0].map(d=>{const k=state.plan[d]||'R',se=SESS[k],ad=(state.addons||{})[d]||'';return `<div class="dayrow"><b class="k-${se.kind}"><span class="bar"></span>${cap(DAYS[d])}</b>
+      <div class="duo"><select id="cp-${d}" data-plan="${d}" aria-label="${cap(DAYS[d])}: pas">${PLAN_GROUPS.map(([g,ks])=>`<optgroup label="${g}">${ks.map(x=>`<option value="${x}"${k===x?' selected':''}>${esc(SESS[x].name)}</option>`).join('')}</optgroup>`).join('')}</select>
+      <select id="ca-${d}" data-addon="${d}" aria-label="${cap(DAYS[d])}: bagefter"${se.kind==='hvile'||se.kind==='mobilitet'?' disabled':''}><option value="">Intet bagefter</option><option value="MOB"${ad==='MOB'?' selected':''}>+ Mobilitet</option><option value="BAL"${ad==='BAL'?' selected':''}>+ Balance</option></select></div></div>`}).join('')}
+    <label class="field inline"><span>Deload hver ${DELOAD_EVERY}. uge</span><select id="cdl" data-cdeload="1"><option value="1"${state.customDeload!==false?' selected':''}>Til</option><option value="0"${state.customDeload===false?' selected':''}>Fra</option></select></label>
+    <div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn ghost" data-act="customfrom" data-p="blueprint">Start fra Blueprint</button><button class="btn ghost" data-act="customfrom" data-p="egen">Start fra Standard</button></div>
+  </section>`;
+}
+function syncCustom(){if(state.program==='custom'){state.customPlan={...state.plan};state.customAddons={...(state.addons||{})}}}
 function viewHabitNew(){
   const n=ui.nh;
   return `<div class="habit-head"><button class="icon-btn" data-act="view" data-view="habits" aria-label="Tilbage">‹</button><h2 class="h2">Ny vane</h2></div>
@@ -854,8 +970,9 @@ function viewProg(){
 function viewSettings(){
   return `<h2 class="h2">Plan og data</h2>
   <section class="card"><h3 class="sec">Program</h3>
-    <div class="progsw"><button class="${state.program==='blueprint'?'on':''}" data-act="program" data-p="blueprint">Blueprint<small>Bryan Johnson · 6 t/uge</small></button><button class="${state.program!=='blueprint'?'on':''}" data-act="program" data-p="egen">Standard<small>Styrke og VO₂max</small></button></div>
-    ${state.program==='blueprint'?'<p class="hint">3 styrkepas, 2 intervalpas og 2 lange zone 2-pas. Mobilitet efter hvert styrkepas og balance om søndagen. Hver 5. uge er en deload-uge.</p>':''}</section>
+    <div class="progsw three"><button class="${state.program==='blueprint'?'on':''}" data-act="program" data-p="blueprint">Blueprint<small>6 t/uge</small></button><button class="${state.program==='egen'?'on':''}" data-act="program" data-p="egen">Standard<small>Styrke og VO₂</small></button><button class="${state.program==='custom'?'on':''}" data-act="program" data-p="custom">Egen<small>Du bestemmer</small></button></div>
+    ${state.program==='blueprint'?'<p class="hint">3 styrkepas, 2 intervalpas og 2 lange zone 2-pas. Mobilitet efter hvert styrkepas og balance om søndagen. Hver 5. uge er en deload-uge.</p>':state.program==='custom'?'<p class="hint">Sæt din egen uge sammen herunder. Kalenderen og forsiden følger med med det samme.</p>':''}</section>
+  ${state.program==='custom'?customWeekCard():''}
   <section class="card"><h3 class="sec">Puls</h3>
     <label class="field"><span>Makspuls (bpm)</span><input id="hrmax" inputmode="numeric" value="${state.hrmax||''}" placeholder="fx 190"></label>
     <p class="hint">Bedst målt i slutningen af en hård test. Kender du den ikke, så brug 208 − 0,7 × din alder som start.</p>
@@ -865,9 +982,9 @@ function viewSettings(){
     <button class="btn ghost" data-act="cyclereset">Start cyklus forfra i denne uge</button></section>`:''}
   <section class="card"><h3 class="sec">Vaner</h3><p class="hint num">Du er i uge ${habitWeek(TODAY)+1}. Koldt bad: ${fmtTime(HABITS[0].target(habitWeek(TODAY)))} · Meditation: ${Math.round(HABITS[1].target(habitWeek(TODAY))/60)} min.</p>
     <button class="btn ghost" data-act="habitreset">Start vaner forfra i uge 1</button></section>
-  <section class="card"><h3 class="sec">Ugeplan</h3><p class="hint">Vælg hvilket pas der ligger på hver ugedag. Kalenderen følger med.</p>
+  ${state.program==='custom'?'':`<section class="card"><h3 class="sec">Ugeplan</h3><p class="hint">Vælg hvilket pas der ligger på hver ugedag. Vil du også styre mobilitet og deload, så vælg Egen ovenfor.</p>
     ${[1,2,3,4,5,6,0].map(d=>`<label class="field inline"><span>${cap(DAYS[d])}</span><select id="p-${d}" data-plan="${d}">${Object.entries(SESS).map(([k,s])=>`<option value="${k}"${state.plan[d]===k?' selected':''}>${s.name}</option>`).join('')}</select></label>`).join('')}
-    <button class="btn ghost" data-act="resetplan">Gendan standardplan</button></section>
+    <button class="btn ghost" data-act="resetplan">Gendan standardplan</button></section>`}
   <section class="card"><h3 class="sec">Backup</h3>
     <p class="hint">Alt gemmes kun i browseren på denne telefon. Kopiér en backup en gang imellem og gem teksten fx i Noter.</p>
     <button class="btn ghost" data-act="copy">Kopiér backup</button>
@@ -1027,9 +1144,9 @@ function render(top){habitCss();
   const v=ui.view;
   $('#main').innerHTML=(storageOK?'':'<p class="warn">Browseren tillader ikke at gemme her. Åbn siden i Chrome og tilføj den til startskærmen, ellers forsvinder dine logs.</p>')+
     (timer&&v!=='timer'?'<button class="btn primary" data-act="view" data-view="timer">Timeren kører · gå tilbage</button>':'')+
-    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():viewSettings());
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')));
-  {const st=sessFor(TODAY);$('#hdr-hi').textContent='Hej Mikkel! · '+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
+    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():viewSettings());
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')));
+  {const st=sessFor(TODAY);$('#hdr-hi').textContent='Hej Mikkel! · '+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='cf'?'Byg dagens WOD':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
   if(top)window.scrollTo(0,0);
 }
 let tt;function toast(msg){const el=$('#toast');el.textContent=msg;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>{el.hidden=true},2200)}
@@ -1072,7 +1189,7 @@ function doRestore(){
   let d;try{d=JSON.parse(ui.impText)}catch(e){d=null}
   if(!d||!Array.isArray(d.logs)){ui.pendingRestore=false;render();return toast('Teksten er ikke en gyldig backup')}
   if(!ui.pendingRestore){ui.pendingRestore=true;return render()}
-  state={plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:d.program||'blueprint',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,skips:d.skips||{},shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);
+  state={plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:d.program||'blueprint',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);
 }
 function guessUnit(name){
   const prev=logsOf('test').filter(l=>l.name===name);if(prev.length)return prev[prev.length-1].unit;
@@ -1124,6 +1241,23 @@ document.addEventListener('click',e=>{
       const c={id:'h'+Date.now().toString(36),name,kind:n.kind,note:n.note.trim(),color:n.color,since:mondayOf(TODAY)};
       if(n.kind==='timer'){c.startMin=num(n.start);c.stepMin=num(n.step)||0;c.maxMin=num(n.max);if(!(c.startMin>0)){toast('Skriv et startmål i minutter');break}if(!(c.maxMin>=c.startMin))c.maxMin=c.startMin}
       state.customHabits=(state.customHabits||[]).concat(c);save();ui.habit=c.id;ui.manVal='';ui.manDate=TODAY;ui.view='habit';render(true);toast('Vane tilføjet');break}
+    case 'cfopen':cfOpen(b.dataset.date||TODAY);break;
+    case 'cfday':{const d=b.dataset.date;state.overrides={...(state.overrides||{}),[d]:'CF'};save();cfOpen(d);break}
+    case 'cfundo':{const d=b.dataset.date,o={...(state.overrides||{})};delete o[d];state.overrides=o;const cd={...(state.cfDays||{})};delete cd[d];state.cfDays=cd;save();render();toast('CrossFit fjernet');break}
+    case 'cfback':if(ui.cf&&ui.cf.step==='pas'&&!cfSaved(ui.cf.date)){ui.cf.step='menu';render(true)}else{ui.view=ui.cf&&ui.cf.date!==TODAY?'cal':'today';render(true)}break;
+    case 'cfmenu':ui.cf.step='menu';render(true);break;
+    case 'cffmt':ui.cf.fmt=b.dataset.v||null;render();break;
+    case 'cfmin':ui.cf.min=+b.dataset.v;render();break;
+    case 'cfpref':{const k=b.dataset.k,v=k==='antal'?+b.dataset.v:b.dataset.v;state.cfPrefs={...cfPrefs(),[k]:v};save();render();break}
+    case 'cfudstyr':ui.cf.showUdstyr=!ui.cf.showUdstyr;render();break;
+    case 'cfeq':{const all=cfUdstyrAlle(),P=cfPrefs();let have=(P.udstyr||all).slice();const u=b.dataset.v;have=have.includes(u)?have.filter(x=>x!==u):have.concat(u);state.cfPrefs={...P,udstyr:have.length===all.length?null:have};save();render();break}
+    case 'cfgen':{const p=cfGenerate();ui.cf.step='pas';if(p&&ui.cf.fmt===null){}render(true);if(!p)toast('Ingen gyldige pas med de valg');break}
+    case 'cfswap':{const i=+b.dataset.i;ui.cf.swapI=ui.cf.swapI===i?null:i;render();break}
+    case 'cfpick':cfSwap(+b.dataset.i,b.dataset.v);render();toast('Øvelse byttet');break;
+    case 'cfsave':{const p=ui.cf.pas;if(!p)break;state.cfDays={...(state.cfDays||{}),[ui.cf.date]:cfSerialize(p)};if(sessKey(ui.cf.date)!=='CF')state.overrides={...(state.overrides||{}),[ui.cf.date]:'CF'};save();render();toast('Pas gemt');break}
+    case 'cflog':{const p=ui.cf.pas,r=ui.cf.res;if(!r.score.trim()){toast('Skriv din score');break}
+      state.logs.push({id:Date.now().toString(36),date:ui.cf.date,type:'crossfit',name:p.overskrift,score:r.score.trim(),rpe:num(r.rpe),note:r.note.trim(),seed:p.seed,ids:p.movs.map(m=>m.id),linjer:p.linjer,dur:p.minutter*60});
+      save();render();toast('Resultat gemt');break}
     case 'skipask':ui.skipAsk=true;render();break;
     case 'skipcancel':ui.skipAsk=false;render();break;
     case 'skipday':state.skips={...(state.skips||{}),[TODAY]:true};ui.skipAsk=false;save();render();toast('Dagens pas er sprunget over');break;
@@ -1139,7 +1273,9 @@ document.addEventListener('click',e=>{
     case 'taksave':{const txt=(ui.takText||'').trim();const ex=state.logs.find(l=>l.type==='tak'&&l.date===TODAY);if(ex){if(txt)ex.text=txt}else state.logs.push({id:Date.now().toString(36),date:TODAY,type:'tak',text:txt});ui.takText='';save();render();toast('Gemt');break}
     case 'habitreset':state.habitStart=mondayOf(TODAY);save();render();toast('Vaner starter forfra i uge 1');break;
     case 'cyclereset':state.cycleStart=mondayOf(TODAY);save();render();toast('Uge 1 af '+DELOAD_EVERY);break;
-    case 'program':{const bp=b.dataset.p==='blueprint';state.program=bp?'blueprint':'egen';state.plan=bp?{...BP_PLAN}:{...DEFAULT_PLAN};state.addons=bp?{...BP_ADDONS}:{};state.cycleStart=mondayOf(TODAY);save();render();toast(bp?'Blueprint-program valgt':'Standardplan valgt');break}
+    case 'customfrom':{const bp=b.dataset.p==='blueprint';state.plan=bp?{...BP_PLAN}:{...DEFAULT_PLAN};state.addons=bp?{...BP_ADDONS}:{};syncCustom();save();render();toast('Kopieret. Ret dagene til.');break}
+    case 'program':if(b.dataset.p==='custom'){if(state.program!=='custom'){state.plan=state.customPlan?{...state.customPlan}:{...state.plan};state.addons=state.customAddons?{...state.customAddons}:{...(state.addons||{})};state.program='custom';if(!state.cycleStart)state.cycleStart=mondayOf(TODAY);syncCustom();save()}render();toast('Egen plan valgt');break}
+    {const bp=b.dataset.p==='blueprint';state.program=bp?'blueprint':'egen';state.plan=bp?{...BP_PLAN}:{...DEFAULT_PLAN};state.addons=bp?{...BP_ADDONS}:{};state.cycleStart=mondayOf(TODAY);save();render();toast(bp?'Blueprint-program valgt':'Standardplan valgt');break}
     case 'mobdone':{const k=b.dataset.key,d=b.dataset.date||TODAY,S=SESS[k];state.logs.push({id:Date.now().toString(36),date:d,type:'mobilitet',name:S.name,dur:S.min*60});save();render();toast('Gemt');break}
     case 'copy':doCopy();break;
     case 'restore':doRestore();break;
@@ -1153,7 +1289,7 @@ document.addEventListener('input',e=>{
     /* changing kg or reps carries forward to later sets that aren't done and still had the old value */
     if(f!=='rir')for(let k=j+1;k<r.sets.length;k++){const n=r.sets[k];if(!n.done&&n[f]===old){n[f]=t.value;const el=$(`#s${i}-${k}-${f}`);if(el)el.value=t.value}}
     saveDraft();return}
-  if(t.dataset.bind){const [o,k]=t.dataset.bind.split('.');if(k)ui[o][k]=t.value;else ui[o]=t.value;if(o!=='impText')ui.dirty=true}
+  if(t.dataset.bind){const path=t.dataset.bind.split('.'),o=path[0];let tgt=ui;for(let i=0;i<path.length-1;i++)tgt=tgt[path[i]];tgt[path[path.length-1]]=t.value;if(o!=='impText'&&o!=='cf')ui.dirty=true}
 });
 document.addEventListener('change',e=>{
   const t=e.target;
@@ -1164,7 +1300,9 @@ document.addEventListener('change',e=>{
   else if(t.dataset.row!==undefined&&t.dataset.f==='ex'){const i=+t.dataset.row,r=ui.rows[i];
     if(r&&!r.sets.some(s=>s.done)){const tg=target(t.value);ui.rows[i]=makeRow(t.value.trim(),r.sets.length,tg?tg.reps:r.tReps,tg?tg.rir:r.tRir);render()}}
   else if(t.id==='hrmax'){const v=parseInt(t.value);state.hrmax=v>=140&&v<=230?v:null;save();render();toast(state.hrmax?'Makspuls gemt':'Skriv et tal mellem 140 og 230')}
-  else if(t.dataset.plan!==undefined){state.plan[t.dataset.plan]=t.value;save();toast('Ugeplan opdateret')}
+  else if(t.dataset.plan!==undefined){state.plan[t.dataset.plan]=t.value;const kk=SESS[t.value].kind;if(kk==='hvile'||kk==='mobilitet'){const a={...(state.addons||{})};delete a[t.dataset.plan];state.addons=a}syncCustom();save();render();toast('Ugeplan opdateret')}
+  else if(t.dataset.addon!==undefined){const a={...(state.addons||{})};if(t.value)a[t.dataset.addon]=t.value;else delete a[t.dataset.addon];state.addons=a;syncCustom();save();toast('Ugeplan opdateret')}
+  else if(t.dataset.cdeload!==undefined){state.customDeload=t.value==='1';save();render()}
   else if(t.id==='p-ex'){ui.progEx=t.value;render()}
   else if(t.id==='p-test'){ui.progTest=t.value;render()}
   else if(t.id==='t-unit'){ui.t.unit=t.value;render()}
