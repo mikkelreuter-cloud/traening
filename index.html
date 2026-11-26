@@ -909,7 +909,7 @@ function weekDetail(d,extra){const s=sessFor(d),done=isDone(d),cf=s.kind==='cros
     <p class="small ${done?'ok':'muted'}">${status}</p>
     ${s.kind!=='hvile'&&sum.length?`<ul class="wdet-l">${sum.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}
     ${extra||''}
-    <button class="${extra?'linkbtn':'restbtn'}" data-act="calday" data-date="${d}">Åbn dagen ›</button></div>`}
+    ${d!==TODAY&&s.kind!=='hvile'?`<button class="restbtn" data-act="calday" data-date="${d}">Se træning ›</button>`:''}</div>`}
 function viewToday(){
   const s=sessFor(TODAY),done=isDone(TODAY),wk=weekDates(TODAY);
   const planned=wk.filter(d=>sessFor(d).kind!=='hvile'),doneN=planned.filter(isDone).length;
