@@ -925,7 +925,6 @@ function viewToday(){
     ${(()=>{const sel=ui.wsel===undefined?TODAY:ui.wsel;return sel&&wk.includes(sel)?weekDetail(sel,sel===TODAY?todayExtra:''):''})()}
   </section>
   ${addonCard(TODAY)}
-  ${testDue?`<button class="linkbtn" data-act="logtest">${lastT?'Tid til en ny 3 km test ›':'Lav en starttest: 3 km så hurtigt du kan ›'}</button>`:''}
   ${''}<section class="stats" hidden>
     <div class="stat"><span class="lab">Kropsvægt</span><b class="num">${w?fnum(w.kg)+'<small>kg</small>':'–'}</b><em class="num">${wDelta!=null?`${wDelta>0?'+':wDelta<0?'−':'±'}${fnum(Math.abs(wDelta))} kg siden ${shortDate(W[0].date)}`:w?'Første måling':'Log under Vægt'}</em></div>
     <div class="stat"><span class="lab">${B?esc(B.ex)+' · anslået max':'Styrke'}</span><b class="num">${B?fnum(B.v,0)+'<small>kg</small>':'–'}</b><em class="num">${B?`Sidst ${shortDate(B.date)}`:'Log et styrkepas'}</em></div>
