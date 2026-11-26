@@ -874,11 +874,11 @@ function nextSession(from){const d=pd(from);for(let i=1;i<=7;i++){const n=ds(new
 const daysSince=d=>Math.round((pd(TODAY)-pd(d))/864e5);
 function weekCell(d,act){
   const s=sessFor(d),dt=pd(d);
-  return `<button class="wd k-${s.kind}${d===TODAY?' is-today':''}${isDone(d)?' is-done':''}${act&&ui.wsel===d?' is-sel':''}" data-act="${act||'calday'}" data-date="${d}" aria-label="${niceDate(d)}: ${s.name}">
+  return `<button class="wd k-${s.kind}${d===TODAY?' is-today':''}${isDone(d)?' is-done':''}${act&&(ui.wsel===undefined?TODAY:ui.wsel)===d?' is-sel':''}" data-act="${act||'calday'}" data-date="${d}" aria-label="${niceDate(d)}: ${s.name}">
     <span class="dl">${DAYS[dt.getDay()].slice(0,2)}</span><span class="dn num">${dt.getDate()}</span><span class="bar"></span></button>`;
 }
 /* Details for a tapped day in the week strip on I dag */
-function weekDetail(d){const s=sessFor(d),done=isDone(d),cf=s.kind==='crossfit'?cfSaved(d):null;
+function weekDetail(d,extra){const s=sessFor(d),done=isDone(d),cf=s.kind==='crossfit'?cfSaved(d):null;
   const sum=s.kind==='styrke'&&s.ex?s.ex.map(e=>`${e[0].replace(/ \(.*\)$/,'')} · ${e[1]}×${e[2]}`):
     s.fw?(()=>{const w=(state.planFw||{})[d];if(!w)return [];const l=fwL(w.b.lift),p=w.c?cfRebuild(w.c):null;return ['B) '+l[1]+' · '+w.b.lines[0],...(p?['C) '+p.overskrift]:[]),...(w.d.length?['D) '+w.d.join(', ')]:[])]})():s.kind==='crossfit'?(cf?[cf.title||'Pas klar']:['Pas bygges på dagen']):(s.steps||[]).slice(0,4);
   const status=done?'✓ Gennemført':s.kind==='hvile'?(isSkipped(d)?'Sprunget over':'Hviledag'):d<TODAY?'Ikke logget':d===TODAY?'I dag':'Planlagt';
@@ -887,7 +887,8 @@ function weekDetail(d){const s=sessFor(d),done=isDone(d),cf=s.kind==='crossfit'?
     <h3 class="wdet-n">${esc(s.name)}${s.dur?`<span class="muted small"> · ${esc(s.dur)}</span>`:''}</h3>
     <p class="small ${done?'ok':'muted'}">${status}</p>
     ${s.kind!=='hvile'&&sum.length?`<ul class="wdet-l">${sum.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}
-    <button class="restbtn" data-act="calday" data-date="${d}">Åbn dagen ›</button></div>`}
+    ${extra||''}
+    <button class="${extra?'linkbtn':'restbtn'}" data-act="calday" data-date="${d}">Åbn dagen ›</button></div>`}
 function viewToday(){
   const s=sessFor(TODAY),done=isDone(TODAY),wk=weekDates(TODAY);
   const planned=wk.filter(d=>sessFor(d).kind!=='hvile'),doneN=planned.filter(isDone).length;
@@ -907,15 +908,7 @@ function viewToday(){
     <ul class="facts"><li><b>I dag</b> viser dagens pas. Tryk på den orange knap for at gå i gang.</li><li>Log hvert sæt med ✓. Appen husker dine tal og foreslår vægten til næste gang.</li><li><b>Træn</b> lader dig starte et hvilket som helst pas, når det passer dig. Tryk på en dag i ugen herunder for at se den eller lægge CrossFit ind.</li><li><b>Udvikling</b> viser dine fremskridt og en kalender. Ugen ændrer du via knappen øverst til højre.</li></ul>
     <button class="btn ghost" data-act="tipok">Forstået</button></section>`:'';
   const sum=s.kind==='styrke'&&s.ex?s.ex.map(e=>e[0].replace(/ \(.*\)$/,'')).join(' · '):'';
-  return `<div class="tr-top"><p class="eyebrow today-date">${cap(niceDate(TODAY))}</p>${setBtn()}</div>
-  ${isDeload(TODAY)?`<p class="slim-note">↓ Deload-uge · halvt så mange sæt, samme vægt</p>`:plActive()&&plWeekNo()>0&&state.block.deloads.includes(plWeekNo()-1)?`<p class="slim-note">↓ Deload-uge i dit forløb · lettere pas, så kroppen kan nå at blive stærkere</p>`:''}
-  <section class="card">
-    <div class="row-between">${chip(s.kind,s.label||KIND_LABEL[s.kind])}${s.dur?`<span class="muted small">${s.dur}</span>`:''}</div>
-    <h2 class="sess">${esc(s.name)}</h2>
-    ${s.kind!=='hvile'&&sum&&!ui.todayOpen?`<p class="muted small">${esc(sum)}</p>`:''}
-    ${s.kind!=='hvile'&&ui.todayOpen?sessionBody(s)+(s.note?`<p class="note">${esc(s.note)}</p>`:''):''}
-    ${s.kind!=='hvile'&&s.kind!=='crossfit'?`<button class="restbtn" data-act="todaytog">${ui.todayOpen?'Skjul detaljer':'Se hele passet'}</button>`:''}
-    ${done?'<p class="done-msg">✓ Logget i dag</p>':''}
+  const todayExtra=`    ${done?'<p class="done-msg">✓ Logget i dag</p>':''}
     ${actions}
     ${s.kind!=='hvile'&&!done?(ui.skipAsk?`<div class="card" style="background:var(--surface-2);box-shadow:none;gap:10px">
       <p class="rt">Ikke klar i dag?</p>
@@ -923,13 +916,15 @@ function viewToday(){
       <button class="btn ghost" data-act="skipday">Spring dagens pas over<small style="display:block;font-weight:400;font-size:12px;opacity:.7;margin-top:4px">Planen fortsætter som normalt i morgen.</small></button>
       <button class="restbtn" data-act="skipcancel">Annullér</button></div>`
       :`<button class="linkbtn" data-act="skipask">Ikke klar i dag?</button>`):''}
-  </section>
-  ${addonCard(TODAY)}
+`;
+  return `<div class="tr-top"><p class="eyebrow today-date">${cap(niceDate(TODAY))}</p>${setBtn()}</div>
+  ${isDeload(TODAY)?`<p class="slim-note">↓ Deload-uge · halvt så mange sæt, samme vægt</p>`:plActive()&&plWeekNo()>0&&state.block.deloads.includes(plWeekNo()-1)?`<p class="slim-note">↓ Deload-uge i dit forløb · lettere pas, så kroppen kan nå at blive stærkere</p>`:''}
   <section class="card">
     <div class="row-between"><h3 class="sec">Denne uge</h3><span class="muted small num">${doneN} af ${planned.length} pas</span></div>
     <div class="week">${wk.map(d=>weekCell(d,'wsel')).join('')}</div>
-    ${ui.wsel&&wk.includes(ui.wsel)?weekDetail(ui.wsel):''}
+    ${(()=>{const sel=ui.wsel===undefined?TODAY:ui.wsel;return sel&&wk.includes(sel)?weekDetail(sel,sel===TODAY?todayExtra:''):''})()}
   </section>
+  ${addonCard(TODAY)}
   ${testDue?`<button class="linkbtn" data-act="logtest">${lastT?'Tid til en ny 3 km test ›':'Lav en starttest: 3 km så hurtigt du kan ›'}</button>`:''}
   ${''}<section class="stats" hidden>
     <div class="stat"><span class="lab">Kropsvægt</span><b class="num">${w?fnum(w.kg)+'<small>kg</small>':'–'}</b><em class="num">${wDelta!=null?`${wDelta>0?'+':wDelta<0?'−':'±'}${fnum(Math.abs(wDelta))} kg siden ${shortDate(W[0].date)}`:w?'Første måling':'Log under Vægt'}</em></div>
@@ -2003,7 +1998,7 @@ document.addEventListener('click',e=>{
       state.logs.push({id:Date.now().toString(36),date:ui.cf.date,type:'crossfit',name:p.overskrift,score:r.score.trim(),rpe:num(r.rpe),note:r.note.trim(),seed:p.seed,ids:p.movs.map(m=>m.id),linjer:p.linjer,dur:p.minutter*60});
       save();render();toast('Resultat gemt');break}
     case 'addontog':freezeTop();ui.addonOpen=!ui.addonOpen;render();break;
-    case 'wsel':{freezeTop();const d=b.dataset.date;ui.wsel=ui.wsel===d?null:d;render();break}
+    case 'wsel':{freezeTop();const d=b.dataset.date,cur=ui.wsel===undefined?TODAY:ui.wsel;ui.wsel=cur===d?null:d;render();break}
     case 'todaytog':freezeTop();ui.todayOpen=!ui.todayOpen;render();break;
     case 'skipask':freezeTop();ui.skipAsk=true;render();break;
     case 'skipcancel':freezeTop();ui.skipAsk=false;render();break;
