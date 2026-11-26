@@ -520,6 +520,7 @@ b,strong{font-weight:600}
 .sug{font-size:14px;font-weight:500}
 .pl-prog{display:flex;gap:4px;margin:-4px 0 14px}.pl-prog i{flex:1;height:3px;border-radius:2px;background:var(--line)}.pl-prog i.on{background:var(--accent)}
 .stepper{justify-content:center}
+.chips button.dim{opacity:.45}
 </style>
 </head>
 <body>
@@ -1309,8 +1310,10 @@ const PL_PROG={styrke:[[5,5,70],[5,4,75],[5,3,80],[4,3,85],[5,2,85],[4,2,88],[3,
   muskler:[[4,10,60],[4,8,67],[4,8,70],[4,6,75],[5,6,75],[4,5,78],[4,5,80]],
   kondition:[[3,5,70],[3,5,72],[3,4,75],[3,4,77],[3,3,80],[3,3,82],[3,3,83]],
   allround:[[5,5,70],[5,4,75],[5,3,80],[4,3,85],[5,2,85],[4,2,87],[3,2,90]]};
-function plWeekInfo(P){const out=[];let n=0;for(let w=0;w<P.weeks;w++){const E=P.dlEvery||4,dl=P.deload&&P.weeks>=3&&w%E===E-1&&w!==P.weeks-1;
-  const test=(P.goal==='styrke'||isRun(P.goal))&&P.weeks>=3&&w===P.weeks-1;out.push({w,dl,test,i:dl||test?-1:n++})}return out}
+const plHasTest=P=>(P.goal==='styrke'||isRun(P.goal))&&P.weeks>=3;
+/* Deload every E weeks. The last week can be a deload unless it is a test week. */
+function plWeekInfo(P){const out=[];let n=0;for(let w=0;w<P.weeks;w++){const E=P.dlEvery||4,test=plHasTest(P)&&w===P.weeks-1,dl=P.deload&&P.weeks>=3&&w%E===E-1&&!test;out.push({w,dl,test,i:dl||test?-1:n++})}return out}
+const plDlFits=(P,k)=>k<=P.weeks-(plHasTest(P)?1:0);
 function plDose(P,wi){if(wi.dl)return {s:3,r:5,pct:60,rir:4,dl:true};if(wi.test&&isRun(P.goal))return {s:3,r:3,pct:70,rir:3};if(wi.test)return {test:true,s:6,r:3,pct:0,rir:1};
   const pr=PL_PROG[isRun(P.goal)?'kondition':P.goal],v=pr[Math.min(wi.i,pr.length-1)];return {s:v[0],r:v[1],pct:v[2],rir:v[2]>=85?1:v[2]>=75?2:3}}
 /* Assign a main lift pattern to every lifting day of the week (same pattern each week, so the lift can progress).
@@ -1415,7 +1418,7 @@ const PL_MIX={styrke:{2:'SS',3:'SKS',4:'SKSS',5:'SKSKS',6:'SKSKSK'},kondition:{2
 function plDraft(P){const n=P.nDays,mix=(PL_MIX[P.goal]||PL_MIX.styrke)[n],m={S:'styrke',K:'kondition',C:'crossfit'},t={};
   PL_DOW.forEach(d=>t[d]='hvile');PL_SLOTS[n].forEach((i,k)=>t[PL_DOW[i]]=m[mix[k]]);if(n>=3&&t[0]==='hvile')t[0]='restitution';
   P.types=t;P.draftSig=P.goal+'|'+n}
-function plDlOpts(P){return [2,3,4,5,6].filter(n=>n<P.weeks)}
+function plDlOpts(P){return [2,3,4,5,6]}
 function plWk(P){if(isRun(P.goal)){const r=runWeeks(P);if(!r[0].includes(P.weeks))P.weeks=r[1];return r}if(P.weeks>8)P.weeks=8;return [[1,2,3,4,5,6,7,8],0]}
 function viewPlan(){const P=ui.pl;if(!P){ui.view='month';return viewMonth()}
   const steps=plSteps(P);if(P.step!=='review'&&!steps.includes(P.step))P.step=steps[0];
@@ -1435,8 +1438,9 @@ function viewPlan(){const P=ui.pl;if(!P){ui.view='month';return viewMonth()}
   case 'weeks':{const [wk,rec]=plWk(P);
     return head('Hvor mange uger?')+card(`<div class="chips">${wk.map(k=>`<button class="${P.weeks===k?'on':''}" data-act="plweeks" data-v="${k}">${k}${k===rec?' ★':''}</button>`).join('')}</div>${rec?`<p class="hint">★ anbefalet for ${RUN_D[P.dist].toLowerCase()}</p>`:''}`)+nav()}
   case 'deload':return head('Skal der være lette uger?')+card(`<div class="fmt-grid">${opt('pldl',1,P.deload,'Ja','Kroppen når at komme sig. Anbefalet.')}${opt('pldl',0,!P.deload,'Nej','Fuld belastning hele vejen.')}</div>`)+nav();
-  case 'dlfreq':{const o=plDlOpts(P);if(!o.includes(P.dlEvery))P.dlEvery=o.includes(4)?4:o[o.length-1];
-    return head('Hvor ofte?','En let uge hver …')+card(`<div class="chips">${o.map(k=>`<button class="${P.dlEvery===k?'on':''}" data-act="pldlf" data-v="${k}">${k}. uge${k===4?' ★':''}</button>`).join('')}</div><p class="hint">★ mest brugt: 3 hårde uger, 1 let</p>`)+nav()}
+  case 'dlfreq':{const o=plDlOpts(P),fit=plDlFits(P,P.dlEvery),cnt=plWeekInfo(P).filter(x=>x.dl).length;
+    return head('Hvor ofte?','En let uge hver …')+card(`<div class="chips">${o.map(k=>`<button class="${P.dlEvery===k?'on':''}${plDlFits(P,k)?'':' dim'}" data-act="pldlf" data-v="${k}">${k}. uge${k===4?' ★':''}</button>`).join('')}</div>
+      <p class="hint${fit?'':' warn-t'}">${fit?`${cnt} ${cnt===1?'let uge':'lette uger'} på ${P.weeks} uger · ★ mest brugt: 3 hårde uger, 1 let`:`Dit forløb er ${P.weeks} uger, så du når ikke en let uge. Vælg et lavere tal, eller gå tilbage og vælg flere uger.`}</p>`)+nav()}
   case 'start':return head('Hvornår vil du starte?')+card(`<div class="fmt-grid">${opt('plst','this',P.start==='this','Denne uge','Dage der er gået springes over.')}${opt('plst','next',P.start==='next','Næste uge','Starter mandag.')}</div>`)+nav();
   case 'days':return head('Hvor mange dage om ugen vil du træne?')+card(`<div class="chips">${[2,3,4,5,6].map(k=>`<button class="${P.nDays===k?'on':''}" data-act="plndays" data-v="${k}">${k} dage</button>`).join('')}</div>`)+nav();
   case 'week':{const heavy=d=>['styrke','crossfit'].includes(P.types[d]);
