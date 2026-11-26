@@ -91,6 +91,8 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px
 .sheet-b{appearance:none;border:2px solid transparent;background:var(--surface-2);color:var(--fg);border-radius:16px;padding:14px 4px;display:grid;justify-items:center;gap:8px;font:500 13px/1.2 var(--font);cursor:pointer}
 .sheet-b.on{border-color:var(--k)}
 .sheet-b .pl-ic{width:44px;height:44px;border-radius:14px}
+.ob-n{grid-template-columns:repeat(5,1fr)}
+.ob-add{font-size:13px;color:var(--muted);font-weight:400}
 .pl-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .pl-day{appearance:none;border:0;border-radius:14px;padding:14px 0;background:var(--surface-2);color:var(--fg);font:600 14px/1 var(--font);cursor:pointer}
 .pl-day.on{background:var(--pill);color:var(--pill-fg)}
@@ -1597,7 +1599,7 @@ function customWeekCard(){
 }
 function syncCustom(){if(state.program==='custom'){state.customPlan={...state.plan};state.customAddons={...(state.addons||{})}}}
 /* ---------- First run: plan your week ---------- */
-const GOALS=[{id:'styrke',name:'Styrke',desc:'Vægttræning. Appen foreslår vægten hver gang.'},{id:'kondition',name:'Kondition',desc:'Hårde intervaller og rolige ture, der giver bedre kondition.'},{id:'crossfit',name:'CrossFit',desc:'Varierede, hårde pas. Du vælger format og tid.'},{id:'mobilitet',name:'Mobilitet',desc:'10 min smidighed efter træningen.'}];
+const GOALS=[{id:'styrke',name:'Styrke',desc:'Vægttræning. Appen foreslår vægten hver gang.'},{id:'kondition',name:'Kondition',desc:'Hårde intervaller og rolige ture, der giver bedre kondition.'},{id:'crossfit',name:'CrossFit',desc:'Varierede, hårde pas, bygget efter dit udstyr og din tid.'},{id:'mobilitet',name:'Mobilitet',desc:'10 min smidighed efter træningen.'}];
 function obSuggest(days,goals){
   const plan={0:'R',1:'R',2:'R',3:'R',4:'R',5:'R',6:'R'},addons={};
   const pools={styrke:['S','S','S','S','S','S'],kondition:['I5','Z2L','I30B','Z2','I4','Z2L'],crossfit:['CF','CF','CF','CF','CF','CF']};
@@ -1609,23 +1611,25 @@ function obSuggest(days,goals){
   if(goals.includes('mobilitet'))days.forEach(d=>{const k=SESS[plan[d]].kind;if(k==='styrke'||(!main.includes('styrke')&&k!=='mobilitet'))addons[d]='MOB'});
   return {plan,addons};
 }
+const OB_SPREAD={2:[1,4],3:[1,3,5],4:[1,2,4,6],5:[1,2,4,5,6],6:[1,2,3,4,5,6]};
 function obInit(){const days=Object.keys(state.plan).map(Number).filter(d=>state.plan[d]!=='R');
-  ui.ob={step:1,name:state.name||'',days:days.length?days:[1,3,5],goals:['styrke','kondition'],plan:null,addons:null}}
+  ui.ob={step:1,name:state.name||'',n:Math.min(6,Math.max(2,days.length||4)),goals:['styrke','kondition'],plan:null,addons:null,pick:null}}
+/* Type shown for a session key in the onboarding week, and the key used when the user picks a type */
+const OB_KEY={styrke:'S',crossfit:'CF',kondition:'I4',restitution:'AR1',mobilitet:'MOB',hvile:'R'};
 function viewOnboard(){
-  const o=ui.ob||(obInit(),ui.ob),order=[1,2,3,4,5,6,0];
-  const dots=`<p class="eyebrow num">Trin ${o.step} af 3</p>`;
-  if(o.step===1)return `${dots}<h2 class="h2">Velkommen</h2><p class="note">Lad os sætte din træningsuge op. Det tager et minut, og du kan altid ændre den bagefter.</p>
+  const o=ui.ob||(obInit(),ui.ob);
+  const top=t=>`<p class="eyebrow num">Trin ${o.step} af 3</p><h2 class="h2">${t}</h2>`;
+  if(o.step===1)return `${top('Velkommen')}<p class="note">Lad os sætte din træningsuge op. Det tager et minut.</p>
     <section class="card"><label class="field"><span>Hvad hedder du?</span><input id="ob-name" data-bind="ob.name" value="${esc(o.name)}" placeholder="Dit navn"></label></section>
-    <section class="card"><div class="row-between"><h3 class="sec">Hvilke dage vil du træne?</h3><span class="muted small num">${o.days.length} dage</span></div>
-      <div class="chips">${order.map(d=>`<button class="${o.days.includes(d)?'on':''}" data-act="obday" data-v="${d}">${cap(DAYS[d]).slice(0,3)}</button>`).join('')}</div>
-      <p class="hint">3–5 dage giver plads til både træning og hvile.</p></section>
-    <button class="btn accent" data-act="obnext"${o.days.length?'':' disabled'}>Videre</button>`;
-  if(o.step===2)return `${dots}<h2 class="h2">Hvad vil du træne?</h2><p class="note">Vælg en eller flere. Appen fordeler dem på dine ${o.days.length} dage.</p>
+    <button class="btn accent" data-act="obnext">Videre</button>`;
+  if(o.step===2)return `${top('Hvad vil du træne?')}
     <div class="fmt-grid">${GOALS.map(g=>`<button class="fmt${o.goals.includes(g.id)?' on':''}" data-act="obgoal" data-v="${g.id}"><b>${g.name}</b><small>${g.desc}</small></button>`).join('')}</div>
+    <section class="card"><div class="field"><span>Hvor mange dage om ugen?</span><div class="pl-days ob-n">${[2,3,4,5,6].map(n=>`<button class="pl-day${o.n===n?' on':''}" data-act="obn" data-v="${n}">${n}</button>`).join('')}</div></div></section>
     <div class="btns3" style="grid-template-columns:1fr 2fr"><button class="btn ghost" data-act="obback">Tilbage</button><button class="btn accent" data-act="obnext"${o.goals.length?'':' disabled'}>Lav min uge</button></div>`;
-  return `${dots}<h2 class="h2">Din uge</h2><p class="note">Her er et forslag. Tryk på en dag for at ændre den.</p>
-    <section class="card">${weekEditor('ob',o.plan,o.addons)}</section>
-    <div class="btns3" style="grid-template-columns:1fr 2fr"><button class="btn ghost" data-act="obback">Tilbage</button><button class="btn accent" data-act="obdone">Start træningen</button></div>`;
+  const typeOf=d=>plTypeOfKey(o.plan[d]);
+  return `${top('Din uge')}<section class="card pl-week-edit">${PL_DOW.map(d=>{const t=typeOf(d);return `<button class="pl-wrow k-${PL_TYPES[t][1]}" data-act="obpick" data-d="${d}"><span class="pl-wd">${PL_SHORT[d]}</span>${plIcon(t)}<span class="pl-wt">${t==='crossfit'?'CrossFit':PL_TYPES[t][0]}${o.addons[d]?'<small class="ob-add"> + mobilitet</small>':''}</span><span class="chev">›</span></button>`}).join('')}</section>
+    <div class="btns3" style="grid-template-columns:1fr 2fr"><button class="btn ghost" data-act="obback">Tilbage</button><button class="btn accent" data-act="obdone">Start</button></div>
+    ${o.pick!=null?`<div class="sheet-bg" data-act="obclose"><div class="sheet" role="dialog"><p class="sheet-t">${cap(DAYS[o.pick])}</p><div class="sheet-grid">${Object.keys(PL_TYPES).map(t=>`<button class="sheet-b k-${PL_TYPES[t][1]}${typeOf(o.pick)===t?' on':''}" data-act="obset" data-v="${t}">${plIcon(t)}<span>${PL_TYPES[t][0]==='Fuld træning'?'CrossFit':PL_TYPES[t][0]}</span></button>`).join('')}</div></div></div>`:''}`;
 }
 function viewHabitNew(){
   const n=ui.nh;
@@ -1929,18 +1933,18 @@ function render(top){if(typeof acHide==='function'&&!$('#ac').hidden)acHide();ha
   syncHistory();
   requestAnimationFrame(moveTabInd);
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||(v==='log'&&t.dataset.view===(ui.logFrom==='prog'?'prog':ui.logFrom==='train'?'train':'today'))||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))||(((v==='sess'||v==='sessedit'||v==='expick'||(v==='fw'&&!ui.fwDate))&&t.dataset.view==='train')||((v==='plan')&&t.dataset.view==='month'))));
-  document.body.classList.toggle('no-top',['today','train','log','prog','fw','plan','month','settings','sess','sessedit','expick','day','cf'].includes(v));
+  document.body.classList.toggle('no-top',['today','train','log','prog','fw','plan','month','settings','sess','sessedit','expick','day','cf','onboard'].includes(v));
   {const m=$('#main');if(ui.freeze&&ui.freeze.v===v){m.style.justifyContent='flex-start';m.style.paddingTop=ui.freeze.px+'px'}else{ui.freeze=null;m.style.justifyContent='';m.style.paddingTop=''}}
   {const st=sessFor(TODAY);$('#hdr-hi').textContent=(state.name?'Hej '+state.name+'! · ':'')+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='onboard'?'Styrke & VO₂ log':v==='train'||v==='sess'?'Hvad har du lyst til i dag?':v==='sessedit'||v==='expick'?'Byg dit eget pas':v==='day'?cap(niceDate(ui.sel)):v==='cf'?'Byg dagens WOD':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
   if(top)window.scrollTo(0,0);
 }
 /* ---------- Intro tour: a few swipeable cards shown once after setup ---------- */
 const TOUR=[
- {ic:'<path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/>',h:'I dag',p:'Viser dagens pas. Tryk Start træning, og appen guider dig igennem.'},
- {ic:'<path d="M6.5 9v6M17.5 9v6M3.5 10.5v3M20.5 10.5v3M6.5 12h11"/>',h:'Log sæt',p:'Tryk ✓ efter hvert sæt. Pausen starter, og appen foreslår vægten til næste gang.'},
- {ic:'<path d="M8 5v14l11-7z"/>',h:'Træn',p:'Alle dine pas. Start et når det passer, ret i dem eller lav dit eget.'},
- {ic:'<path d="M5 20V12M10 20V6M15 20v-9M20 20V9"/>',h:'Udvikling',p:'Se dine løft, tider og vægt gå frem over tid.'},
- {ic:'<path d="M4 7h9M18 7h2M4 17h4M13 17h7"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="10.5" cy="17" r="2.3"/>',h:'Din uge',p:'Knappen øverst til højre. Her ændrer du dage, puls og tager backup.'}];
+ {ic:'<path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/>',h:'I dag',p:'Din uge med dagens træning. Tryk på en dag for at se den, og start dagens pas direkte.'},
+ {ic:'<path d="M8 5v14l11-7z"/>',h:'Træn',p:'Alle pas i grupper. Byg en fuld træning eller et CrossFit-pas, eller opret dit eget.'},
+ {ic:'<path d="M6.5 9v6M17.5 9v6M3.5 10.5v3M20.5 10.5v3M6.5 12h11"/>',h:'Log mens du træner',p:'Tryk ✓ efter hvert sæt. Pausen starter, og appen foreslår vægten til næste gang.'},
+ {ic:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',h:'Planen',p:'Se en måned frem, og planlæg et forløb på 1-8 uger mod et mål.'},
+ {ic:'<path d="M5 20V12M10 20V6M15 20v-9M20 20V9"/>',h:'Udvikling',p:'Sæt mål og følg din styrke, kondition og vægt. Swipe til siden for at skifte fane.'}];
 function showTour(){const el=$('#tour');
   el.innerHTML=`<div class="tour-box" role="dialog" aria-label="Rundvisning"><div class="tour-track" id="tour-track">${TOUR.map(t=>`<div class="tour-slide"><div class="tour-ic"><svg viewBox="0 0 24 24">${t.ic}</svg></div><h3>${t.h}</h3><p>${t.p}</p></div>`).join('')}</div>
   <div class="tour-dots">${TOUR.map((_,i)=>`<i class="${i?'':'on'}"></i>`).join('')}</div>
@@ -2203,9 +2207,12 @@ document.addEventListener('click',e=>{
     case 'tourshow':showTour();break;
     case 'tipok':state.tipSeen=true;save();render();break;
     case 'obstart':obInit();ui.view='onboard';render(true);break;
-    case 'obday':{const d=+b.dataset.v,o=ui.ob;o.days=o.days.includes(d)?o.days.filter(x=>x!==d):o.days.concat(d);render();break}
+    case 'obn':ui.ob.n=+b.dataset.v;render();break;
+    case 'obpick':ui.ob.pick=+b.dataset.d;render();break;
+    case 'obclose':ui.ob.pick=null;render();break;
+    case 'obset':{const o=ui.ob,d=o.pick,t=b.dataset.v;if(plTypeOfKey(o.plan[d])!==t){o.plan[d]=OB_KEY[t];if(!['styrke','crossfit'].includes(t))delete o.addons[d]}o.pick=null;render();break}
     case 'obgoal':{const g=b.dataset.v,o=ui.ob;o.goals=o.goals.includes(g)?o.goals.filter(x=>x!==g):o.goals.concat(g);render();break}
-    case 'obnext':{const o=ui.ob;if(o.step===2){const order=[1,2,3,4,5,6,0],sug=obSuggest(order.filter(d=>o.days.includes(d)),o.goals);o.plan=sug.plan;o.addons=sug.addons}o.step++;render(true);break}
+    case 'obnext':{const o=ui.ob;if(o.step===2){const sug=obSuggest(OB_SPREAD[o.n],o.goals);o.plan=sug.plan;o.addons=sug.addons}o.step++;render(true);break}
     case 'obback':ui.ob.step--;render(true);break;
     case 'obdone':{replaceNext=true;const o=ui.ob;state.plan={...o.plan};state.addons={...o.addons};state.program='custom';state.name=o.name.trim();state.onboarded=true;state.shifts=[];state.skips={};state.overrides=state.overrides||{};
       state.cycleStart=mondayOf(TODAY);syncCustom();save();ui.ob=null;ui.view='today';render(true);if(!state.tourSeen)showTour();else toast('Din uge er klar');break}
