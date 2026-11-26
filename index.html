@@ -49,6 +49,18 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px
   padding-block:18px calc(170px + env(safe-area-inset-bottom,0px))}
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .no-top header.top{display:none}
+.pl-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.pl-day{appearance:none;border:0;border-radius:14px;padding:14px 0;background:var(--surface-2);color:var(--fg);font:600 14px/1 var(--font);cursor:pointer}
+.pl-day.on{background:var(--pill);color:var(--pill-fg)}
+.pl-row{display:grid;grid-template-columns:40px 1fr;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+.pl-row:first-child{border-top:0}
+.pl-row .chips{gap:6px}
+.pl-r{display:grid;grid-template-columns:34px auto 1fr;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
+.pl-r.past{opacity:.45}
+.pl-d{color:var(--muted);font-size:13px}
+.pl-l{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag-dl{font-size:12px;font-weight:600;color:var(--accent)}
+
 .fw-sec{gap:8px}
 .fw-h{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:10px;margin-bottom:4px}
 .fw-h h3{margin:0;font-size:18px;font-weight:600}
@@ -554,7 +566,7 @@ function load(){
     if(st.program==='blueprint'&&st.plan[2]==='I4'&&st.plan[0]==='Z2L')st.plan[2]='I5';
     /* v9: move 30/15 to Friday and Styrke C to Saturday, so intervals never follow a heavy leg day */
     if(st.program==='blueprint'&&st.plan[5]==='C'&&st.plan[6]==='I30B'){st.plan[5]='I30B';st.plan[6]='C';if(st.addons[5]==='MOB'){delete st.addons[5];st.addons[6]='MOB'}}
-    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.sessEdits=d.sessEdits||{};st.customSess=d.customSess||{};st.customPlan=d.customPlan||null;st.customAddons=d.customAddons||null;st.customDeload=d.customDeload;st.overrides=d.overrides||{};st.cfDays=d.cfDays||{};st.cfPrefs=d.cfPrefs||null;st.strUdstyr=d.strUdstyr||null;st.strGen=d.strGen||null;st.fw=d.fw||null;st.fwT=d.fwT||60;st.shifts=Array.isArray(d.shifts)?d.shifts:[];
+    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.sessEdits=d.sessEdits||{};st.customSess=d.customSess||{};st.customPlan=d.customPlan||null;st.customAddons=d.customAddons||null;st.customDeload=d.customDeload;st.overrides=d.overrides||{};st.cfDays=d.cfDays||{};st.cfPrefs=d.cfPrefs||null;st.strUdstyr=d.strUdstyr||null;st.strGen=d.strGen||null;st.fw=d.fw||null;st.fwT=d.fwT||60;st.block=d.block||null;st.blockDays=d.blockDays||{};st.planSess=d.planSess||{};st.planFw=d.planFw||{};st.shifts=Array.isArray(d.shifts)?d.shifts:[];
     if(!st.program){const untouched=Object.keys(DEFAULT_PLAN).every(k=>st.plan[k]===DEFAULT_PLAN[k]);if(untouched)st.plan={...BP_PLAN};st.addons={...BP_ADDONS}}
     /* v20: one program only — your own week. Existing data counts as already set up. */
     if(st.program!=='custom'&&!d.customPlan)st.customDeload=d.customDeload??true;
@@ -570,7 +582,8 @@ const SESS_BASE=JSON.parse(JSON.stringify(SESS));
 function applySess(){Object.keys(SESS).forEach(k=>{if(!SESS_BASE[k])delete SESS[k]});
   for(const k in SESS_BASE)SESS[k]=JSON.parse(JSON.stringify(SESS_BASE[k]));
   for(const [k,e] of Object.entries(state.sessEdits||{}))if(SESS[k])Object.assign(SESS[k],e);
-  for(const [k,c] of Object.entries(state.customSess||{}))SESS[k]={...c,custom:true}}
+  for(const [k,c] of Object.entries(state.customSess||{}))SESS[k]={...c,custom:true};
+  for(const [k,c] of Object.entries(state.planSess||{}))SESS[k]={...c,plan:true}}
 applySess();
 const customKeys=kind=>Object.keys(state.customSess||{}).filter(k=>state.customSess[k].kind===kind);
 
@@ -578,14 +591,14 @@ const customKeys=kind=>Object.keys(state.customSess||{}).filter(k=>state.customS
 const mondayOf=s=>weekDates(s)[0];
 /* Deload: every DELOAD_EVERY-th week of the cycle → half the sets, same weight, one interval session */
 function cycleWeek(s){if(!state.cycleStart)return 0;return Math.floor((pd(mondayOf(s))-pd(state.cycleStart))/(7*864e5))}
-const isDeload=s=>(state.program==='blueprint'||(state.program==='custom'&&state.customDeload!==false))&&!!state.cycleStart&&cycleWeek(s)>=0&&cycleWeek(s)%DELOAD_EVERY===DELOAD_EVERY-1;
+const isDeload=s=>!(state.blockDays||{})[s]&&(state.program==='blueprint'||(state.program==='custom'&&state.customDeload!==false))&&!!state.cycleStart&&cycleWeek(s)>=0&&cycleWeek(s)%DELOAD_EVERY===DELOAD_EVERY-1;
 /* Skips make a day a rest day. Shifts push every later session one day forward (plan of day d comes from d minus the shifts before it). */
 const isSkipped=s=>!!(state.skips||{})[s];
 function planDate(s){const n=(state.shifts||[]).filter(x=>x<s).length;if(!n)return s;const d=pd(s);d.setDate(d.getDate()-n);return ds(d)}
 /* 'S' in the plan = a strength day. The app rotates Styrke A, B, C over the strength days of the week, so the whole body gets trained. */
 function baseKey(s){const wd=pd(planDate(s)).getDay(),k=state.plan[wd]||'R';if(k!=='S')return k;
   const sDays=[1,2,3,4,5,6,0].filter(d=>state.plan[d]==='S');return ['A','B','C'][sDays.indexOf(wd)%3]}
-function sessKey(s){if(isSkipped(s))return 'R';const ov=(state.overrides||{})[s];if(ov&&SESS[ov])return ov;const k=baseKey(s);
+function sessKey(s){if(isSkipped(s))return 'R';const ov=(state.overrides||{})[s];if(ov&&SESS[ov])return ov;const bk=(state.blockDays||{})[s];if(bk&&SESS[bk])return bk;const k=baseKey(s);
   if(SESS[k]&&SESS[k].kind==='interval'&&isDeload(s)){const wk=weekDates(s);const first=wk.find(d=>!isSkipped(d)&&SESS[baseKey(d)].kind==='interval');if(first!==s)return 'Z2'}
   return k}
 const hr=p=>state.hrmax?Math.round(state.hrmax*p):null;
@@ -765,6 +778,7 @@ function sessionBody(s,date){
     const line=g?`<span class="sug num">${dl?`Deload: ${g.l.kg?fnum(g.l.kg)+' kg':'kropsvægt'} (samme vægt)`:`Forslag: ${esc(g.text)}`}</span><span class="exl num">Sidst ${g.l.kg?fnum(g.l.kg)+' kg':'kropsvægt'} × ${g.l.reps}${rirTxt(g.l.rir)} (${shortDate(g.l.date)})</span>`
       :`<span class="exl">Første gang: vælg en vægt, hvor du kunne have taget ${q} ${q===1?'gentagelse':'gentagelser'} mere i sidste sæt.</span>`;
     return `<li><span class="exn">${esc(n)}</span><span class="exp num">${a}×${b}<small>${q} i tanken</small></span>${line}</li>`}).join('')}</ul>`;
+  if(s.fw){const w=(state.planFw||{})[date||TODAY];if(!w)return '';const l=fwL(w.b.lift),p=w.c?cfRebuild(w.c):null;return `<div class="wod"><h3>B) ${esc(l[1])}</h3>${w.b.lines.map(x=>`<p>${esc(x)}</p>`).join('')}${p?`<h3 style="margin-top:10px">C) ${esc(p.overskrift)}</h3>${p.linjer.map(x=>`<p>${esc(x)}</p>`).join('')}`:''}</div>`}
   if(s.kind==='crossfit'){const p=cfRebuild(cfSaved(date||TODAY));return p?cfWod(p):'<p class="note">Intet pas endnu. Vælg format og tid, så bygger appen et pas efter reglerne.</p>'}
   return `<ol class="steps">${s.steps.map(t=>`<li>${esc(t)}</li>`).join('')}</ol>${s.kind==='interval'||s.kind==='zone2'?hrLine(s)+kondTip(s):''}`;
 }
@@ -866,7 +880,7 @@ function weekCell(d,act){
 /* Details for a tapped day in the week strip on I dag */
 function weekDetail(d){const s=sessFor(d),done=isDone(d),cf=s.kind==='crossfit'?cfSaved(d):null;
   const sum=s.kind==='styrke'&&s.ex?s.ex.map(e=>`${e[0].replace(/ \(.*\)$/,'')} · ${e[1]}×${e[2]}`):
-    s.kind==='crossfit'?(cf?[cf.title||'Pas klar']:['Pas bygges på dagen']):(s.steps||[]).slice(0,4);
+    s.fw?(()=>{const w=(state.planFw||{})[d];if(!w)return [];const l=fwL(w.b.lift),p=w.c?cfRebuild(w.c):null;return ['B) '+l[1]+' · '+w.b.lines[0],...(p?['C) '+p.overskrift]:[]),...(w.d.length?['D) '+w.d.join(', ')]:[])]})():s.kind==='crossfit'?(cf?[cf.title||'Pas klar']:['Pas bygges på dagen']):(s.steps||[]).slice(0,4);
   const status=done?'✓ Gennemført':s.kind==='hvile'?(isSkipped(d)?'Sprunget over':'Hviledag'):d<TODAY?'Ikke logget':d===TODAY?'I dag':'Planlagt';
   return `<div class="wdet">
     <div class="row-between"><span class="muted small">${cap(niceDate(d))}</span>${chip(s.kind,s.label||KIND_LABEL[s.kind])}</div>
@@ -881,6 +895,7 @@ function viewToday(){
   let actions;
   if(s.kind==='styrke')actions=`<button class="btn accent" data-act="logday" data-date="${TODAY}">${loadDraft()?'Fortsæt træning':done?'Log mere':'Start træning'}</button>`;
   else if(s.kind==='hvile'){const n=nextSession(TODAY);actions=(isSkipped(TODAY)?`<p class="note">${(state.shifts||[]).includes(TODAY)?'Du rykkede planen. Dagens pas ligger nu i morgen.':'Du sprang dagens pas over.'}</p><button class="btn ghost" data-act="unskip">Fortryd</button>`:'')+(n?`<p class="note">Næste pas: <b>${esc(n.s.name)}</b> ${n.i===1?'i morgen':'på '+DAYS[pd(n.d).getDay()]}.</p>`:'')}
+  else if(s.fw)actions=`<button class="btn accent" data-act="fwday" data-date="${TODAY}">${done?'Se træningen':'Åbn træningen'}</button>`;
   else if(s.kind==='crossfit')actions=`<button class="btn accent" data-act="cfopen" data-date="${TODAY}">${cfSaved(TODAY)?(done?'Se pas':'Start og log'):'Byg dagens pas'}</button>`;
   else if(s.kind==='mobilitet')actions=done?'':`<button class="btn accent" data-act="mobdone" data-key="${key}">Færdig · ${s.min} min</button>`;
   else actions=`<div class="btns"><button class="btn accent" data-act="timer" data-key="${key}">${s.kind==='zone2'?'Start timer':'Start intervaltimer'}</button><button class="btn ghost" data-act="logday" data-date="${TODAY}">Log uden timer</button></div>`;
@@ -893,7 +908,7 @@ function viewToday(){
     <button class="btn ghost" data-act="tipok">Forstået</button></section>`:'';
   const sum=s.kind==='styrke'&&s.ex?s.ex.map(e=>e[0].replace(/ \(.*\)$/,'')).join(' · '):'';
   return `<div class="tr-top"><p class="eyebrow today-date">${cap(niceDate(TODAY))}</p>${setBtn()}</div>
-  ${isDeload(TODAY)?`<p class="slim-note">↓ Deload-uge · halvt så mange sæt, samme vægt</p>`:''}
+  ${isDeload(TODAY)?`<p class="slim-note">↓ Deload-uge · halvt så mange sæt, samme vægt</p>`:plActive()&&plWeekNo()>0&&state.block.deloads.includes(plWeekNo()-1)?`<p class="slim-note">↓ Deload-uge i dit forløb · lettere pas, så kroppen kan nå at blive stærkere</p>`:''}
   <section class="card">
     <div class="row-between">${chip(s.kind,s.label||KIND_LABEL[s.kind])}${s.dur?`<span class="muted small">${s.dur}</span>`:''}</div>
     <h2 class="sess">${esc(s.name)}</h2>
@@ -985,7 +1000,7 @@ function dayCard(sel){
     ${sessionBody(se,sel)}
     ${addonFor(sel)?`<p class="note">+ ${esc(addonFor(sel).s.name)} (${addonFor(sel).s.dur}) bagefter</p>`:''}
     ${L.length?`<h3 class="sec">Logget</h3><div>${L.map(logItem).join('')}</div>`:''}
-    ${se.kind==='crossfit'?`<button class="btn accent" data-act="cfopen" data-date="${sel}">${cfSaved(sel)?'Se og rediger pas':'Byg CrossFit-pas'}</button>`:''}
+    ${se.fw?`<button class="btn accent" data-act="fwday" data-date="${sel}">Åbn træningen</button>`:''}${se.kind==='crossfit'&&!se.fw?`<button class="btn accent" data-act="cfopen" data-date="${sel}">${cfSaved(sel)?'Se og rediger pas':'Byg CrossFit-pas'}</button>`:''}
     ${se.kind!=='crossfit'?`<button class="btn ghost" data-act="cfday" data-date="${sel}">Læg CrossFit ind på dagen</button>`:(state.overrides||{})[sel]==='CF'?`<button class="restbtn" data-act="cfundo" data-date="${sel}">Fjern CrossFit · tilbage til ${esc(SESS[baseKey(sel)].name)}</button>`:''}
     ${se.kind!=='crossfit'?`<button class="btn primary" data-act="logday" data-date="${sel}">Log denne dag</button>`:''}
   </section>`;
@@ -1059,6 +1074,7 @@ const FW_A_MIN={45:8,60:10,75:12},FW_D_MIN={45:6,60:8,75:10};
 const FW_C_RANGE={45:{h:[8,12],l:[10,14]},60:{h:[10,15],l:[14,20]},75:{h:[15,20],l:[20,30]}};
 const FW_C_OK=[8,10,12,14,15,16,18,20,24,25,30];
 
+const fwW=()=>ui.fwDate?(state.planFw||{})[ui.fwDate]:state.fw;
 function fwEq(){return cfPrefs().udstyr||[]}
 function fwEqOk(eq){const U=fwEq();return eq==='Ingen udstyr'||!U.length||U.includes(eq)}
 function fwGenB(pat){
@@ -1079,24 +1095,24 @@ function fwGenA(b,old){const pat=fwL(b.lift)[2],car=FW_CARDIO.filter(c=>fwEqOk(c
 function fwGenC(b,T){const P=cfPrefs(),pats=FW_CLASH[fwL(b.lift)[2]],rg=FW_C_RANGE[T][b.heavy?'h':'l'];
   const mins=FW_C_OK.filter(m=>m>=rg[0]&&m<=rg[1]);let best=null,bs=1e9;
   for(let i=0;i<30;i++){const p=CF.byggePas({minutter:fwPick(mins),niveau:P.niveau,udstyr:P.udstyr||[],fokus:'',seed:Math.floor(Math.random()*4294967295)});if(!p)continue;
-    let sc=0;p.movs.forEach(m=>{if(m.pat.some(x=>pats.includes(x)))sc+=m.load>=2?4:m.load>=1?1:0});sc+=Math.random()*.5;
+    let sc=p.format.id==='doedved'?1.5:0;p.movs.forEach(m=>{if(m.pat.some(x=>pats.includes(x)))sc+=m.load>=2?4:m.load>=1?1:0});sc+=Math.random()*.5;
     if(sc<bs){bs=sc;best=p}}
   return best?cfSerialize(best):null}
 function fwGenD(b,T){const slots=FW_DSLOTS[fwL(b.lift)[2]].slice(0,T===45?2:3),used=new Set(),out=[];
   slots.forEach(gs=>{const c=FW_ACC.filter(a=>gs.includes(a[1])&&fwEqOk(a[2])&&!used.has(a[0])&&!(b.scheme==='superset'&&/pull-ups|Ring rows/.test(a[0])));if(c.length){const a=fwPick(c);used.add(a[0]);out.push(a[0])}});return out}
 function fwNew(T){T=T||fwT();const b=fwGenB();return {T,a:fwGenA(b),b,c:fwGenC(b,T),d:fwGenD(b,T)}}
 const fwT=()=>FW_TIMES.includes(state.fwT)?state.fwT:60;
-function fwC(){const w=state.fw;if(!w||!w.c)return null;const k=w.c.seed+'|'+w.c.ids.join(',');if(!ui.fwCache||ui.fwCache.k!==k)ui.fwCache={k,p:cfRebuild(w.c)};return ui.fwCache.p}
-function fwAltsB(){const l=fwL(state.fw.b.lift);return FW_LIFTS.filter(x=>x[2]===l[2]&&x[0]!==l[0]&&fwEqOk(x[3]))}
-function fwAltsD(i){const w=state.fw,a=FW_ACC.find(x=>x[0]===w.d[i]);return a?FW_ACC.filter(x=>x[1]===a[1]&&fwEqOk(x[2])&&!w.d.includes(x[0])):[]}
+function fwC(){const w=fwW();if(!w||!w.c)return null;const k=w.c.seed+'|'+w.c.ids.join(',');if(!ui.fwCache||ui.fwCache.k!==k)ui.fwCache={k,p:cfRebuild(w.c)};return ui.fwCache.p}
+function fwAltsB(){const l=fwL(fwW().b.lift);return FW_LIFTS.filter(x=>x[2]===l[2]&&x[0]!==l[0]&&fwEqOk(x[3]))}
+function fwAltsD(i){const w=fwW(),a=FW_ACC.find(x=>x[0]===w.d[i]);return a?FW_ACC.filter(x=>x[1]===a[1]&&fwEqOk(x[2])&&!w.d.includes(x[0])):[]}
 function fwAltsC(i){const p=fwC();return CF.alternativer(p.movs,i,null,p.opt).filter(m=>m.id!==p.movs[i].id&&!p.movs.some(x=>x.id===m.id))}
 function fwSecHead(k,title,min){return `<div class="fw-h"><span class="fw-l">${k.toUpperCase()}</span><h3>${title}</h3><span class="muted small">${min}</span><button class="icon-btn fw-roll" data-act="fwroll" data-s="${k}" aria-label="Bland ${title}">🎲</button></div>`}
 function fwAltList(kind,i,alts,label){return `<div class="alts">${alts.length?`<button data-act="fwpick" data-k="${kind}" data-i="${i}" data-v="${esc(label(fwPick(alts)))}" style="background:var(--pill);color:var(--pill-fg)">🎲 Tilfældig erstatning</button>`+alts.slice(0,12).map(a=>`<button data-act="fwpick" data-k="${kind}" data-i="${i}" data-v="${esc(label(a))}">${esc(kind==='c'?CF.navnVis(a):kind==='b'?a[1]:a[0])}</button>`).join(''):'<p class="hint">Ingen erstatninger med dit udstyr.</p>'}</div>`}
 function viewFW(){
-  const w=state.fw,T=fwT(),P=cfPrefs(),all=cfUdstyrAlle(),have=P.udstyr||all,sw=ui.fwSwap;
-  const back=`<div class="habit-head"><button class="icon-btn" data-act="fwback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">Opvarmning · styrke · WOD · bonus</p><h2 class="h2">Fuld træning</h2></div></div>`;
+  const w=fwW(),T=fwT(),P=cfPrefs(),all=cfUdstyrAlle(),have=P.udstyr||all,sw=ui.fwSwap;
+  const back=`<div class="habit-head"><button class="icon-btn" data-act="fwback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">${ui.fwDate?cap(niceDate(ui.fwDate))+' · fra din plan':'Opvarmning · styrke · WOD · bonus'}</p><h2 class="h2">Fuld træning</h2></div></div>`;
   const opts=`<section class="card">
-    <div class="field"><span>Tid i alt</span><div class="chips">${FW_TIMES.map(t=>`<button class="${T===t?'on':''}" data-act="fwtime" data-v="${t}">${t} min</button>`).join('')}</div></div>
+    ${ui.fwDate?`<p class="hint">Styrkedelen følger din plan. Bland og byt resten som du vil.</p>`:`<div class="field"><span>Tid i alt</span><div class="chips">${FW_TIMES.map(t=>`<button class="${T===t?'on':''}" data-act="fwtime" data-v="${t}">${t} min</button>`).join('')}</div></div>`}
     <div class="field"><span>Niveau</span><div class="chips">${['Begynder','Øvet','Avanceret'].map(n=>`<button class="${P.niveau===n?'on':''}" data-act="cfpref" data-k="niveau" data-v="${n}">${n}</button>`).join('')}</div></div>
     <button class="restbtn" data-act="fwudstyr">${ui.fwEq?'Skjul udstyr':`Udstyr · ${have.length} af ${all.length} valgt`}</button>
     ${ui.fwEq?`<div class="chips">${all.map(u=>`<button class="${have.includes(u)?'on':''}" data-act="cfeq" data-v="${esc(u)}">${esc(u)}</button>`).join('')}</div><p class="hint">Gælder også CrossFit-pas.</p>`:''}
@@ -1128,8 +1144,120 @@ function viewFW(){
     <label class="field"><span>Note (valgfri)</span><input id="fw-note" data-bind="fwLog.note" value="${esc(ui.fwLog.note)}" placeholder="Fx vægt i styrke"></label>
     <button class="btn accent" data-act="fwsave">Gem i log</button></section>`:`<button class="btn primary" data-act="fwlog">Log træningen</button>`;
   return back+opts+A+B+C+D+L}
-function fwLines(){const w=state.fw,l=fwL(w.b.lift),p=fwC();
+function fwPlanName(w){const k='F'+ui.fwDate.replace(/-/g,'');if(state.planSess&&state.planSess[k]){state.planSess[k].name='Fuld træning · '+fwL(w.b.lift)[1];applySess()}}
+function fwLines(){const w=fwW(),l=fwL(w.b.lift),p=fwC();
   return ['A) Opvarmning: '+[w.a.cardio,...w.a.gen,...w.a.spec].join(', '),'B) '+l[1]+': '+w.b.lines.join(' / '),'C) '+(p?p.overskrift+': '+p.linjer.join(' / '):''),...(w.d.length?['D) Bonus: '+w.d.join(', ')]:[])]}
+
+/* ---------- Planlæg forløb: 1-8 uger ----------
+   Wizard: training days → what each day is → weeks + goal → review → accept.
+   The plan is stored as one session key per date (state.blockDays). It wins over the weekly plan,
+   but a manual change on a single day (override or skip) still wins over the plan. */
+const PL_TYPES={styrke:['Styrke','styrke'],crossfit:['Fuld træning','crossfit'],kondition:['Kondition','interval'],restitution:['Aktiv restitution','mobilitet'],mobilitet:['Mobilitet','mobilitet'],hvile:['Hvile','hvile']};
+const PL_GOALS={styrke:['Blive stærkere','Tungere løft, færre gentagelser. Sidste uge er en test.'],kondition:['Bedre kondition','Flere og længere intervaller. Styrke holdes ved lige.'],allround:['Allround (CrossFit)','Varierede styrkeskemaer og WODs. God arbejdskapacitet.'],muskler:['Mere muskelmasse','Flere gentagelser og mere bonusarbejde.']};
+const PL_DOW=[1,2,3,4,5,6,0];
+const PL_SHORT={1:'Man',2:'Tir',3:'Ons',4:'Tor',5:'Fre',6:'Lør',0:'Søn'};
+const PL_LOWER=['squat','hinge','clean','snatch'];
+/* Type of a day in the current weekly plan, so the wizard starts from what the app already knows */
+function plTypeOfKey(k){if(!k||k==='R')return 'hvile';if(k==='S'||(SESS[k]&&SESS[k].kind==='styrke'))return 'styrke';if(k==='CF')return 'crossfit';
+  const s=SESS[k];if(!s)return 'hvile';if(s.kind==='interval'||s.kind==='zone2')return 'kondition';if(/^AR/.test(k))return 'restitution';if(s.kind==='mobilitet')return 'mobilitet';return 'hvile'}
+function plStart(){const t={};PL_DOW.forEach(d=>t[d]=plTypeOfKey(state.plan[d]));
+  const days=PL_DOW.filter(d=>['styrke','crossfit','kondition'].includes(t[d]));
+  return {step:1,days,types:t,weeks:4,goal:'styrke',deload:true,start:'next',preview:null}}
+/* Sets × reps @ % for week i (0-based) of the block. Deload weeks are lighter; a strength block ends with a test. */
+const PL_PROG={styrke:[[5,5,70],[5,4,75],[5,3,80],[4,3,85],[5,2,85],[4,2,88],[3,2,90]],
+  muskler:[[4,10,60],[4,8,67],[4,8,70],[4,6,75],[5,6,75],[4,5,78],[4,5,80]],
+  kondition:[[3,5,70],[3,5,72],[3,4,75],[3,4,77],[3,3,80],[3,3,82],[3,3,83]],
+  allround:[[5,5,70],[5,4,75],[5,3,80],[4,3,85],[5,2,85],[4,2,87],[3,2,90]]};
+function plWeekInfo(P){const out=[];let n=0;for(let w=0;w<P.weeks;w++){const dl=P.deload&&P.weeks>=4&&w%4===3&&w!==P.weeks-1;
+  const test=P.goal==='styrke'&&P.weeks>=3&&w===P.weeks-1;out.push({w,dl,test,i:dl||test?-1:n++})}return out}
+function plDose(P,wi){if(wi.dl)return {s:3,r:5,pct:60,rir:4,dl:true};if(wi.test)return {test:true,s:6,r:3,pct:0,rir:1};
+  const pr=PL_PROG[P.goal],v=pr[Math.min(wi.i,pr.length-1)];return {s:v[0],r:v[1],pct:v[2],rir:v[2]>=85?1:v[2]>=75?2:3}}
+/* Assign a main lift pattern to every lifting day of the week (same pattern each week, so the lift can progress).
+   Tries every order and keeps the one with fewest heavy lower-body days back to back. */
+function plPatterns(P){const lift=PL_DOW.filter(d=>['styrke','crossfit'].includes(P.types[d])),n=lift.length;if(!n)return {};
+  const base=['squat','hinge','press_v','press_h','clean','snatch','pull'];
+  const pool=n===1?['squat']:n===2?['squat','hinge']:n===3?['squat','press_v','hinge']:base.slice(0,n);
+  let best=null,bc=1e9;const perm=(a,k=0)=>{if(k===a.length){let c=0;
+      lift.forEach((d,i)=>{const p=a[i],t=P.types[d];if(t==='crossfit'&&p==='press_h')c+=1;if(t==='styrke'&&(p==='clean'||p==='snatch'))c+=1});
+      for(let i=0;i<7;i++){const d=PL_DOW[i],e=PL_DOW[(i+1)%7],ia=lift.indexOf(d),ib=lift.indexOf(e);if(ia>=0&&ib>=0&&PL_LOWER.includes(a[ia])&&PL_LOWER.includes(a[ib]))c+=3}
+      c+=Math.random()*.3;if(c<bc){bc=c;best=a.slice()}return}
+    for(let i=k;i<a.length;i++){[a[k],a[i]]=[a[i],a[k]];perm(a,k+1);[a[k],a[i]]=[a[i],a[k]]}};
+  perm(pool.slice());const out={};lift.forEach((d,i)=>out[d]=best[i]);return out}
+const PL_MAIN={squat:['Squat','Frontsquat','Goblet squat','Split squat'],hinge:['Dødløft','Trap bar-dødløft','Rumænsk dødløft','Kettlebell swing'],press_v:['Militærpres','Push press','Håndvægt-skulderpres','Pike push-ups'],
+  press_h:['Bænkpres','Håndvægt-bænkpres','Dips','Push-ups'],clean:['Power clean','Hang power clean','Kettlebell swing'],snatch:['Kettlebell snatch (pr. arm)','Power clean'],pull:['Pull-ups','Rotræk med stang','Ring-roning','Elastik-roning']};
+const PL_SECOND={squat:'press_v',hinge:'press_h'};
+const PL_ACC={squat:[['lunge'],['leg_iso','glute'],['core']],hinge:[['lunge'],['pull_h'],['core','carry']],press_v:[['pull_v'],['delt'],['arms']],press_h:[['pull_h'],['chest_iso','delt'],['arms']],
+  clean:[['pull_v'],['lunge'],['core']],snatch:[['pull_h'],['lunge'],['core']],pull:[['push_h'],['delt'],['arms']]};
+const plLibPick=(names)=>{for(const n of names){const x=strFor(n);if(x&&strOk(x))return x}return strFor(names[names.length-1])};
+function plAccFor(pat,n,used){const out=[];(PL_ACC[pat]||[]).slice(0,n).forEach(ps=>{const c=STR_LIB.filter(x=>ps.includes(x[3])&&strOk(x)&&!used.has(x[0]));if(c.length){const x=fwPick(c);used.add(x[0]);out.push(x)}});return out}
+/* One plan: date → {key, sess?, fw?} */
+function plBuild(P){
+  const mon=mondayOf(TODAY),start=P.start==='next'?ds(new Date(pd(mon).getFullYear(),pd(mon).getMonth(),pd(mon).getDate()+7)):mon;
+  const pats=plPatterns(P),info=plWeekInfo(P),lifting=PL_DOW.filter(d=>pats[d]),nLift=lifting.length;
+  // Fixed per weekday through the block: main lift, secondary lift and accessories
+  const fixed={};lifting.forEach(d=>{const pat=pats[d],used=new Set(),main=plLibPick(PL_MAIN[pat]);used.add(main[0]);
+    const sec=nLift<=2&&P.types[d]==='styrke'?(nLift===1?['press_h','pull']:[PL_SECOND[pat]]).filter(Boolean).map(p=>{const x=plLibPick(PL_MAIN[p]);used.add(x[0]);return x}):[];
+    const fwl=FW_LIFTS.filter(x=>x[2]===pat&&fwEqOk(x[3])),fwBar=fwl.filter(x=>x[4]);
+    fixed[d]={pat,main,sec,acc:plAccFor(pat,P.goal==='muskler'?3:2,used),fwLift:(fwBar[0]||fwl[0]||FW_LIFTS.find(x=>x[2]===pat))[0]}});
+  const days={},sess={},fws={},weeks=[];let arN=0,mobN=0;
+  info.forEach(wi=>{const wk={...wi,days:[]};const dose=plDose(P,wi);let cardioN=0;
+    PL_DOW.forEach((dow,j)=>{const date=ds(new Date(pd(start).getFullYear(),pd(start).getMonth(),pd(start).getDate()+wi.w*7+j));const t=P.types[dow];let key='R',label='Hvile';
+      if(t==='styrke'){const f=fixed[dow],k='P'+date.replace(/-/g,'');const bar=STR_BY.get(f.main[0].toLowerCase())[1]===EQ_ST;
+        const mainRow=dose.test?[f.main[0],6,3,1]:[f.main[0],dose.s,dose.r,dose.rir];
+        const accSets=wi.dl?2:P.goal==='muskler'?4:3;
+        const ex=[mainRow,...f.sec.map(x=>[x[0],wi.dl?2:3,8,2]),...f.acc.map(x=>[x[0],accSets,P.goal==='muskler'?Math.max(x[5],10):x[5],x[6]])];
+        const what=dose.test?'Test: byg op til en ny 3RM':`${dose.s} × ${dose.r}${bar&&dose.pct?` @ ${dose.pct} %`:` · ${dose.rir} i tanken`}`;
+        sess[k]={name:`${f.main[0]} · uge ${wi.w+1}`,kind:'styrke',dur:'ca. '+Math.round((ex.reduce((a,x)=>a+x[1],0))*2.2+8)+' min',ex,
+          note:(wi.dl?'Deload-uge: let og kort, så kroppen kan nå at blive stærkere. ':'')+`Hovedløft: ${what}.`+(bar&&dose.pct?' % af din 1RM. Kender du den ikke, så vælg en vægt du kunne løfte ca. 2 gange mere.':'')};
+        key=k;label=`${f.main[0]} ${what}`}
+      else if(t==='crossfit'){const f=fixed[dow],k='F'+date.replace(/-/g,''),l=fwL(f.fwLift),T=fwT();
+        let b;if(P.goal==='allround'&&!wi.dl&&!wi.test&&l[4]){const ids=['across','ladder','wave','531','emom','wave','ladder'],s=FW_SCHEMES.find(x=>x.id===ids[wi.i%ids.length]);b=s&&s.pats.includes(l[2])?{lift:l[0],scheme:s.id,lines:s.lines(l),note:s.note,min:s.min,heavy:s.heavy,pct:true}:null}
+        if(!b){const lines=dose.test?['Byg op til en ny 3RM','Ca. 6-8 sæt, hvile 2:30 mellem de tunge']:wi.dl?['3 × 5 @ 60 %','Let og hurtigt. Fokus på teknik']:[`${dose.s} sæt × ${dose.r}${l[4]?` @ ${dose.pct} %`:` · ${dose.rir} i tanken`}`,'Ét sæt hvert 2:00-2:30 min'];
+          b={lift:l[0],scheme:dose.test?'build':wi.dl?'across':'across',lines,note:wi.dl?'Deload-uge: let, så kroppen kan nå at blive stærkere.':'Samme løft hver uge, lidt tungere hver gang.',min:dose.test?18:wi.dl?10:14,heavy:dose.pct>=80||dose.test?1:0,pct:!!l[4]&&!dose.test}}
+        const w={T,b,a:fwGenA(b),c:fwGenC(b,wi.dl?45:T),d:fwGenD(b,wi.dl?45:T),plan:true};fws[date]=w;
+        const p=w.c?cfRebuild(w.c):null;sess[k]={name:`Fuld træning · ${l[1]}`,kind:'crossfit',fw:true,dur:`${T} min`};key=k;label=`${l[1]} + ${p?p.overskrift:'WOD'}`}
+      else if(t==='kondition'){cardioN++;const kond=P.goal==='kondition',i=Math.max(0,wi.i);
+        if(wi.dl)key=cardioN===1?'Z2':'R';
+        else{const slot=(cardioN-1)%(kond?3:2);key=slot===0?(kond&&i>=2?'I5':'I4'):slot===1?(i>=2?'Z2L':'Z2'):(i>=2?'I30B':'I30')}
+        label=key==='R'?'Hvile (deload)':SESS[key].name}
+      else if(t==='restitution'){key='AR'+(1+(arN++%5));label=SESS[key].name}
+      else if(t==='mobilitet'){key=(mobN++%2)?'BAL':'MOB';label=SESS[key].name}
+      if(date>=TODAY)days[date]=key;wk.days.push({date,dow,t,key,label,past:date<TODAY})});
+    weeks.push(wk)});
+  return {start,weeks,days,sess,fws,P:{...P,preview:null}}}
+function plAccept(){const pv=ui.pl.preview;if(!pv)return;
+  const keepPast=Object.fromEntries(Object.entries(state.blockDays||{}).filter(([d])=>d<TODAY));
+  const ov={...(state.overrides||{})},sk={...(state.skips||{})};Object.keys(pv.days).forEach(d=>{delete ov[d];delete sk[d]});
+  const ps={},pf={};Object.entries(state.planSess||{}).forEach(([k,v])=>{const d=k.slice(1);if(d<TODAY.replace(/-/g,''))ps[k]=v});
+  Object.entries(state.planFw||{}).forEach(([d,v])=>{if(d<TODAY)pf[d]=v});
+  state.blockDays={...keepPast,...pv.days};state.planSess={...ps,...pv.sess};state.planFw={...pf,...pv.fws};state.overrides=ov;state.skips=sk;
+  const end=pv.weeks[pv.weeks.length-1].days[6].date;state.block={start:pv.start,end,weeks:pv.P.weeks,goal:pv.P.goal,deloads:pv.weeks.filter(w=>w.dl).map(w=>w.w)};
+  applySess();save()}
+function plStop(){const bd={},ps={},pf={};Object.entries(state.blockDays||{}).forEach(([d,k])=>{if(d<TODAY)bd[d]=k});
+  Object.entries(state.planSess||{}).forEach(([k,v])=>{if(k.slice(1)<TODAY.replace(/-/g,''))ps[k]=v});Object.entries(state.planFw||{}).forEach(([d,v])=>{if(d<TODAY)pf[d]=v});
+  state.blockDays=bd;state.planSess=ps;state.planFw=pf;state.block=null;applySess();save()}
+const plActive=()=>state.block&&state.block.end>=TODAY?state.block:null;
+function plWeekNo(){const b=plActive();if(!b)return 0;return Math.floor((pd(mondayOf(TODAY))-pd(b.start))/(7*864e5))+1}
+function viewPlan(){const P=ui.pl;if(!P){ui.view='train';return viewTrain()}
+  const head=(t,sub)=>`<div class="habit-head"><button class="icon-btn" data-act="plback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">Planlæg forløb · trin ${P.step} af 4</p><h2 class="h2">${t}</h2></div></div>${sub?`<p class="note">${sub}</p>`:''}`;
+  if(P.step===1)return head('Hvilke dage vil du træne?','Valgt ud fra din nuværende uge. Tryk for at ændre.')+`<section class="card"><div class="pl-days">${PL_DOW.map(d=>`<button class="pl-day${P.days.includes(d)?' on':''}" data-act="plday" data-v="${d}">${PL_SHORT[d]}</button>`).join('')}</div>
+    <p class="hint">${P.days.length} træningsdage. 3-5 dage giver plads til både træning og restitution.</p></section><button class="btn accent" data-act="plnext"${P.days.length?'':' disabled'}>Videre</button>`;
+  if(P.step===2){const opts=d=>P.days.includes(d)?['styrke','crossfit','kondition']:['hvile','restitution','mobilitet'];
+    const nL=PL_DOW.filter(d=>['styrke','crossfit'].includes(P.types[d])&&P.days.includes(d)).length;
+    return head('Hvad skal hver dag være?','Appen fordeler muskelgrupperne, så du ikke rammer det samme to dage i træk.')+`<section class="card">${PL_DOW.map(d=>{const o=opts(d);if(!o.includes(P.types[d]))P.types[d]=o[0];
+      return `<div class="pl-row"><b>${PL_SHORT[d]}</b><div class="chips">${o.map(t=>`<button class="${P.types[d]===t?'on':''}" data-act="pltype" data-d="${d}" data-v="${t}">${PL_TYPES[t][0]}</button>`).join('')}</div></div>`}).join('')}
+      <p class="hint">${nL?`${nL} ${nL===1?'dag':'dage'} med tunge løft. `:''}Fuld træning = opvarmning, styrke, WOD og bonus.</p></section>
+      <div class="btns3" style="grid-template-columns:1fr 2fr"><button class="btn ghost" data-act="plprev">Tilbage</button><button class="btn accent" data-act="plnext">Videre</button></div>`}
+  if(P.step===3)return head('Hvor længe og mod hvad?')+`<section class="card"><div class="field"><span>Antal uger</span><div class="chips">${[1,2,3,4,5,6,7,8].map(n=>`<button class="${P.weeks===n?'on':''}" data-act="plweeks" data-v="${n}">${n}</button>`).join('')}</div></div>
+    <div class="field"><span>Mål</span><div class="fmt-grid">${Object.entries(PL_GOALS).map(([k,[l,d]])=>`<button class="fmt${P.goal===k?' on':''}" data-act="plgoal" data-v="${k}"><b>${l}</b><small>${d}</small></button>`).join('')}</div></div>
+    ${P.weeks>=4?`<div class="field"><span>Deload</span><div class="chips"><button class="${P.deload?'on':''}" data-act="pldl" data-v="1">Let uge hver 4. uge</button><button class="${P.deload?'':'on'}" data-act="pldl" data-v="0">Ingen</button></div></div>`:''}
+    <div class="field"><span>Start</span><div class="chips"><button class="${P.start==='this'?'on':''}" data-act="plst" data-v="this">Denne uge</button><button class="${P.start==='next'?'on':''}" data-act="plst" data-v="next">Næste uge</button></div></div></section>
+    <div class="btns3" style="grid-template-columns:1fr 2fr"><button class="btn ghost" data-act="plprev">Tilbage</button><button class="btn accent" data-act="plbuild">Byg planen</button></div>`;
+  const pv=P.preview;
+  return head('Din plan',`${pv.P.weeks} ${pv.P.weeks===1?'uge':'uger'} · ${PL_GOALS[pv.P.goal][0]}. Se den igennem, og acceptér når den ser rigtig ud.`)+
+    pv.weeks.map(w=>`<section class="card pl-week"><div class="row-between"><h3 class="sec">Uge ${w.w+1} · ${shortDate(w.days[0].date)}–${shortDate(w.days[6].date)}</h3>${w.dl?'<span class="tag-dl">Deload</span>':w.test?'<span class="tag-dl">Test</span>':''}</div>
+      ${w.days.map(x=>`<div class="pl-r${x.past?' past':''}"><span class="pl-d">${PL_SHORT[x.dow]}</span>${chip(PL_TYPES[x.t][1],PL_TYPES[x.t][0])}<span class="pl-l">${esc(x.past?'Allerede gået':x.label)}</span></div>`).join('')}</section>`).join('')+
+    `<button class="btn accent" data-act="placcept">Acceptér plan</button><div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn ghost" data-act="plprev">Ret valg</button><button class="btn ghost" data-act="plbuild">🎲 Byg igen</button></div>`}
 
 const setBtn=()=>'<button class="icon-btn" data-act="settings" aria-label="Plan og data"><svg viewBox="0 0 24 24"><path d="M4 7h9M18 7h2M4 17h4M13 17h7"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="10.5" cy="17" r="2.3"/></svg></button>';
 /* Before a fold-out opens or closes: pin the content where it is now, so only what is below moves */
@@ -1137,7 +1265,7 @@ function freezeTop(){const m=$('#main'),f=m.firstElementChild;if(f&&document.bod
 function viewTrain(){
   const cfToday=cfSaved(TODAY);
   return `<div class="tr-top"><button class="btn accent" data-act="senew">+ Opret pas</button><button class="icon-btn" data-act="settings" aria-label="Plan og data"><svg viewBox="0 0 24 24"><path d="M4 7h9M18 7h2M4 17h4M13 17h7"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="10.5" cy="17" r="2.3"/></svg></button></div>
-  <div class="tr-list">${trainGroups().map(([g,ks])=>{const kind=SESS[ks[0]].kind,open=trOpen().has(g),today=ks.includes(sessKey(TODAY));
+  <div class="tr-list"><button class="tr-head k-styrke pl-entry" data-act="plopen"><span class="bar"></span><span class="nm">Planlæg forløb</span><span class="cnt">${plActive()?(plWeekNo()<1?`Starter ${shortDate(plActive().start)}`:`Uge ${plWeekNo()} af ${plActive().weeks}`):'1-8 uger'}</span><span class="chev">›</span></button>${trainGroups().map(([g,ks])=>{const kind=SESS[ks[0]].kind,open=trOpen().has(g),today=ks.includes(sessKey(TODAY));
     return `<section class="tr-grp${open?' open':''}"><button class="tr-head k-${kind}" data-act="trgrp" data-g="${esc(g)}" aria-expanded="${open}"><span class="bar"></span><span class="nm">${g}</span>${today?'<span class="tag">I dag</span>':''}<span class="cnt">${ks.length} pas</span><span class="chev">›</span></button>${open?`<div class="tr-items">${ks.map(trainRow).join('')}</div>`:''}</section>`}).join('')}
   <button class="tr-head k-crossfit" data-act="fwopen"><span class="bar"></span><span class="nm">Fuld træning</span><span class="cnt">A · B · C · D</span><span class="chev">›</span></button>
   <button class="tr-head k-crossfit" data-act="cfopen" data-date="${TODAY}"><span class="bar"></span><span class="nm">CrossFit${cfToday?` · ${esc(cfToday.title||'')}`:''}</span>${sessKey(TODAY)==='CF'?'<span class="tag">I dag</span>':''}<span class="cnt">Byg pas</span><span class="chev">›</span></button></div>`;
@@ -1474,6 +1602,8 @@ function viewSettings(){
     <textarea id="exp" readonly rows="3" hidden aria-label="Backup-tekst"></textarea>
     <label class="field"><span>Gendan fra backup</span><textarea id="imp" rows="3" data-bind="impText" placeholder="Indsæt backup-tekst her">${esc(ui.impText)}</textarea></label>
     <button class="btn ${ui.pendingRestore?'danger armed':'ghost'}" data-act="restore">${ui.pendingRestore?'Tryk igen: erstat alle data':'Gendan'}</button></section>
+  ${plActive()?`<section class="card"><h3 class="sec">Dit forløb</h3><p class="note">${plActive().weeks} uger · ${esc(PL_GOALS[plActive().goal][0])} · ${shortDate(plActive().start)}–${shortDate(plActive().end)}. Du er i uge ${Math.max(1,plWeekNo())}.</p>
+    <button class="btn ghost" data-act="plopen">Planlæg nyt forløb</button><button class="restbtn" data-act="plstop">Stop forløbet fra i dag</button></section>`:''}
   <section class="card"><h3 class="sec">Ny i appen?</h3><button class="btn ghost" data-act="tourshow">Vis rundvisning</button></section>
   <section class="card"><h3 class="sec">Bag planen</h3>
     <ul class="facts">
@@ -1627,14 +1757,14 @@ function habitCss(){let el=document.getElementById('hab-css');if(!el){el=documen
   el.textContent=(state.customHabits||[]).map(c=>`.k-${c.id}{--k:${c.color}}`).join('')}
 /* ---------- Back gesture: every screen is a history entry, so swiping back steps back inside the app ---------- */
 let lastNav=null,navFromPop=false,replaceNext=false,navDepth=0;
-function navKey(){return [ui.view,ui.view==='cf'&&ui.cf?ui.cf.step:'',ui.view==='onboard'&&ui.ob?ui.ob.step:'',ui.view==='day'?ui.sel:'',ui.view==='sess'?ui.trKey:''].join('|')}
+function navKey(){return [ui.view,ui.view==='cf'&&ui.cf?ui.cf.step:'',ui.view==='onboard'&&ui.ob?ui.ob.step:'',ui.view==='day'?ui.sel:'',ui.view==='sess'?ui.trKey:'',ui.view==='plan'&&ui.pl?ui.pl.step:''].join('|')}
 function syncHistory(){const k=navKey();if(k===lastNav)return;
-  const st={k,view:ui.view,sel:ui.sel,trKey:ui.trKey,cfStep:ui.cf&&ui.cf.step,obStep:ui.ob&&ui.ob.step};
+  const st={k,view:ui.view,sel:ui.sel,trKey:ui.trKey,cfStep:ui.cf&&ui.cf.step,obStep:ui.ob&&ui.ob.step,plStep:ui.pl&&ui.pl.step};
   try{if(lastNav===null||navFromPop||replaceNext)history.replaceState(st,'');else{history.pushState(st,'');navDepth++}}catch(e){}
   lastNav=k;navFromPop=false;replaceNext=false}
 addEventListener('popstate',e=>{const st=e.state;if(!st||!st.view)return;navDepth=Math.max(0,navDepth-1);
   if(st.view==='onboard'&&state.onboarded){history.back();return}
-  navFromPop=true;ui.view=st.view;if(st.sel)ui.sel=st.sel;if(st.trKey)ui.trKey=st.trKey;if(ui.cf&&st.cfStep)ui.cf.step=st.cfStep;if(ui.ob&&st.obStep)ui.ob.step=st.obStep;
+  navFromPop=true;ui.view=st.view;if(st.sel)ui.sel=st.sel;if(st.trKey)ui.trKey=st.trKey;if(ui.cf&&st.cfStep)ui.cf.step=st.cfStep;if(ui.ob&&st.obStep)ui.ob.step=st.obStep;if(ui.pl&&st.plStep)ui.pl.step=st.plStep;if(st.view==='plan'&&!ui.pl)st.view=ui.view='train';
   if((st.view==='sessedit'||st.view==='expick')&&!ui.se)ui.view='train';if(st.view==='expick'&&!ui.pick)ui.view='sessedit';
   render(true);if(ui.view==='sessedit'&&ui.seScroll){scrollTo(0,ui.seScroll);ui.seScroll=0}});
 function render(top){if(typeof acHide==='function'&&!$('#ac').hidden)acHide();habitCss();
@@ -1642,10 +1772,10 @@ function render(top){if(typeof acHide==='function'&&!$('#ac').hidden)acHide();ha
   const v=ui.view;$('.tabs').hidden=v==='onboard';$('.top .icon-btn').hidden=v==='onboard';
   $('#main').innerHTML=(storageOK?'':'<p class="warn">Browseren tillader ikke at gemme her. Åbn siden i Chrome og tilføj den til startskærmen, ellers forsvinder dine logs.</p>')+
     (timer&&v!=='timer'?'<button class="btn primary" data-act="view" data-view="timer">Timeren kører · gå tilbage</button>':'')+
-    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():v==='train'?viewTrain():v==='day'?viewDay():v==='sess'?viewSess():v==='sessedit'?viewSessEdit():v==='expick'?viewPick():v==='fw'?viewFW():viewSettings());
+    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():v==='train'?viewTrain():v==='day'?viewDay():v==='sess'?viewSess():v==='sessedit'?viewSessEdit():v==='expick'?viewPick():v==='fw'?viewFW():v==='plan'?viewPlan():viewSettings());
   syncHistory();
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))||((v==='sess'||v==='sessedit'||v==='expick'||v==='fw')&&t.dataset.view==='train')));
-  document.body.classList.toggle('no-top',['today','train','log','prog','fw'].includes(v));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))||((v==='sess'||v==='sessedit'||v==='expick'||v==='fw'||v==='plan')&&t.dataset.view==='train')));
+  document.body.classList.toggle('no-top',['today','train','log','prog','fw','plan'].includes(v));
   {const m=$('#main');if(ui.freeze&&ui.freeze.v===v){m.style.justifyContent='flex-start';m.style.paddingTop=ui.freeze.px+'px'}else{ui.freeze=null;m.style.justifyContent='';m.style.paddingTop=''}}
   {const st=sessFor(TODAY);$('#hdr-hi').textContent=(state.name?'Hej '+state.name+'! · ':'')+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='onboard'?'Styrke & VO₂ log':v==='train'||v==='sess'?'Hvad har du lyst til i dag?':v==='sessedit'||v==='expick'?'Byg dit eget pas':v==='day'?cap(niceDate(ui.sel)):v==='cf'?'Byg dagens WOD':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
   if(top)window.scrollTo(0,0);
@@ -1724,7 +1854,7 @@ function doRestore(){
   let d;try{d=JSON.parse(ui.impText)}catch(e){d=null}
   if(!d||!Array.isArray(d.logs)){ui.pendingRestore=false;render();return toast('Teksten er ikke en gyldig backup')}
   if(!ui.pendingRestore){ui.pendingRestore=true;return render()}
-  state={sessEdits:d.sessEdits||{},customSess:d.customSess||{},plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:'custom',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,name:d.name,onboarded:true,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,strUdstyr:d.strUdstyr||null,strGen:d.strGen||null,fw:d.fw||null,fwT:d.fwT||60,shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);applySess();
+  state={sessEdits:d.sessEdits||{},customSess:d.customSess||{},plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:'custom',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,name:d.name,onboarded:true,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,strUdstyr:d.strUdstyr||null,strGen:d.strGen||null,fw:d.fw||null,fwT:d.fwT||60,block:d.block||null,blockDays:d.blockDays||{},planSess:d.planSess||{},planFw:d.planFw||{},shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);applySess();
 }
 function guessUnit(name){
   const prev=logsOf('test').filter(l=>l.name===name);if(prev.length)return prev[prev.length-1].unit;
@@ -1830,27 +1960,41 @@ document.addEventListener('click',e=>{
     case 'cfudstyr':ui.cf.showUdstyr=!ui.cf.showUdstyr;render();break;
     case 'cfeq':{const all=cfUdstyrAlle(),P=cfPrefs();let have=(P.udstyr||all).slice();const u=b.dataset.v;have=have.includes(u)?have.filter(x=>x!==u):have.concat(u);state.cfPrefs={...P,udstyr:have.length===all.length?null:have};save();render();break}
     case 'cfgen':{const wasPas=ui.cf.step==='pas';const p=cfGenerate();ui.cf.step='pas';render(!wasPas);if(!p)toast('Ingen gyldige pas med de valg');break}
-    case 'fwopen':ui.fwSwap=null;ui.fwLog=null;if(!state.fw){state.fw=fwNew();save()}ui.view='fw';render(true);break;
-    case 'fwback':ui.view='train';render(true);break;
-    case 'fwtime':{state.fwT=+b.dataset.v;const w=state.fw;if(w){w.T=state.fwT;w.c=fwGenC(w.b,w.T);w.d=fwGenD(w.b,w.T)}save();render();break}
-    case 'fwnew':state.fw=fwNew();ui.fwSwap=null;save();render();toast('Ny træning');break;
+    case 'plopen':ui.pl=plStart();ui.view='plan';render(true);break;
+    case 'plback':if(ui.pl&&ui.pl.step>1&&navDepth===0){ui.pl.step--;render(true)}else{ui.view='train';render(true)}break;
+    case 'plday':{const d=+b.dataset.v,P=ui.pl;P.days=P.days.includes(d)?P.days.filter(x=>x!==d):P.days.concat(d);render();break}
+    case 'plnext':{const P=ui.pl;if(P.step===1){PL_DOW.forEach(d=>{const tr=['styrke','crossfit','kondition'].includes(P.types[d]);if(P.days.includes(d)&&!tr)P.types[d]='styrke';if(!P.days.includes(d)&&tr)P.types[d]='hvile'})}P.step++;render(true);break}
+    case 'plprev':ui.pl.step=Math.max(1,ui.pl.step-(ui.pl.step===4?1:1));render(true);break;
+    case 'pltype':ui.pl.types[+b.dataset.d]=b.dataset.v;render();break;
+    case 'plweeks':ui.pl.weeks=+b.dataset.v;render();break;
+    case 'plgoal':ui.pl.goal=b.dataset.v;render();break;
+    case 'pldl':ui.pl.deload=b.dataset.v==='1';render();break;
+    case 'plst':ui.pl.start=b.dataset.v;render();break;
+    case 'plbuild':ui.pl.preview=plBuild(ui.pl);ui.pl.step=4;render(true);break;
+    case 'placcept':{const st=ui.pl.preview.start;plAccept();ui.pl=null;const d=pd(st);ui.calY=d.getFullYear();ui.calM=d.getMonth();ui.view='prog';render(true);toast('Planen ligger nu i din kalender');break}
+    case 'plstop':plStop();render();toast('Forløbet er stoppet');break;
+    case 'fwopen':ui.fwDate=null;ui.fwSwap=null;ui.fwLog=null;if(!state.fw){state.fw=fwNew();save()}ui.view='fw';render(true);break;
+    case 'fwday':ui.fwDate=b.dataset.date;ui.fwSwap=null;ui.fwLog=null;ui.view='fw';render(true);break;
+    case 'fwback':ui.view=ui.fwDate?'today':'train';render(true);break;
+    case 'fwtime':{state.fwT=+b.dataset.v;const w=fwW();if(w){w.T=state.fwT;w.c=fwGenC(w.b,w.T);w.d=fwGenD(w.b,w.T)}save();render();break}
+    case 'fwnew':{ui.fwSwap=null;if(ui.fwDate){const w=fwW();state.planFw={...(state.planFw||{}),[ui.fwDate]:w?{...w,a:fwGenA(w.b),c:fwGenC(w.b,w.T),d:fwGenD(w.b,w.T)}:fwNew()}}else state.fw=fwNew();save();render();toast('Ny træning');break}
     case 'fwudstyr':ui.fwEq=!ui.fwEq;render();break;
-    case 'fwroll':{const w=state.fw,k=b.dataset.s;ui.fwSwap=null;
-      if(k==='a')w.a=fwGenA(w.b);else if(k==='b'){w.b=fwGenB();w.a=fwGenA(w.b,w.a)}else if(k==='c'){const c=fwGenC(w.b,w.T);if(c)w.c=c;else toast('Ingen WOD passede til dit udstyr')}else if(k==='d')w.d=fwGenD(w.b,w.T);
+    case 'fwroll':{const w=fwW(),k=b.dataset.s;ui.fwSwap=null;
+      if(k==='a')w.a=fwGenA(w.b);else if(k==='b'){if(ui.fwDate){const al=fwAltsB();if(al.length){w.b={...w.b,lift:fwPick(al)[0]};fwPlanName(w)}}else{w.b=fwGenB();w.a=fwGenA(w.b,w.a)}}else if(k==='c'){const c=fwGenC(w.b,w.T);if(c)w.c=c;else toast('Ingen WOD passede til dit udstyr')}else if(k==='d')w.d=fwGenD(w.b,w.T);
       save();render();break}
-    case 'fwa':{const w=state.fw,k=b.dataset.k,i=+b.dataset.i;
+    case 'fwa':{const w=fwW(),k=b.dataset.k,i=+b.dataset.i;
       if(k==='cardio'){const c=FW_CARDIO.filter(x=>fwEqOk(x[1])&&x[0]!==w.a.cardio);if(c.length)w.a.cardio=fwPick(c)[0]}
       else{const pool=k==='gen'?FW_GEN:FW_SPEC[fwL(w.b.lift)[2]],used=[...w.a.gen,...w.a.spec],c=pool.filter(x=>!used.includes(x));if(c.length)w.a[k][i]=fwPick(c)}
       save();render();break}
     case 'fwswap':{const v=b.dataset.v;ui.fwSwap=ui.fwSwap===v?null:v;render();break}
-    case 'fwpick':{const w=state.fw,k=b.dataset.k,i=+b.dataset.i,v=b.dataset.v;ui.fwSwap=null;
-      if(k==='b'){const l=fwL(v);if(l)w.b=fwSchemeFor(l,w.b.scheme)}
+    case 'fwpick':{const w=fwW(),k=b.dataset.k,i=+b.dataset.i,v=b.dataset.v;ui.fwSwap=null;
+      if(k==='b'){const l=fwL(v);if(l){if(ui.fwDate){w.b={...w.b,lift:l[0]};fwPlanName(w)}else w.b=fwSchemeFor(l,w.b.scheme)}}
       else if(k==='c'){const p=fwC(),movs=p.movs.slice();movs[i]=cfMovById(v);const np=CF.formater(p.format,p.domaene,p.minutter,movs,p.opt,CF.prng(p.seed));np.seed=p.seed;np.opt=p.opt;w.c=cfSerialize(np)}
       else if(k==='d')w.d[i]=v;
       save();render();toast('Øvelse byttet');break}
     case 'fwlog':ui.fwLog={score:'',note:''};render();break;
-    case 'fwsave':{const w=state.fw,l=fwL(w.b.lift),r=ui.fwLog;
-      state.logs.push({id:Date.now().toString(36),date:TODAY,type:'crossfit',name:'Fuld træning · '+l[1],score:(r.score||'').trim(),note:(r.note||'').trim(),linjer:fwLines(),dur:w.T*60});
+    case 'fwsave':{const w=fwW(),l=fwL(w.b.lift),r=ui.fwLog;
+      state.logs.push({id:Date.now().toString(36),date:ui.fwDate||TODAY,type:'crossfit',name:'Fuld træning · '+l[1],score:(r.score||'').trim(),note:(r.note||'').trim(),linjer:fwLines(),dur:w.T*60});
       ui.fwLog=null;save();render();toast('Træning gemt');break}
     case 'cfswap':{const i=+b.dataset.i;ui.cf.swapI=ui.cf.swapI===i?null:i;render();break}
     case 'cfpick':cfSwap(+b.dataset.i,b.dataset.v);render();toast('Øvelse byttet');break;
