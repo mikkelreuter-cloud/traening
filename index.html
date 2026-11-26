@@ -448,6 +448,7 @@ textarea{resize:vertical}
 .tab.on{color:#fff}
 .tab-ind{position:absolute;top:7px;bottom:7px;left:0;width:0;border-radius:999px;background:linear-gradient(135deg,var(--accent),var(--accent-2));transition:transform .38s cubic-bezier(.2,.8,.2,1),width .38s cubic-bezier(.2,.8,.2,1),opacity .2s;opacity:0;pointer-events:none}
 html,body{overflow-x:clip}
+html{background:var(--bg)}
 @media (prefers-reduced-motion:reduce){.tab-ind{transition:none}}
 .tour{position:fixed;inset:0;z-index:20;background:rgb(0 0 0 / .55);display:flex;align-items:flex-end;justify-content:center}
 .tour[hidden]{display:none}
@@ -535,7 +536,7 @@ b,strong{font-weight:600}
 <div class="tour" id="tour" hidden></div>
 <div class="ac" id="ac" hidden></div>
 
-<script src="sw.js?v=18"></script>
+<script src="sw.js?v=19"></script>
 <script>
 const KEY='styrke-vo2-log.v1';
 const DAYS=['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'];
