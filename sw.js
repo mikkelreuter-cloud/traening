@@ -174,7 +174,7 @@ function slotInterval(fmtId, dom) {
   var d = dom || DOMAENER[1];
   switch (fmtId) {
     case "doedved":   return [1, 1];
-    case "emom":      return [1, 4];
+    case "emom":      return [1, 5];
     case "interval":  return [1, 3];
     case "tabata":    return [1, 4];
     case "stige_ned": return [2, 3];
@@ -342,6 +342,20 @@ function prng(seed) {
   var s = seed >>> 0;
   return function() { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
 }
+/* Minute-based formats: the time must divide evenly into the work. EMOM: minutes = movements x rounds. */
+function emomAntal(min, rng) {
+  var d = [2, 3, 4, 5].filter(function(n){ return min % n === 0 && min / n >= 2; });
+  if (!d.length) return 1;
+  var pref = d.filter(function(n){ return n <= 4; }), a = pref.length ? pref : d;
+  return a[Math.floor(rng() * a.length)];
+}
+function tidPasser(fmtId, min, antal) {
+  if (fmtId === "emom")     return antal ? min % antal === 0 : true;
+  if (fmtId === "exmom")    return min % 2 === 0 || min % 3 === 0;
+  if (fmtId === "tabata")   return (min + 1) % 5 === 0;
+  if (fmtId === "interval") return [3, 4, 5, 6].some(function(s){ return min % s === 0 && min / s >= 2; });
+  return true;
+}
 function byggePas(opt) {
   opt = opt || {};
   var fr\u00f8 = (opt.seed === undefined || opt.seed === null) ? Math.floor(Math.random() * 4294967295) : opt.seed;
@@ -349,7 +363,7 @@ function byggePas(opt) {
   var minutter = opt.minutter || 15;
   var dom = domaeneFor(minutter);
   var fmt = formatFor(opt.format) || (function(){
-    var mulige = FORMATER.filter(function(f){ return f.domaener.indexOf(dom.id) >= 0; });
+    var mulige = FORMATER.filter(function(f){ return f.domaener.indexOf(dom.id) >= 0 && tidPasser(f.id, minutter, opt.antal); });
     return mulige[Math.floor(rng() * mulige.length)];
   })();
   if (fmt.domaener.indexOf(dom.id) < 0) { minutter = Math.min(Math.max(minutter, domaeneFor(minutter).min), 20); dom = domaeneFor(minutter); }
@@ -357,14 +371,16 @@ function byggePas(opt) {
             fokus: opt.fokus || "", fmtId: fmt.id };
   var graense = slotInterval(fmt.id, dom);
   var oensket = opt.antal ? Math.min(graense[1], Math.max(graense[0], opt.antal)) : 0;
+  if (fmt.id === "tabata") oensket = 0;
+  if (fmt.id === "emom" && oensket && minutter % oensket) oensket = 0;
   for (var forsoeg = 0; forsoeg < 160; forsoeg++) {
     var slots = oensket;
     if (!slots) {   // intet \u00f8nske: formatets eget standardvalg
       if (fmt.id === "doedved") slots = 1;
-      else if (fmt.id === "emom") slots = 2 + (rng() < 0.35 ? 1 : 0);
+      else if (fmt.id === "emom") slots = emomAntal(minutter, rng);
       else if (fmt.id === "chipper") slots = (dom.id === "ultra" ? 6 : 5);
       else if (fmt.id === "stige_ned" || fmt.id === "stige_op") slots = 2;
-      else if (fmt.id === "tabata") slots = 3;
+      else if (fmt.id === "tabata") slots = Math.max(1, Math.min(4, Math.round((minutter + 1) / 5)));
       else if (fmt.id === "interval") slots = 2;
     }
     var frit = (fmt.id === "chipper" || fmt.id === "doedved" || fmt.id === "tabata" ||
@@ -376,6 +392,7 @@ function byggePas(opt) {
     } else if (frit) {
       movs = frieSlots(rng, slots, o, fmt);
       if (!movs || movs.length < Math.max(1, slots - 1)) continue;
+      if (fmt.id === "emom" && movs.length !== slots && forsoeg < 150) continue;
     } else {
       var kunReps = (fmt.id === "stige_op" || fmt.id === "stige_ned");
       var domBrug = dom;
@@ -461,7 +478,7 @@ function linjerFor(fmt, movs, reps, ekstra) {
     if (movs.length === 2) return ["Ulige minut: " + linje(movs[0], reps[0]),
                                    "Lige minut: " + linje(movs[1], reps[1])];
     var ud = movs.map(function(m, i){ return "Minut " + (i + 1) + ": " + linje(m, reps[i]); });
-    ud.push("Gentag rotationen i alle " + (ekstra.minutter || "") + " minutter");
+    ud.push("Gentag " + Math.floor((ekstra.minutter || 0) / movs.length) + " runder (" + (ekstra.minutter || "") + " minutter i alt)");
     return ud;
   }
   return movs.map(function(m, i){ return linje(m, reps[i]); });
@@ -499,21 +516,23 @@ function formater(fmt, dom, minutter, movs, o, rng) {
     strategi = "Reps stiger med \u00e9n pr. runde. Runde " + top + " er " + top + " reps af hver \u2014 hold hvilen kort tidligt, hvor det er billigt.";
   } else if (fmt.id === "emom") {
     reps = movs.map(function(m){ return p\u00e6ntTal(m.rate * 0.6, m.rate); });
-    overskrift = "EMOM " + minutter;
+    var nE = movs.length, rE = Math.floor(minutter / nE);
+    overskrift = "EMOM " + minutter + (nE >= 2 ? " \u00b7 " + rE + " runder" : "");
     strategi = "Arbejdet skal tage 35-45 sekunder, s\u00e5 du f\u00e5r reel hvile. Tager det over 50 sekunder, er reps sat for h\u00f8jt."
-      + (movs.length >= 3 ? " Rotationen er p\u00e5 " + movs.length + " minutter, s\u00e5 du m\u00f8der hver \u00f8velse " +
-          Math.floor(minutter / movs.length) + " gange." : "")
-      + (movs.length === 1 ? " Samme \u00f8velse hele vejen \u2014 godt til at bygge volumen uden at miste teknik." : "");
+      + (nE >= 2 ? " " + nE + " \u00f8velser \u00d7 " + rE + " runder = " + (nE * rE) + " minutter, s\u00e5 hver \u00f8velse f\u00e5r lige mange runder."
+                 : " Samme \u00f8velse hele vejen \u2014 godt til at bygge volumen uden at miste teknik.");
   } else if (fmt.id === "exmom") {
-    var hver = rng() < 0.5 ? 2 : 3;
+    var rH = rng(), hver = (minutter % 2 === 0 && minutter % 3 === 0) ? (rH < 0.5 ? 2 : 3) : (minutter % 3 === 0 ? 3 : 2);
     reps = s\u00e6tReps(movs, hver * 60 * 0.6);
     sorteret = sorterRaekkefoelge(movs, reps, fmt.id); movs = sorteret.movs; reps = sorteret.reps;
     overskrift = "E" + hver + "MOM " + minutter;
     runder = Math.floor(minutter / hver);
     strategi = runder + " runder. Arbejdet skal tage cirka " + Math.round(hver * 60 * 0.6) + " sekunder, s\u00e5 der er tid til at samle sig.";
   } else if (fmt.id === "interval") {
-    var saet = [4, 5, 6][Math.floor(rng() * 3)];
-    var hverMin = Math.max(3, Math.round(minutter / saet));
+    var rI = rng(), saetK = [3, 4, 5, 6].filter(function(x){ return minutter % x === 0 && minutter / x >= 3; });
+    if (!saetK.length) saetK = [3, 4, 5, 6].filter(function(x){ return minutter % x === 0 && minutter / x >= 2; });
+    var saet = saetK.length ? saetK[Math.floor(rI * saetK.length)] : [4, 5, 6][Math.floor(rI * 3)];
+    var hverMin = saetK.length ? minutter / saet : Math.max(3, Math.round(minutter / saet));
     reps = s\u00e6tReps(movs, hverMin * 60 * 0.55);
     sorteret = sorterRaekkefoelge(movs, reps, fmt.id); movs = sorteret.movs; reps = sorteret.reps;
     overskrift = "Hver " + hverMin + ". min x " + saet + " s\u00e6t";
@@ -599,7 +618,7 @@ window.CF={byggePas,alternativer,formater,prng,formatFor,domaeneFor,FORMATER,DOM
 })();
 }else{
 // Offline cache: the app shell is cached on install; pages are network-first so updates arrive, fonts are cache-first.
-const CACHE='traening-v12';
+const CACHE='traening-v13';
 const SHELL=['./','./index.html','./sw.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});

@@ -724,7 +724,11 @@ const CF_MIN=[5,8,10,12,15,20,25,30,40,50];
 const NIVEAUER=['Begynder','Øvet','Avanceret'];
 const cfUdstyrAlle=()=>[...new Set(CF.BEVAEGELSER.map(m=>m.udstyr))].filter(u=>u!=='Ingen udstyr').sort();
 const cfMovById=id=>CF.BEVAEGELSER.find(m=>m.id===id);
-function cfMinFor(fmtId){const f=CF.formatFor(fmtId);return f?CF_MIN.filter(m=>f.domaener.includes(CF.domaeneFor(m).id)):CF_MIN}
+/* Minute-based formats get their own time options, so the time divides evenly into rounds */
+const CF_MIN_FMT={emom:[10,12,14,15,16,18,20,21,24,25,28,30],exmom:[10,12,15,16,18,20,24,30],tabata:[4,9,14,19],interval:[12,15,16,18,20,24,30]};
+const CF_MIN_HINT={emom:'Tiden går op i antallet af øvelser, så hver øvelse får lige mange runder. Fx 16 min = 4 øvelser × 4 runder.',exmom:'Tiden går op i 2 eller 3 minutter, så sidste runde bliver hel.',interval:'Tiden deles i lige store sæt, fx 16 min = 4 sæt à 4 min.',tabata:'Hver øvelse er 4 min (8 × 20/10 sek) med 1 min pause imellem.'};
+function cfMinFor(fmtId){if(CF_MIN_FMT[fmtId]){const a=cfPrefs().antal;if(fmtId==='emom')return a?CF_MIN_FMT.emom.filter(m=>m%a===0&&m/a>=2):[10,12,15,16,18,20,24,30];return CF_MIN_FMT[fmtId]}
+  const f=CF.formatFor(fmtId);return f?CF_MIN.filter(m=>f.domaener.includes(CF.domaeneFor(m).id)):CF_MIN}
 function cfPrefs(){return {niveau:'Øvet',fokus:'',antal:0,udstyr:null,...(state.cfPrefs||{})}}
 function cfOpt(){const c=ui.cf,P=cfPrefs();return {format:c.fmt,minutter:c.min,niveau:P.niveau,fokus:P.fokus,antal:P.antal,udstyr:P.udstyr||[]}}
 function cfGenerate(seed){const o=cfOpt();o.seed=seed==null?Math.floor(Math.random()*4294967295):seed;const p=CF.byggePas(o);ui.cf.pas=p;ui.cf.swapI=null;return p}
@@ -751,11 +755,11 @@ function viewCF(){
     <section class="card"><h3 class="sec">1 · Vælg format</h3><div class="fmt-grid">
       ${CF.FORMATER.map(f=>`<button class="fmt${c.fmt===f.id?' on':''}" data-act="cffmt" data-v="${f.id}"><b>${esc(f.id==='rft'?'For time':f.navn)}</b><small>${esc(CF_DESC[f.id]||'')}</small></button>`).join('')}
       <button class="fmt any${c.fmt===null?' on':''}" data-act="cffmt" data-v=""><b>Overrask mig</b><small>Reglerne vælger et format, der passer til tiden</small></button></div></section>
-    <section class="card"><h3 class="sec">2 · Hvor lang tid?</h3><div class="chips">${mins.map(m=>`<button class="${c.min===m?'on':''}" data-act="cfmin" data-v="${m}">${m} min</button>`).join('')}</div></section>
+    <section class="card"><h3 class="sec">2 · Hvor lang tid?</h3><div class="chips">${mins.map(m=>`<button class="${c.min===m?'on':''}" data-act="cfmin" data-v="${m}">${m} min</button>`).join('')}</div>${c.fmt&&CF_MIN_HINT[c.fmt]?`<p class="hint">${CF_MIN_HINT[c.fmt]}</p>`:''}</section>
     <section class="card"><h3 class="sec">3 · Tilpas</h3>
       <div class="field"><span>Niveau</span><div class="chips">${NIVEAUER.map(n=>`<button class="${P.niveau===n?'on':''}" data-act="cfpref" data-k="niveau" data-v="${n}">${n}</button>`).join('')}</div></div>
       <div class="field"><span>Fokus</span><div class="chips">${[['','Alsidigt'],['Styrke','Styrke'],['Udholdenhed','Udholdenhed'],['Gymnastik','Gymnastik']].map(([v,l])=>`<button class="${P.fokus===v?'on':''}" data-act="cfpref" data-k="fokus" data-v="${v}">${l}</button>`).join('')}</div></div>
-      <div class="field"><span>Antal øvelser</span><div class="chips">${[0,1,2,3,4,5,6].filter(n=>n===0||(n>=iv[0]&&n<=iv[1])).map(n=>`<button class="${P.antal===n?'on':''}" data-act="cfpref" data-k="antal" data-v="${n}">${n?n:'Auto'}</button>`).join('')}</div></div>
+      ${c.fmt==='tabata'?`<div class="field"><span>Antal øvelser</span><p class="hint">Følger tiden: ${Math.round((c.min+1)/5)} ${Math.round((c.min+1)/5)===1?'øvelse':'øvelser'} på ${c.min} min.</p></div>`:''}<div class="field"${c.fmt==='tabata'?' hidden':''}><span>Antal øvelser</span><div class="chips">${[0,1,2,3,4,5,6].filter(n=>n===0||(n>=iv[0]&&n<=iv[1])).map(n=>`<button class="${P.antal===n?'on':''}" data-act="cfpref" data-k="antal" data-v="${n}">${n?n:'Auto'}</button>`).join('')}</div></div>
       <button class="restbtn" data-act="cfudstyr">${c.showUdstyr?'Skjul udstyr':`Udstyr · ${have.length} af ${all.length} valgt`}</button>
       ${c.showUdstyr?`<div class="chips">${all.map(u=>`<button class="${have.includes(u)?'on':''}" data-act="cfeq" data-v="${esc(u)}">${esc(u)}</button>`).join('')}</div><p class="hint">Øvelser uden udstyr er altid med.</p>`:''}
     </section>
