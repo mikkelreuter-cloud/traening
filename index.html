@@ -727,10 +727,16 @@ const cfMovById=id=>CF.BEVAEGELSER.find(m=>m.id===id);
 /* Minute-based formats get their own time options, so the time divides evenly into rounds */
 const CF_MIN_FMT={emom:[10,12,14,15,16,18,20,21,24,25,28,30],exmom:[10,12,15,16,18,20,24,30],tabata:[4,9,14,19],interval:[12,15,16,18,20,24,30]};
 const CF_MIN_HINT={emom:'Tiden går op i rotationen, så hver øvelse får lige mange runder. Fx 16 min = 4 øvelser × 4 runder. Nogle pas får et hvileminut i rotationen, fx 3 øvelser + 1 hvile × 4 runder. Så er arbejdsminutterne hårdere.',exmom:'Tiden går op i 2 eller 3 minutter, så sidste runde bliver hel.',interval:'Tiden deles i lige store sæt, fx 16 min = 4 sæt à 4 min.',tabata:'Hver øvelse er 4 min (8 × 20/10 sek) med 1 min pause imellem.'};
-function cfMinFor(fmtId){if(CF_MIN_FMT[fmtId]){const a=cfPrefs().antal;if(fmtId==='emom')return a?CF_MIN_FMT.emom.filter(m=>(m%a===0&&m/a>=2)||(a<5&&m%(a+1)===0&&m/(a+1)>=3)):[10,12,15,16,18,20,24,30];return CF_MIN_FMT[fmtId]}
+/* The hint under the time spells out how the chosen minutes split into rounds */
+function emomHint(min,a,h){if(a&&h==='ja')return `${min} min = ${a} ${a>1?'øvelser':'øvelse'} + 1 hvileminut × ${min/(a+1)} runder. Arbejdsminutterne er hårdere.`;
+  if(a)return `${min} min = ${a} ${a>1?'øvelser':'øvelse'} × ${min/a} runder.`;
+  if(h==='ja')return 'Hver runde slutter med et hvileminut, så arbejdsminutterne er hårdere. Appen vælger et antal øvelser, der går op i tiden.';
+  if(h==='nej')return 'Ingen hvileminutter. Appen vælger et antal øvelser, der går op i tiden.';
+  return 'Appen vælger et antal øvelser, der går op i tiden. Nogle gange slutter runden med et hvileminut, og så er arbejdsminutterne hårdere.'}
+function cfMinFor(fmtId){if(CF_MIN_FMT[fmtId]){const a=cfPrefs().antal;if(fmtId==='emom'){const h=cfPrefs().hvile,L=CF_MIN_FMT.emom;if(h==='ja')return a?L.filter(m=>m%(a+1)===0&&m/(a+1)>=3):L.filter(m=>[3,4,5].some(r=>m%r===0&&m/r>=3));return a?L.filter(m=>m%a===0&&m/a>=2):[10,12,15,16,18,20,24,30]}return CF_MIN_FMT[fmtId]}
   const f=CF.formatFor(fmtId);return f?CF_MIN.filter(m=>f.domaener.includes(CF.domaeneFor(m).id)):CF_MIN}
-function cfPrefs(){return {niveau:'Øvet',fokus:'',antal:0,udstyr:null,...(state.cfPrefs||{})}}
-function cfOpt(){const c=ui.cf,P=cfPrefs();return {format:c.fmt,minutter:c.min,niveau:P.niveau,fokus:P.fokus,antal:P.antal,udstyr:P.udstyr||[]}}
+function cfPrefs(){return {niveau:'Øvet',fokus:'',antal:0,hvile:'auto',udstyr:null,...(state.cfPrefs||{})}}
+function cfOpt(){const c=ui.cf,P=cfPrefs();return {format:c.fmt,minutter:c.min,niveau:P.niveau,fokus:P.fokus,antal:P.antal,hvile:P.hvile,udstyr:P.udstyr||[]}}
 function cfGenerate(seed){const o=cfOpt();o.seed=seed==null?Math.floor(Math.random()*4294967295):seed;const p=CF.byggePas(o);ui.cf.pas=p;ui.cf.swapI=null;return p}
 /* Rebuild a saved workout exactly: same movements, same seed → same reps, rounds and order */
 function cfRebuild(sv){if(!sv)return null;const fmt=CF.formatFor(sv.fmtId),movs=sv.ids.map(cfMovById).filter(Boolean);if(!fmt||!movs.length)return null;
@@ -755,11 +761,11 @@ function viewCF(){
     <section class="card"><h3 class="sec">1 · Vælg format</h3><div class="fmt-grid">
       ${CF.FORMATER.map(f=>`<button class="fmt${c.fmt===f.id?' on':''}" data-act="cffmt" data-v="${f.id}"><b>${esc(f.id==='rft'?'For time':f.navn)}</b><small>${esc(CF_DESC[f.id]||'')}</small></button>`).join('')}
       <button class="fmt any${c.fmt===null?' on':''}" data-act="cffmt" data-v=""><b>Overrask mig</b><small>Reglerne vælger et format, der passer til tiden</small></button></div></section>
-    <section class="card"><h3 class="sec">2 · Hvor lang tid?</h3><div class="chips">${mins.map(m=>`<button class="${c.min===m?'on':''}" data-act="cfmin" data-v="${m}">${m} min</button>`).join('')}</div>${c.fmt&&CF_MIN_HINT[c.fmt]?`<p class="hint">${CF_MIN_HINT[c.fmt]}</p>`:''}</section>
+    <section class="card"><h3 class="sec">2 · Hvor lang tid?</h3><div class="chips">${mins.map(m=>`<button class="${c.min===m?'on':''}" data-act="cfmin" data-v="${m}">${m} min</button>`).join('')}</div>${c.fmt==='emom'?`<p class="hint">${emomHint(c.min,P.antal,P.hvile)}</p>`:c.fmt&&CF_MIN_HINT[c.fmt]?`<p class="hint">${CF_MIN_HINT[c.fmt]}</p>`:''}</section>
     <section class="card"><h3 class="sec">3 · Tilpas</h3>
       <div class="field"><span>Niveau</span><div class="chips">${NIVEAUER.map(n=>`<button class="${P.niveau===n?'on':''}" data-act="cfpref" data-k="niveau" data-v="${n}">${n}</button>`).join('')}</div></div>
       <div class="field"><span>Fokus</span><div class="chips">${[['','Alsidigt'],['Styrke','Styrke'],['Udholdenhed','Udholdenhed'],['Gymnastik','Gymnastik']].map(([v,l])=>`<button class="${P.fokus===v?'on':''}" data-act="cfpref" data-k="fokus" data-v="${v}">${l}</button>`).join('')}</div></div>
-      ${c.fmt==='tabata'?`<div class="field"><span>Antal øvelser</span><p class="hint">Følger tiden: ${Math.round((c.min+1)/5)} ${Math.round((c.min+1)/5)===1?'øvelse':'øvelser'} på ${c.min} min.</p></div>`:''}<div class="field"${c.fmt==='tabata'?' hidden':''}><span>Antal øvelser</span><div class="chips">${[0,1,2,3,4,5,6].filter(n=>n===0||(n>=iv[0]&&n<=iv[1])).map(n=>`<button class="${P.antal===n?'on':''}" data-act="cfpref" data-k="antal" data-v="${n}">${n?n:'Auto'}</button>`).join('')}</div></div>
+      ${c.fmt==='tabata'?`<div class="field"><span>Antal øvelser</span><p class="hint">Følger tiden: ${Math.round((c.min+1)/5)} ${Math.round((c.min+1)/5)===1?'øvelse':'øvelser'} på ${c.min} min.</p></div>`:''}${c.fmt==='emom'?`<div class="field"><span>Hvileminut</span><div class="chips">${[['auto',P.antal?'Nej':'Tilfældigt'],['nej','Nej'],['ja','Ja']].filter(([v])=>!(P.antal&&v==='nej')).map(([v,l])=>`<button class="${(P.hvile||'auto')===v||(P.antal&&v==='auto'&&P.hvile==='nej')?'on':''}" data-act="cfpref" data-k="hvile" data-v="${v}">${l}</button>`).join('')}</div></div>`:''}<div class="field"${c.fmt==='tabata'?' hidden':''}><span>Antal øvelser</span><div class="chips">${[0,1,2,3,4,5,6].filter(n=>n===0||(n>=iv[0]&&n<=iv[1]))&&[0,1,2,3,4,5,6].filter(n=>n===0||(n>=iv[0]&&n<=iv[1])).filter(n=>!(c.fmt==='emom'&&P.hvile==='ja'&&n===5)).map(n=>`<button class="${P.antal===n?'on':''}" data-act="cfpref" data-k="antal" data-v="${n}">${n?n:'Auto'}</button>`).join('')}</div></div>
       <button class="restbtn" data-act="cfudstyr">${c.showUdstyr?'Skjul udstyr':`Udstyr · ${have.length} af ${all.length} valgt`}</button>
       ${c.showUdstyr?`<div class="chips">${all.map(u=>`<button class="${have.includes(u)?'on':''}" data-act="cfeq" data-v="${esc(u)}">${esc(u)}</button>`).join('')}</div><p class="hint">Øvelser uden udstyr er altid med.</p>`:''}
     </section>
@@ -1605,7 +1611,7 @@ document.addEventListener('click',e=>{
     case 'cfmenu':ui.cf.step='menu';render(true);break;
     case 'cffmt':ui.cf.fmt=b.dataset.v||null;render();break;
     case 'cfmin':ui.cf.min=+b.dataset.v;render();break;
-    case 'cfpref':{const k=b.dataset.k,v=k==='antal'?+b.dataset.v:b.dataset.v;state.cfPrefs={...cfPrefs(),[k]:v};save();render();break}
+    case 'cfpref':{const k=b.dataset.k,v=k==='antal'?+b.dataset.v:b.dataset.v;state.cfPrefs={...cfPrefs(),[k]:v};if(k==='hvile'&&v==='ja'&&state.cfPrefs.antal===5)state.cfPrefs.antal=4;save();render();break}
     case 'cfudstyr':ui.cf.showUdstyr=!ui.cf.showUdstyr;render();break;
     case 'cfeq':{const all=cfUdstyrAlle(),P=cfPrefs();let have=(P.udstyr||all).slice();const u=b.dataset.v;have=have.includes(u)?have.filter(x=>x!==u):have.concat(u);state.cfPrefs={...P,udstyr:have.length===all.length?null:have};save();render();break}
     case 'cfgen':{const wasPas=ui.cf.step==='pas';const p=cfGenerate();ui.cf.step='pas';render(!wasPas);if(!p)toast('Ingen gyldige pas med de valg');break}

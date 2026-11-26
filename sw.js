@@ -351,19 +351,22 @@ function emomAntal(min, rng) {
 }
 /* Pick movements per minute and whether the rotation ends with a rest minute.
    Rest variant: n work minutes + 1 rest minute, so (n + 1) must divide the time, and the work minutes are harder. */
-function emomPlan(min, antal, rng) {
+function emomPlan(min, antal, rng, valg) {
   var uden = [1, 2, 3, 4, 5].filter(function(n){ return min % n === 0 && min / n >= 2 && (!antal || n === antal); });
   var med  = [1, 2, 3, 4].filter(function(n){ return min % (n + 1) === 0 && min / (n + 1) >= 3 && (!antal || n === antal); });
   var udenPref = uden.filter(function(n){ return n >= 2 && n <= 4; });
   if (!antal && udenPref.length) uden = udenPref;
   var medPref = med.filter(function(n){ return n >= 2; });
   if (!antal && medPref.length) med = medPref;
+  // "nej" = never a rest minute; a fixed number of movements without "ja" also means no rest, so the time divides by that number
+  if (valg === "nej" || (antal && valg !== "ja")) med = [];
+  if (valg === "ja" && med.length) uden = [];
   var hvile = med.length && (!uden.length || rng() < 0.35);
   var liste = hvile ? med : (uden.length ? uden : [1]);
   return { n: liste[Math.floor(rng() * liste.length)], hvile: !!hvile };
 }
-function tidPasser(fmtId, min, antal) {
-  if (fmtId === "emom")     return antal ? (min % antal === 0 || (min % (antal + 1) === 0 && min / (antal + 1) >= 3)) : true;
+function tidPasser(fmtId, min, antal, valg) {
+  if (fmtId === "emom")     return antal ? (valg === "ja" ? min % (antal + 1) === 0 && min / (antal + 1) >= 3 : min % antal === 0) : true;
   if (fmtId === "exmom")    return min % 2 === 0 || min % 3 === 0;
   if (fmtId === "tabata")   return (min + 1) % 5 === 0;
   if (fmtId === "interval") return [3, 4, 5, 6].some(function(s){ return min % s === 0 && min / s >= 2; });
@@ -376,7 +379,7 @@ function byggePas(opt) {
   var minutter = opt.minutter || 15;
   var dom = domaeneFor(minutter);
   var fmt = formatFor(opt.format) || (function(){
-    var mulige = FORMATER.filter(function(f){ return f.domaener.indexOf(dom.id) >= 0 && tidPasser(f.id, minutter, opt.antal); });
+    var mulige = FORMATER.filter(function(f){ return f.domaener.indexOf(dom.id) >= 0 && tidPasser(f.id, minutter, opt.antal, opt.hvile); });
     return mulige[Math.floor(rng() * mulige.length)];
   })();
   if (fmt.domaener.indexOf(dom.id) < 0) { minutter = Math.min(Math.max(minutter, domaeneFor(minutter).min), 20); dom = domaeneFor(minutter); }
@@ -396,7 +399,7 @@ function byggePas(opt) {
       else if (fmt.id === "tabata") slots = Math.max(1, Math.min(4, Math.round((minutter + 1) / 5)));
       else if (fmt.id === "interval") slots = 2;
     }
-    if (fmt.id === "emom") { var pl = emomPlan(minutter, oensket, rng); slots = pl.n; o.emomHvile = pl.hvile; }
+    if (fmt.id === "emom") { var pl = emomPlan(minutter, oensket, rng, opt.hvile); slots = pl.n; o.emomHvile = pl.hvile; }
     var frit = (fmt.id === "chipper" || fmt.id === "doedved" || fmt.id === "tabata" ||
                 fmt.id === "emom" || fmt.id === "interval" || (slots && slots > 6));
     var movs;
@@ -641,7 +644,7 @@ window.CF={byggePas,alternativer,formater,prng,formatFor,domaeneFor,FORMATER,DOM
 })();
 }else{
 // Offline cache: the app shell is cached on install; pages are network-first so updates arrive, fonts are cache-first.
-const CACHE='traening-v14';
+const CACHE='traening-v15';
 const SHELL=['./','./index.html','./sw.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
