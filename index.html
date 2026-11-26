@@ -443,7 +443,12 @@ textarea{resize:vertical}
 .tabs .in{pointer-events:auto;max-width:380px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);background:var(--nav);border-radius:999px;padding:7px;box-shadow:0 12px 30px rgb(0 0 0 / .28)}
 .tab{appearance:none;border:0;background:transparent;color:var(--nav-fg);font:500 11px/1 var(--font);height:56px;border-radius:999px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer}
 .tab svg,.icon-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.tab.on{color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent-2))}
+.tabs .in{position:relative}
+.tab{position:relative;z-index:1;transition:color .25s}
+.tab.on{color:#fff}
+.tab-ind{position:absolute;top:7px;bottom:7px;left:0;width:0;border-radius:999px;background:linear-gradient(135deg,var(--accent),var(--accent-2));transition:transform .38s cubic-bezier(.2,.8,.2,1),width .38s cubic-bezier(.2,.8,.2,1),opacity .2s;opacity:0;pointer-events:none}
+html,body{overflow-x:clip}
+@media (prefers-reduced-motion:reduce){.tab-ind{transition:none}}
 .tour{position:fixed;inset:0;z-index:20;background:rgb(0 0 0 / .55);display:flex;align-items:flex-end;justify-content:center}
 .tour[hidden]{display:none}
 .tour-box{background:var(--surface);color:var(--fg);width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:18px 0 calc(18px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 40px rgb(0 0 0 / .3)}
@@ -518,7 +523,7 @@ b,strong{font-weight:600}
 </div>
 
 <nav class="tabs" aria-label="Sider">
-  <div class="in">
+  <div class="in"><span class="tab-ind" aria-hidden="true"></span>
     <button class="tab" data-act="view" data-view="today"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>I dag</button>
     <button class="tab" data-act="view" data-view="train"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Træn</button>
     <button class="tab" data-act="view" data-view="month"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Planen</button>
@@ -1364,6 +1369,28 @@ function viewPlan(){const P=ui.pl;if(!P){ui.view='month';return viewMonth()}
       ${w.days.map(x=>{const op=P.open===x.date;return `<button class="pl-r${x.past?' past':''}${op?' open':''}" data-act="plopenday" data-date="${x.date}"${x.past?' disabled':''}><span class="pl-d">${PL_SHORT[x.dow]}</span>${chip(PL_TYPES[x.t][1],PL_TYPES[x.t][0])}<span class="pl-l">${esc(x.past?'Allerede gået':x.label)}</span>${x.past||x.key==='R'?'':'<span class="chev">›</span>'}</button>${op?plDetail(x,pv):''}`}).join('')}</section>`).join('')+
     `<button class="btn accent" data-act="placcept">Acceptér plan</button><div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn ghost" data-act="plprev">Ret valg</button><button class="btn ghost" data-act="plbuild">🎲 Byg igen</button></div>`}
 
+/* ---------- Tab changes: the page slides sideways and the coloured pill slides to the new tab ---------- */
+const TAB_ORDER=['today','train','month','prog'];
+let tabIndReady=false;
+function moveTabInd(){const ind=document.querySelector('.tab-ind'),on=document.querySelector('.tab.on');if(!ind)return;
+  if(!on){ind.style.opacity='0';return}
+  if(!tabIndReady){ind.style.transition='none'}
+  ind.style.width=on.offsetWidth+'px';ind.style.transform=`translateX(${on.offsetLeft}px)`;ind.style.opacity='1';
+  if(!tabIndReady){ind.offsetWidth;ind.style.transition='';tabIndReady=true}}
+addEventListener('resize',()=>{tabIndReady=false;moveTabInd()});
+function tabOf(v){const t=document.querySelector('.tab.on');return t?t.dataset.view:v}
+function slideTo(to){const from=tabOf(ui.view),a=TAB_ORDER.indexOf(from),b=TAB_ORDER.indexOf(to);
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(a<0||b<0||a===b||reduce||!document.body.animate){ui.view=to;render(true);return}
+  const dir=b>a?1:-1,m=$('#main'),r=m.getBoundingClientRect(),ghost=m.cloneNode(true);
+  ghost.removeAttribute('id');ghost.className=m.className;ghost.setAttribute('aria-hidden','true');
+  const cs=getComputedStyle(m);Object.assign(ghost.style,{position:'fixed',top:r.top+'px',left:r.left+'px',width:r.width+'px',height:r.height+'px',margin:'0',display:cs.display,flexDirection:cs.flexDirection,gap:cs.gap,justifyContent:cs.justifyContent,paddingTop:cs.paddingTop,pointerEvents:'none',zIndex:'0'});
+  document.body.appendChild(ghost);
+  ui.view=to;render(true);
+  const ease='cubic-bezier(.2,.8,.2,1)',d=340;
+  ghost.animate([{transform:'translateX(0)',opacity:1},{transform:`translateX(${-dir*45}%)`,opacity:0}],{duration:d,easing:ease}).onfinish=()=>ghost.remove();
+  const nm=$('#main');nm.style.position='relative';nm.style.zIndex='1';
+  nm.animate([{transform:`translateX(${dir*45}%)`,opacity:0},{transform:'translateX(0)',opacity:1}],{duration:d,easing:ease}).onfinish=()=>{nm.style.position='';nm.style.zIndex=''}}
 const setBtn=()=>'<button class="icon-btn" data-act="settings" aria-label="Plan og data"><svg viewBox="0 0 24 24"><path d="M4 7h9M18 7h2M4 17h4M13 17h7"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="10.5" cy="17" r="2.3"/></svg></button>';
 /* Before a fold-out opens or closes: pin the content where it is now, so only what is below moves */
 function freezeTop(){const m=$('#main'),f=m.firstElementChild;if(f&&document.body.classList.contains('no-top'))ui.freeze={v:ui.view,px:Math.max(0,f.getBoundingClientRect().top-m.getBoundingClientRect().top)}}
@@ -1888,6 +1915,7 @@ function render(top){if(typeof acHide==='function'&&!$('#ac').hidden)acHide();ha
     (timer&&v!=='timer'?'<button class="btn primary" data-act="view" data-view="timer">Timeren kører · gå tilbage</button>':'')+
     (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():v==='train'?viewTrain():v==='day'?viewDay():v==='sess'?viewSess():v==='sessedit'?viewSessEdit():v==='expick'?viewPick():v==='fw'?viewFW():v==='month'?viewMonth():v==='plan'?viewPlan():viewSettings());
   syncHistory();
+  requestAnimationFrame(moveTabInd);
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||(v==='log'&&t.dataset.view===(ui.logFrom==='prog'?'prog':ui.logFrom==='train'?'train':'today'))||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))||(((v==='sess'||v==='sessedit'||v==='expick'||(v==='fw'&&!ui.fwDate))&&t.dataset.view==='train')||((v==='plan')&&t.dataset.view==='month'))));
   document.body.classList.toggle('no-top',['today','train','log','prog','fw','plan','month','settings','sess','sessedit','expick','day','cf'].includes(v));
   {const m=$('#main');if(ui.freeze&&ui.freeze.v===v){m.style.justifyContent='flex-start';m.style.paddingTop=ui.freeze.px+'px'}else{ui.freeze=null;m.style.justifyContent='';m.style.paddingTop=''}}
@@ -1996,7 +2024,7 @@ document.addEventListener('click',e=>{
     case 'addset':{const r=ui.rows[+b.dataset.i],l=r.sets[r.sets.length-1]||{kg:'',reps:r.tReps?String(r.tReps):'',rir:''};r.sets.push({kg:l.kg,reps:l.reps,rir:'',done:false});ui.dirty=true;saveDraft();render();break}
     case 'rmset':{const r=ui.rows[+b.dataset.i];if(r.sets.length>1)r.sets.pop();ui.dirty=true;saveDraft();render();break}
     case 'logtest':ui.logFrom=ui.view;ui.logType='test';ui.logDate=TODAY;ui.view='log';render(true);break;
-    case 'view':ui.view=b.dataset.view;if(ui.view==='log'&&!ui.dirty){openLog(TODAY);return}render(true);break;
+    case 'view':{const to=b.dataset.view;if(to==='log'&&!ui.dirty){ui.view=to;openLog(TODAY);return}if(b.classList.contains('tab'))slideTo(to);else{ui.view=to;render(true)}break}
     case 'settings':ui.setFrom=ui.view;ui.view='settings';render(true);break;
     case 'setback':ui.view=ui.setFrom&&ui.setFrom!=='settings'?ui.setFrom:'today';render(true);break;
     case 'settheme':state.theme=b.dataset.v;save();applyLook();render();break;
