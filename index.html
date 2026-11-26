@@ -96,6 +96,10 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px
 .sheet-b .pl-ic{width:44px;height:44px;border-radius:14px}
 .ob-n{grid-template-columns:repeat(5,1fr)}
 .ob-add{font-size:13px;color:var(--muted);font-weight:400}
+.stepper{display:grid;grid-template-columns:52px 1fr 52px;align-items:center;gap:8px}
+.stepper button{appearance:none;border:0;height:48px;border-radius:14px;background:var(--surface-2);color:var(--fg);font:500 22px/1 var(--font);cursor:pointer}
+.stepper b{text-align:center;font-size:22px;font-weight:600}
+.warn-t{color:var(--accent)}
 .pl-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .pl-day{appearance:none;border:0;border-radius:14px;padding:14px 0;background:var(--surface-2);color:var(--fg);font:600 14px/1 var(--font);cursor:pointer}
 .pl-day.on{background:var(--pill);color:var(--pill-fg)}
@@ -1257,7 +1261,38 @@ const PL_TYPES={styrke:['Styrke','styrke'],crossfit:['Fuld træning','crossfit']
 const PL_ICON={styrke:'<path d="M6.5 8v8M17.5 8v8M3.5 10v4M20.5 10v4M6.5 12h11"/>',crossfit:'<path d="M12 3c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2.5-5 .5 1.5 1.5 2 2.5 2 0-2.5-1-4.5 0-7z"/>',
   kondition:'<path d="M3 12h4l2.5-6 4 12L16 12h5"/>',restitution:'<path d="M5 19c0-8 6-13 14-14-1 8-6 14-14 14zM5 19l7-7"/>',mobilitet:'<circle cx="12" cy="5" r="2"/><path d="M12 8v5l-4 6M12 13l4 6M6 10h12"/>',hvile:'<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>'};
 const plIcon=t=>`<span class="pl-ic k-${PL_TYPES[t][1]}"><svg viewBox="0 0 24 24">${PL_ICON[t]}</svg></span>`;
-const PL_GOALS={styrke:['Blive stærkere','Tungere løft, færre gentagelser. Sidste uge er en test.'],kondition:['Bedre kondition','Flere og længere intervaller. Styrke holdes ved lige.'],allround:['Allround (CrossFit)','Varierede styrkeskemaer og WODs. God arbejdskapacitet.'],muskler:['Mere muskelmasse','Flere gentagelser og mere bonusarbejde.']};
+const PL_GOALS={styrke:['Blive stærkere','Tungere løft, færre gentagelser. Sidste uge er en test.'],kondition:['Bedre kondition','Flere og længere intervaller. Styrke holdes ved lige.'],allround:['Allround (CrossFit)','Varierede styrkeskemaer og WODs. God arbejdskapacitet.'],muskler:['Mere muskelmasse','Flere gentagelser og mere bonusarbejde.'],
+  distance:['Løb længere','Byg op til en distance. Sidste uge løber du den.'],pace:['Løb hurtigere','Hurtigere pace på en distance. Sidste uge er en test.']};
+/* ---------- Running goals ----------
+   Plan length from common running plans: 5-10 km 6-12 weeks, half marathon 10-16, marathon 14-20 (16-18 most common).
+   A speed block shows measurable gains after 6-8 weeks. */
+const RUN_D={5:'5 km',10:'10 km',21.1:'Halvmaraton',42.2:'Maraton'};
+const RUN_WEEKS={distance:{5:[[6,8,10,12],8],10:[[8,10,12],10],21.1:[[10,12,14,16],12],42.2:[[14,16,18,20],16]},pace:{5:[[6,8,10],8],10:[[6,8,10,12],8],21.1:[[8,10,12],10]}};
+const RUN_PEAK={5:7,10:13,21.1:19,42.2:32};
+const isRun=g=>g==='distance'||g==='pace';
+const fmtPace=sec=>{sec=Math.round(sec);return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')};
+const fmtKm=k=>String(Math.round(k*10)/10).replace('.',',');
+function plGoalName(P){if(P.goal==='distance')return `Løb ${RUN_D[P.dist]==='5 km'||RUN_D[P.dist]==='10 km'?RUN_D[P.dist]:RUN_D[P.dist].toLowerCase()}`;
+  if(P.goal==='pace')return `${RUN_D[P.dist]} i ${fmtPace(P.pace)}/km`;return PL_GOALS[P.goal][0]}
+function runWeeks(P){const r=RUN_WEEKS[P.goal][P.dist]||RUN_WEEKS[P.goal][5];return r}
+/* One run session. kind: I intervals, T tempo, F fartlek, E easy, L long. bi = build week index (0..nb-1), nb = number of build weeks */
+function runSess(P,kind,bi,nb,wi,date){const g=P.pace,f=nb>1?bi/(nb-1):1,lerp=(a,b)=>a+(b-a)*f,D=P.dist,pc=P.goal==='pace';
+  const easy=pc?`i ca. ${fmtPace(g+75)}/km`:'så du kan tale i hele sætninger',k='K'+date.replace(/-/g,'');
+  let name,steps,min,kd='zone2';
+  if(wi.test){if(kind==='L'||kind==='I'&&P.nRun===1){name=pc?`Test: ${RUN_D[D]} på tid`:`Løb ${RUN_D[D].toLowerCase()}`;steps=['10 min roligt for at varme op',pc?`${RUN_D[D]} så hurtigt du kan. Mål: ${fmtPace(g)}/km`:`${fmtKm(D)} km i dit eget tempo. Start roligt`,'10 min roligt til sidst'];min=Math.round(D*(pc?g:400)/60)+20;kd='interval'}
+    else{name='Let løb før testen';steps=['20 min roligt '+easy,'4 × 20 sek stigningsløb'];min=25}}
+  else if(wi.dl){name='Let løb (deload)';steps=[`${kind==='L'?35:25} min roligt ${easy}`];min=kind==='L'?35:25}
+  else if(kind==='I'){const sets={5:['6 × 400 m','8 × 400 m','5 × 800 m','6 × 800 m','4 × 1 km','5 × 1 km'],10:['5 × 1 km','6 × 1 km','4 × 1,6 km','5 × 1,6 km','3 × 2 km','4 × 2 km'],21.1:['4 × 2 km','5 × 2 km','3 × 3 km','4 × 3 km','3 × 4 km','2 × 5 km']}[D]||['5 × 1 km'];
+    const set=sets[Math.min(sets.length-1,Math.round(f*(sets.length-1)))],ip=lerp(P.curPace,g)-(D<=5?10:D<=10?5:0);
+    name='Intervaller '+set;steps=['10 min roligt + 4 korte stigningsløb',`${set} i ${fmtPace(ip)}/km`,D<=5?'90 sek rolig jog mellem':'2 min rolig jog mellem','10 min roligt til sidst'];min=45;kd='interval'}
+  else if(kind==='T'){const m=Math.round(lerp(15,30)/5)*5,tp=pc?g+(D<=5?18:D<=10?8:-8):0;
+    name=`Tempoløb ${m} min`;steps=['10 min roligt',pc?`${m} min i ${fmtPace(tp)}/km`:`${m} min i et tempo, hvor du kun kan sige få ord`,'10 min roligt til sidst'];min=m+20;kd='interval'}
+  else if(kind==='F'){const n=Math.round(lerp(6,10)),sec=bi>=nb/2?2:1;
+    name=`Fartleg ${n} × ${sec} min`;steps=['10 min roligt',`${n} × ${sec} min hurtigt / 2 min roligt`,'5 min roligt til sidst'];min=15+n*(sec+2);kd='interval'}
+  else if(kind==='L'){let km;if(pc){const a={5:8,10:12,21.1:16}[D]||10,b={5:12,10:16,21.1:22}[D]||14;km=lerp(a,b)}else{const a=Math.max(2,P.cur),b=Math.max(RUN_PEAK[D],P.cur);km=lerp(a,b)}
+    km=Math.round(km*2)/2;name=`Langtur ${fmtKm(km)} km`;steps=[`${fmtKm(km)} km roligt ${easy}`,'Gå gerne et par minutter, hvis du skal'];min=Math.round(km*(pc?g+75:390)/60)}
+  else{const m=Math.round(lerp(25,45)/5)*5;name=`Roligt løb ${m} min`;steps=[`${m} min roligt ${easy}`];min=m}
+  return [k,{name,kind:kd,steps,min,dur:min+' min',note:pc?`Mål-pace: ${fmtPace(g)}/km på ${RUN_D[D].toLowerCase()}.`:''}]}
 const PL_DOW=[1,2,3,4,5,6,0];
 const PL_SHORT={1:'Man',2:'Tir',3:'Ons',4:'Tor',5:'Fre',6:'Lør',0:'Søn'};
 const PL_LOWER=['squat','hinge','clean','snatch'];
@@ -1266,16 +1301,16 @@ function plTypeOfKey(k){if(!k||k==='R')return 'hvile';if(k==='S'||(SESS[k]&&SESS
   const s=SESS[k];if(!s)return 'hvile';if(s.kind==='interval'||s.kind==='zone2')return 'kondition';if(/^AR/.test(k))return 'restitution';if(s.kind==='mobilitet')return 'mobilitet';return 'hvile'}
 function plStart(){const t={};PL_DOW.forEach(d=>t[d]=plTypeOfKey(state.plan[d]));
   const days=PL_DOW.filter(d=>['styrke','crossfit','kondition'].includes(t[d]));
-  return {step:1,types:t,weeks:4,goal:'styrke',deload:true,start:'next',preview:null,pick:null}}
+  return {step:1,types:t,weeks:4,goal:'styrke',dist:5,cur:3,pace:300,curPace:330,deload:true,start:'next',preview:null,pick:null}}
 /* Sets × reps @ % for week i (0-based) of the block. Deload weeks are lighter; a strength block ends with a test. */
 const PL_PROG={styrke:[[5,5,70],[5,4,75],[5,3,80],[4,3,85],[5,2,85],[4,2,88],[3,2,90]],
   muskler:[[4,10,60],[4,8,67],[4,8,70],[4,6,75],[5,6,75],[4,5,78],[4,5,80]],
   kondition:[[3,5,70],[3,5,72],[3,4,75],[3,4,77],[3,3,80],[3,3,82],[3,3,83]],
   allround:[[5,5,70],[5,4,75],[5,3,80],[4,3,85],[5,2,85],[4,2,87],[3,2,90]]};
 function plWeekInfo(P){const out=[];let n=0;for(let w=0;w<P.weeks;w++){const dl=P.deload&&P.weeks>=4&&w%4===3&&w!==P.weeks-1;
-  const test=P.goal==='styrke'&&P.weeks>=3&&w===P.weeks-1;out.push({w,dl,test,i:dl||test?-1:n++})}return out}
-function plDose(P,wi){if(wi.dl)return {s:3,r:5,pct:60,rir:4,dl:true};if(wi.test)return {test:true,s:6,r:3,pct:0,rir:1};
-  const pr=PL_PROG[P.goal],v=pr[Math.min(wi.i,pr.length-1)];return {s:v[0],r:v[1],pct:v[2],rir:v[2]>=85?1:v[2]>=75?2:3}}
+  const test=(P.goal==='styrke'||isRun(P.goal))&&P.weeks>=3&&w===P.weeks-1;out.push({w,dl,test,i:dl||test?-1:n++})}return out}
+function plDose(P,wi){if(wi.dl)return {s:3,r:5,pct:60,rir:4,dl:true};if(wi.test&&isRun(P.goal))return {s:3,r:3,pct:70,rir:3};if(wi.test)return {test:true,s:6,r:3,pct:0,rir:1};
+  const pr=PL_PROG[isRun(P.goal)?'kondition':P.goal],v=pr[Math.min(wi.i,pr.length-1)];return {s:v[0],r:v[1],pct:v[2],rir:v[2]>=85?1:v[2]>=75?2:3}}
 /* Assign a main lift pattern to every lifting day of the week (same pattern each week, so the lift can progress).
    Tries every order and keeps the one with fewest heavy lower-body days back to back. */
 function plPatterns(P){const lift=PL_DOW.filter(d=>['styrke','crossfit'].includes(P.types[d])),n=lift.length;if(!n)return {};
@@ -1320,6 +1355,9 @@ function plBuild(P){
           b={lift:l[0],scheme:dose.test?'build':wi.dl?'across':'across',lines,note:wi.dl?'Deload-uge: let, så kroppen kan nå at blive stærkere.':'Samme løft hver uge, lidt tungere hver gang.',min:dose.test?18:wi.dl?10:14,heavy:dose.pct>=80||dose.test?1:0,pct:!!l[4]&&!dose.test}}
         const w={T,b,a:fwGenA(b),c:fwGenC(b,wi.dl?45:T),d:fwGenD(b,wi.dl?45:T),plan:true};fws[date]=w;
         const p=w.c?cfRebuild(w.c):null;sess[k]={name:`Fuld træning · ${l[1]}`,kind:'crossfit',fw:true,dur:`${T} min`};key=k;label=`${l[1]} + ${p?p.overskrift:'WOD'}`}
+      else if(t==='kondition'&&isRun(P.goal)){cardioN++;const nRun=PL_DOW.filter(d=>P.types[d]==='kondition').length,nb=info.filter(x=>x.i>=0).length;
+        const order=P.goal==='pace'?{1:['I'],2:['I','L'],3:['I','T','L'],4:['I','E','T','L'],5:['I','E','T','E','L'],6:['E','I','E','T','E','L'],7:['E','I','E','T','E','E','L']}:{1:['L'],2:['E','L'],3:['E','F','L'],4:['E','F','E','L'],5:['E','F','E','T','L'],6:['E','F','E','T','E','L'],7:['E','F','E','T','E','E','L']};
+        const [k,ss]=runSess({...P,nRun},order[Math.min(7,nRun)][cardioN-1],Math.max(0,wi.i),Math.max(1,nb),wi,date);sess[k]=ss;key=k;label=ss.name}
       else if(t==='kondition'){cardioN++;const kond=P.goal==='kondition',i=Math.max(0,wi.i);
         if(wi.dl)key=cardioN===1?'Z2':'R';
         else{const slot=(cardioN-1)%(kond?3:2);key=slot===0?(kond&&i>=2?'I5':'I4'):slot===1?(i>=2?'Z2L':'Z2'):(i>=2?'I30B':'I30')}
@@ -1335,7 +1373,7 @@ function plAccept(){const pv=ui.pl.preview;if(!pv)return;
   const ps={},pf={};Object.entries(state.planSess||{}).forEach(([k,v])=>{const d=k.slice(1);if(d<TODAY.replace(/-/g,''))ps[k]=v});
   Object.entries(state.planFw||{}).forEach(([d,v])=>{if(d<TODAY)pf[d]=v});
   state.blockDays={...keepPast,...pv.days};state.planSess={...ps,...pv.sess};state.planFw={...pf,...pv.fws};state.overrides=ov;state.skips=sk;
-  const end=pv.weeks[pv.weeks.length-1].days[6].date;state.block={start:pv.start,end,weeks:pv.P.weeks,goal:pv.P.goal,deloads:pv.weeks.filter(w=>w.dl).map(w=>w.w)};
+  const end=pv.weeks[pv.weeks.length-1].days[6].date;state.block={start:pv.start,end,weeks:pv.P.weeks,goal:pv.P.goal,goalName:plGoalName(pv.P),deloads:pv.weeks.filter(w=>w.dl).map(w=>w.w)};
   applySess();save()}
 function plStop(){const bd={},ps={},pf={};Object.entries(state.blockDays||{}).forEach(([d,k])=>{if(d<TODAY)bd[d]=k});
   Object.entries(state.planSess||{}).forEach(([k,v])=>{if(k.slice(1)<TODAY.replace(/-/g,''))ps[k]=v});Object.entries(state.planFw||{}).forEach(([d,v])=>{if(d<TODAY)pf[d]=v});
@@ -1354,7 +1392,7 @@ function plDetail(x,pv){if(x.key==='R')return '';
 /* ---------- Planen: the plan for the coming month ---------- */
 function viewMonth(){const b=plActive(),wn=plWeekNo(),mon=mondayOf(TODAY);
   const head=b?`<section class="card"><div class="row-between"><h3 class="sec">Dit forløb</h3><span class="muted small">${wn<1?`Starter ${shortDate(b.start)}`:`Uge ${wn} af ${b.weeks}`}</span></div>
-      <p class="pl-goal">${esc(PL_GOALS[b.goal][0])}</p><p class="muted small">${shortDate(b.start)}–${shortDate(b.end)}${b.deloads&&b.deloads.length?` · deload i uge ${b.deloads.map(x=>x+1).join(' og ')}`:''}</p>
+      <p class="pl-goal">${esc(b.goalName||PL_GOALS[b.goal][0])}</p><p class="muted small">${shortDate(b.start)}–${shortDate(b.end)}${b.deloads&&b.deloads.length?` · deload i uge ${b.deloads.map(x=>x+1).join(' og ')}`:''}</p>
       <div class="meter pl-meter"><i style="width:${Math.max(0,Math.min(100,Math.round((wn-1)/b.weeks*100+100/b.weeks*((pd(TODAY).getDay()+6)%7+1)/7)))}%"></i></div>
       <div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn ghost" data-act="plopen">Nyt forløb</button><button class="btn ghost" data-act="plstop">Stop forløbet</button></div></section>`
     :`<section class="card"><h3 class="sec">Intet forløb endnu</h3><p class="muted small">Din faste uge gentages. Planlæg 1-8 uger med et mål, så bliver træningen bygget op uge for uge.</p><button class="btn accent" data-act="plopen">Planlæg forløb</button></section>`;
@@ -1376,13 +1414,22 @@ function viewPlan(){const P=ui.pl;if(!P){ui.view='month';return viewMonth()}
     <div class="pl-sum">${Object.keys(PL_TYPES).filter(t=>cnt[t]).map(t=>`<span class="k-${PL_TYPES[t][1]}"><span class="bar"></span>${cnt[t]} ${PL_TYPES[t][0].toLowerCase()}</span>`).join('')}</div>
     <button class="btn accent" data-act="plnext">Videre</button>
     ${P.pick!=null?`<div class="sheet-bg" data-act="plclose"><div class="sheet" role="dialog" aria-label="${PL_SHORT[P.pick]}"><p class="sheet-t">${cap(DAYS[P.pick])}</p><div class="sheet-grid">${Object.keys(PL_TYPES).map(t=>`<button class="sheet-b k-${PL_TYPES[t][1]}${P.types[P.pick]===t?' on':''}" data-act="plset" data-v="${t}">${plIcon(t)}<span>${PL_TYPES[t][0]}</span></button>`).join('')}</div></div></div>`:''}`}
-  if(P.step===2)return head('Hvor længe og mod hvad?')+`<section class="card"><div class="field"><span>Antal uger</span><div class="chips">${[1,2,3,4,5,6,7,8].map(n=>`<button class="${P.weeks===n?'on':''}" data-act="plweeks" data-v="${n}">${n}</button>`).join('')}</div></div>
-    <div class="field"><span>Mål</span><div class="fmt-grid">${Object.entries(PL_GOALS).map(([k,[l,d]])=>`<button class="fmt${P.goal===k?' on':''}" data-act="plgoal" data-v="${k}"><b>${l}</b><small>${d}</small></button>`).join('')}</div></div>
+  if(P.step===2){const run=isRun(P.goal),nRun=PL_DOW.filter(d=>P.types[d]==='kondition').length;
+    let wk=[1,2,3,4,5,6,7,8],rec=0;if(run){const r=runWeeks(P);wk=r[0];rec=r[1];if(!wk.includes(P.weeks))P.weeks=rec}else if(P.weeks>8)P.weeks=8;
+    const dists=P.goal==='pace'?[5,10,21.1]:[5,10,21.1,42.2];if(run&&!dists.includes(P.dist))P.dist=5;
+    const runBox=run?`<div class="field"><span>Distance</span><div class="chips">${dists.map(d=>`<button class="${P.dist===d?'on':''}" data-act="pldist" data-v="${d}">${RUN_D[d]}</button>`).join('')}</div></div>
+      ${P.goal==='distance'?`<div class="field"><span>Længste tur du kan løbe nu</span><div class="chips">${[1,3,5,8,12,16,21].map(k=>`<button class="${P.cur===k?'on':''}" data-act="plcur" data-v="${k}">${k} km</button>`).join('')}</div></div>`
+      :`<div class="field"><span>Mål-pace</span><div class="stepper"><button data-act="plpace" data-f="pace" data-v="-5" aria-label="Hurtigere">−</button><b class="num">${fmtPace(P.pace)} /km</b><button data-act="plpace" data-f="pace" data-v="5" aria-label="Langsommere">+</button></div><p class="hint num">${RUN_D[P.dist]} på ${fmtTime(P.pace*P.dist)}</p></div>
+        <div class="field"><span>Din pace nu</span><div class="stepper"><button data-act="plpace" data-f="curPace" data-v="-5" aria-label="Hurtigere">−</button><b class="num">${fmtPace(P.curPace)} /km</b><button data-act="plpace" data-f="curPace" data-v="5" aria-label="Langsommere">+</button></div><p class="hint num">${RUN_D[P.dist]} på ${fmtTime(P.curPace*P.dist)}</p></div>`}
+      ${nRun?'':'<p class="hint warn-t">Du har ingen konditionsdage i din uge. Gå tilbage og gør mindst 2 dage til kondition.</p>'}`:'';
+    return head('Hvor længe og mod hvad?')+`<section class="card"><div class="field"><span>Mål</span><div class="fmt-grid">${Object.entries(PL_GOALS).map(([k,[l,d]])=>`<button class="fmt${P.goal===k?' on':''}" data-act="plgoal" data-v="${k}"><b>${l}</b><small>${d}</small></button>`).join('')}</div></div>
+    ${runBox}
+    <div class="field"><span>Antal uger</span><div class="chips">${wk.map(n=>`<button class="${P.weeks===n?'on':''}" data-act="plweeks" data-v="${n}">${n}${n===rec?' ★':''}</button>`).join('')}</div>${rec?`<p class="hint">★ anbefalet for ${RUN_D[P.dist].toLowerCase()}</p>`:''}</div>
     ${P.weeks>=4?`<div class="field"><span>Deload</span><div class="chips"><button class="${P.deload?'on':''}" data-act="pldl" data-v="1">Let uge hver 4. uge</button><button class="${P.deload?'':'on'}" data-act="pldl" data-v="0">Ingen</button></div></div>`:''}
     <div class="field"><span>Start</span><div class="chips"><button class="${P.start==='this'?'on':''}" data-act="plst" data-v="this">Denne uge</button><button class="${P.start==='next'?'on':''}" data-act="plst" data-v="next">Næste uge</button></div></div></section>
-    <div class="btns3" style="grid-template-columns:1fr 2fr"><button class="btn ghost" data-act="plprev">Tilbage</button><button class="btn accent" data-act="plbuild">Byg planen</button></div>`;
+    <div class="btns3" style="grid-template-columns:1fr 2fr"><button class="btn ghost" data-act="plprev">Tilbage</button><button class="btn accent" data-act="plbuild"${run&&!nRun?' disabled':''}>Byg planen</button></div>`}
   const pv=P.preview;
-  return head('Din plan',`${pv.P.weeks} ${pv.P.weeks===1?'uge':'uger'} · ${PL_GOALS[pv.P.goal][0]}. Se den igennem, og acceptér når den ser rigtig ud.`)+
+  return head('Din plan',`${pv.P.weeks} ${pv.P.weeks===1?'uge':'uger'} · ${esc(plGoalName(pv.P))}. Se den igennem, og acceptér når den ser rigtig ud.`)+
     pv.weeks.map(w=>`<section class="card pl-week"><div class="row-between"><h3 class="sec">Uge ${w.w+1} · ${shortDate(w.days[0].date)}–${shortDate(w.days[6].date)}</h3>${w.dl?'<span class="tag-dl">Deload</span>':w.test?'<span class="tag-dl">Test</span>':''}</div>
       ${w.days.map(x=>{const op=P.open===x.date;return `<button class="pl-r${x.past?' past':''}${op?' open':''}" data-act="plopenday" data-date="${x.date}"${x.past?' disabled':''}><span class="pl-d">${PL_SHORT[x.dow]}</span>${chip(PL_TYPES[x.t][1],PL_TYPES[x.t][0])}<span class="pl-l">${esc(x.past?'Allerede gået':x.label)}</span>${x.past||x.key==='R'?'':'<span class="chev">›</span>'}</button>${op?plDetail(x,pv):''}`}).join('')}</section>`).join('')+
     `<button class="btn accent" data-act="placcept">Acceptér plan</button><div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn ghost" data-act="plprev">Ret valg</button><button class="btn ghost" data-act="plbuild">🎲 Byg igen</button></div>`}
@@ -2203,7 +2250,10 @@ document.addEventListener('click',e=>{
     case 'plprev':ui.pl.step=Math.max(1,ui.pl.step-1);render(true);break;
     case 'pltype':ui.pl.types[+b.dataset.d]=b.dataset.v;render();break;
     case 'plweeks':ui.pl.weeks=+b.dataset.v;render();break;
-    case 'plgoal':ui.pl.goal=b.dataset.v;render();break;
+    case 'plgoal':{const P=ui.pl;P.goal=b.dataset.v;if(isRun(P.goal)){const r=runWeeks(P);P.weeks=r[1]}else if(P.weeks>8)P.weeks=4;render();break}
+    case 'pldist':{const P=ui.pl;P.dist=+b.dataset.v;P.weeks=runWeeks(P)[1];render();break}
+    case 'plcur':ui.pl.cur=+b.dataset.v;render();break;
+    case 'plpace':{const P=ui.pl,f=b.dataset.f;P[f]=Math.max(150,Math.min(600,P[f]+ +b.dataset.v));if(f==='pace'&&P.curPace<P.pace)P.curPace=P.pace;if(f==='curPace'&&P.curPace<P.pace)P.pace=P.curPace;render();break}
     case 'pldl':ui.pl.deload=b.dataset.v==='1';render();break;
     case 'plst':ui.pl.start=b.dataset.v;render();break;
     case 'plbuild':ui.pl.preview=plBuild(ui.pl);ui.pl.step=3;render(true);break;
