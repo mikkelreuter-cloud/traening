@@ -926,7 +926,7 @@ function trainRow(k){const se=SESS[k],t=sessKey(TODAY)===k;
 function viewTrain(){
   const cfToday=cfSaved(TODAY);
   return `<h2 class="h2">Træn</h2><p class="note">Tryk på et pas for at se det, starte det eller rette i det.</p>
-  <button class="btn accent" data-act="senew">+ Nyt pas</button>
+  <button class="btn accent" data-act="senew">+ Opret pas</button>
   ${trainGroups().map(([g,ks])=>`<section class="tr-grp"><h3 class="sec">${g}</h3>${ks.map(trainRow).join('')}</section>`).join('')}
   <section class="tr-grp"><h3 class="sec">CrossFit</h3><button class="tr-row k-crossfit${sessKey(TODAY)==='CF'?' today':''}" data-act="cfopen" data-date="${TODAY}"><span class="bar"></span><span class="nm">CrossFit${cfToday?` · ${esc(cfToday.title||'')}`:''}</span>${sessKey(TODAY)==='CF'?'<span class="tag">I dag</span>':''}<span class="chev">›</span></button></section>`;
 }
@@ -967,7 +967,7 @@ function strEditor(e){const m=e.mode,has=e.ex.some(x=>x.n.trim());
   return choose}
 function viewSessEdit(){
   const e=ui.se,builtIn=e.key&&SESS_BASE[e.key],edited=builtIn&&(state.sessEdits||{})[e.key],cardioBuiltIn=builtIn&&(e.kind==='interval'||e.kind==='zone2');
-  return `<div class="habit-head"><button class="icon-btn" data-act="sebask" aria-label="Tilbage" data-back>‹</button><h2 class="h2">${e.key?'Rediger pas':'Nyt pas'}</h2></div>
+  return `<div class="habit-head"><button class="icon-btn" data-act="sebask" aria-label="Tilbage" data-back>‹</button><h2 class="h2">${e.key?'Rediger pas':'Opret pas'}</h2></div>
   <section class="card">
     <label class="field"><span>Navn</span><input id="se-name" data-bind="se.name" value="${esc(e.name)}" placeholder="Fx Overkrop"></label>
     ${builtIn?'':`<div class="field"><span>Type</span><div class="fmt-grid">${SE_KINDS.map(([v,l,d])=>`<button class="fmt${e.kind===v?' on':''}" data-act="sekind" data-v="${v}"><b>${l}</b><small>${d}</small></button>`).join('')}</div></div>`}
