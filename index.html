@@ -72,7 +72,11 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px
 .pl-row{display:grid;grid-template-columns:40px 1fr;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
 .pl-row:first-child{border-top:0}
 .pl-row .chips{gap:6px}
-.pl-r{display:grid;grid-template-columns:34px auto 1fr;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
+.pl-det{padding:4px 0 14px;display:grid;gap:6px;font-size:14px;animation:wdin .18s ease-out}
+.pl-det p{margin:0}
+.pl-r .chev{color:var(--muted)}
+button.pl-r{appearance:none;border:0;border-top:1px solid var(--line);background:none;color:var(--fg);width:100%;text-align:left;font:inherit;font-size:14px;cursor:pointer}
+.pl-r{display:grid;grid-template-columns:34px auto 1fr auto;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
 .pl-r.past{opacity:.45}
 .pl-d{color:var(--muted);font-size:13px}
 .pl-l{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1252,6 +1256,15 @@ function plStop(){const bd={},ps={},pf={};Object.entries(state.blockDays||{}).fo
   state.blockDays=bd;state.planSess=ps;state.planFw=pf;state.block=null;applySess();save()}
 const plActive=()=>state.block&&state.block.end>=TODAY?state.block:null;
 function plWeekNo(){const b=plActive();if(!b)return 0;return Math.floor((pd(mondayOf(TODAY))-pd(b.start))/(7*864e5))+1}
+/* Full content of one day in the plan review */
+function plDetail(x,pv){if(x.key==='R')return '';
+  if(x.t==='crossfit'){const w=pv.fws[x.date];if(!w)return '';const l=fwL(w.b.lift),p=w.c?cfRebuild(w.c):null;
+    return `<div class="pl-det"><p class="fw-sub">A) Opvarmning</p><p>${esc([w.a.cardio,...w.a.gen,...w.a.spec].join(' · '))}</p>
+      <p class="fw-sub">B) ${esc(l[1])}</p>${w.b.lines.map(t=>`<p><b>${esc(t)}</b></p>`).join('')}
+      ${p?`<p class="fw-sub">C) WOD</p>${cfWod(p)}`:''}
+      ${w.d.length?`<p class="fw-sub">D) Bonus</p><p>${esc(w.d.join(' · '))}</p>`:''}</div>`}
+  const s=pv.sess[x.key]||SESS[x.key];if(!s)return '';
+  return `<div class="pl-det"><p class="muted small">${esc(s.dur||'')}</p>${sessionBody(s,x.date)}${s.note?`<p class="note">${esc(s.note)}</p>`:''}</div>`}
 function viewPlan(){const P=ui.pl;if(!P){ui.view='train';return viewTrain()}
   const head=(t,sub)=>`<div class="habit-head"><button class="icon-btn" data-act="plback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">Planlæg forløb · trin ${P.step} af 3</p><h2 class="h2">${t}</h2></div></div>${sub?`<p class="note">${sub}</p>`:''}`;
   if(P.step===1){const heavy=d=>['styrke','crossfit'].includes(P.types[d]);
@@ -1271,7 +1284,7 @@ function viewPlan(){const P=ui.pl;if(!P){ui.view='train';return viewTrain()}
   const pv=P.preview;
   return head('Din plan',`${pv.P.weeks} ${pv.P.weeks===1?'uge':'uger'} · ${PL_GOALS[pv.P.goal][0]}. Se den igennem, og acceptér når den ser rigtig ud.`)+
     pv.weeks.map(w=>`<section class="card pl-week"><div class="row-between"><h3 class="sec">Uge ${w.w+1} · ${shortDate(w.days[0].date)}–${shortDate(w.days[6].date)}</h3>${w.dl?'<span class="tag-dl">Deload</span>':w.test?'<span class="tag-dl">Test</span>':''}</div>
-      ${w.days.map(x=>`<div class="pl-r${x.past?' past':''}"><span class="pl-d">${PL_SHORT[x.dow]}</span>${chip(PL_TYPES[x.t][1],PL_TYPES[x.t][0])}<span class="pl-l">${esc(x.past?'Allerede gået':x.label)}</span></div>`).join('')}</section>`).join('')+
+      ${w.days.map(x=>{const op=P.open===x.date;return `<button class="pl-r${x.past?' past':''}${op?' open':''}" data-act="plopenday" data-date="${x.date}"${x.past?' disabled':''}><span class="pl-d">${PL_SHORT[x.dow]}</span>${chip(PL_TYPES[x.t][1],PL_TYPES[x.t][0])}<span class="pl-l">${esc(x.past?'Allerede gået':x.label)}</span>${x.past||x.key==='R'?'':'<span class="chev">›</span>'}</button>${op?plDetail(x,pv):''}`}).join('')}</section>`).join('')+
     `<button class="btn accent" data-act="placcept">Acceptér plan</button><div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn ghost" data-act="plprev">Ret valg</button><button class="btn ghost" data-act="plbuild">🎲 Byg igen</button></div>`}
 
 const setBtn=()=>'<button class="icon-btn" data-act="settings" aria-label="Plan og data"><svg viewBox="0 0 24 24"><path d="M4 7h9M18 7h2M4 17h4M13 17h7"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="10.5" cy="17" r="2.3"/></svg></button>';
@@ -1977,6 +1990,7 @@ document.addEventListener('click',e=>{
     case 'cfgen':{const wasPas=ui.cf.step==='pas';const p=cfGenerate();ui.cf.step='pas';render(!wasPas);if(!p)toast('Ingen gyldige pas med de valg');break}
     case 'plopen':ui.pl=plStart();ui.view='plan';render(true);break;
     case 'plback':if(ui.pl&&ui.pl.step>1&&navDepth===0){ui.pl.step--;render(true)}else{ui.view='train';render(true)}break;
+    case 'plopenday':{freezeTop();const d=b.dataset.date;ui.pl.open=ui.pl.open===d?null:d;render();break}
     case 'plpick':ui.pl.pick=+b.dataset.d;render();break;
     case 'plclose':ui.pl.pick=null;render();break;
     case 'plset':ui.pl.types[ui.pl.pick]=b.dataset.v;ui.pl.pick=null;render();break;
