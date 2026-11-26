@@ -1380,8 +1380,11 @@ function plAccept(){const pv=ui.pl.preview;if(!pv)return;
   state.blockDays={...keepPast,...pv.days};state.planSess={...ps,...pv.sess};state.planFw={...pf,...pv.fws};state.overrides=ov;state.skips=sk;
   const end=pv.weeks[pv.weeks.length-1].days[6].date;state.block={start:pv.start,end,weeks:pv.P.weeks,goal:pv.P.goal,goalName:plGoalName(pv.P),deloads:pv.weeks.filter(w=>w.dl).map(w=>w.w)};
   applySess();save()}
-function plStop(){const bd={},ps={},pf={};Object.entries(state.blockDays||{}).forEach(([d,k])=>{if(d<TODAY)bd[d]=k});
-  Object.entries(state.planSess||{}).forEach(([k,v])=>{if(k.slice(1)<TODAY.replace(/-/g,''))ps[k]=v});Object.entries(state.planFw||{}).forEach(([d,v])=>{if(d<TODAY)pf[d]=v});
+/* Stopping removes everything the plan put in the calendar. Only days you actually trained keep their session, so the history still makes sense. */
+function plStop(){const done=new Set((state.logs||[]).map(l=>l.date)),bd={},ps={},pf={};
+  Object.entries(state.blockDays||{}).forEach(([d,k])=>{if(d<TODAY&&done.has(d))bd[d]=k});
+  const dk=k=>k.slice(1,5)+'-'+k.slice(5,7)+'-'+k.slice(7,9);
+  Object.entries(state.planSess||{}).forEach(([k,v])=>{const d=dk(k);if(d<TODAY&&done.has(d))ps[k]=v});Object.entries(state.planFw||{}).forEach(([d,v])=>{if(d<TODAY&&done.has(d))pf[d]=v});
   state.blockDays=bd;state.planSess=ps;state.planFw=pf;state.block=null;applySess();save()}
 const plActive=()=>state.block&&state.block.end>=TODAY?state.block:null;
 function plWeekNo(){const b=plActive();if(!b)return 0;return Math.floor((pd(mondayOf(TODAY))-pd(b.start))/(7*864e5))+1}
@@ -2291,7 +2294,7 @@ document.addEventListener('click',e=>{
     case 'plst':ui.pl.start=b.dataset.v;render();break;
     case 'plbuild':{const was=ui.pl.step==='review';ui.pl.preview=plBuild(ui.pl);if(was){render(true);break}slideAnim(1,()=>{ui.pl.step='review';render(true)});break}
     case 'placcept':{const st=ui.pl.preview.start;plAccept();ui.pl=null;ui.mOpen=null;ui.view='month';render(true);toast('Planen er lagt ind');break}
-    case 'plstop':plStop();render();toast('Forløbet er stoppet');break;
+    case 'plstop':plStop();render();toast('Forløbet er stoppet og fjernet fra kalenderen');break;
     case 'fwopen':ui.fwDate=null;ui.fwSwap=null;ui.fwLog=null;if(!state.fw){state.fw=fwNew();save()}ui.view='fw';render(true);break;
     case 'fwday':ui.fwDate=b.dataset.date;ui.fwSwap=null;ui.fwLog=null;ui.view='fw';render(true);break;
     case 'fwback':ui.view=ui.fwDate?'today':'train';render(true);break;
