@@ -466,6 +466,39 @@ textarea{resize:vertical}
 .ac button small{display:block;color:var(--muted);font-size:12px;font-weight:400;margin-top:2px}
 .ac button:active{background:var(--surface-2)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(160px + env(safe-area-inset-bottom,0px));background:var(--nav);color:#fff;padding:11px 18px;border-radius:999px;font-weight:500;font-size:14px;z-index:6;max-width:calc(100% - 32px);text-align:center;box-shadow:0 10px 30px rgb(0 0 0 / .25)}
+
+/* ---------- Type scale (one place, wins over earlier rules) ----------
+   display 28/600 · title 20/600 · heading 16/600 · body 15/400 · item 15/500 · label 13/500 · caption 12/500 · hero numbers 44/500 */
+body{font-size:15px;line-height:1.45}
+b,strong{font-weight:600}
+.h2,.sess{font-size:28px;font-weight:600;letter-spacing:-.02em;line-height:1.15}
+.wdet-n,.wod h3,.fw-lift,.pl-goal,.rt,.sheet-t{font-size:20px;font-weight:600;letter-spacing:-.01em;line-height:1.25}
+.sec,.tr-head,.fw-h h3,.gl b{font-size:16px;font-weight:600;letter-spacing:-.005em}
+.tr-head .cnt{font-size:13px;font-weight:500}
+.tr-head .tag,.tr-row .tag{font-size:12px;font-weight:600}
+.wod p,.fw-lines p,.fw-row,.wdet-l,.facts,.k-row,.pl-det{font-size:15px}
+.fw-lines p{font-weight:500}
+.exn,.mvrow b,.tr-row,.fmt b,.pk-row b,.k-row>span:first-child,.pl-l{font-size:15px;font-weight:500}
+.pl-wrow{font-size:16px;font-weight:500}
+.exp{font-size:20px;font-weight:500;letter-spacing:-.01em}
+.exp small{font-size:12px;font-weight:500;letter-spacing:0}
+.steps li::before{font-size:16px;font-weight:600}
+.note{font-size:14px;line-height:1.5}
+.hint,.empty{font-size:13px;line-height:1.5}
+.eyebrow,.small,.fw-sub,.pl-d,.wd .dl,.exl{font-size:13px}
+.field>span,.trio span,.duo span{font-size:13px;font-weight:500}
+.chip{font-size:12px;font-weight:500}
+.mvrow small,.fmt small,.set .prev,.exmeta,.pk-row small{font-size:12px}
+.btn{font-weight:600;font-size:16px}
+.restbtn,.linkbtn{font-size:15px;font-weight:500}
+.chips button,.seg button{font-size:14px;font-weight:500}
+.big b,.big-h{font-size:44px;font-weight:500;letter-spacing:-.03em}
+.big span,.big-h small{font-size:14px}
+.gl-nums .num{font-size:24px;font-weight:600;letter-spacing:-.01em}
+.set .sn{font-size:16px;font-weight:500}
+.wd .dn{font-size:17px;font-weight:600}
+.done-msg{font-weight:600}
+.sug{font-size:14px;font-weight:500}
 </style>
 </head>
 <body>
@@ -981,8 +1014,7 @@ function viewToday(){
     <div class="stat"><span class="lab">Kropsvægt</span><b class="num">${w?fnum(w.kg)+'<small>kg</small>':'–'}</b><em class="num">${wDelta!=null?`${wDelta>0?'+':wDelta<0?'−':'±'}${fnum(Math.abs(wDelta))} kg siden ${shortDate(W[0].date)}`:w?'Første måling':'Log under Vægt'}</em></div>
     <div class="stat"><span class="lab">${B?esc(B.ex)+' · anslået max':'Styrke'}</span><b class="num">${B?fnum(B.v,0)+'<small>kg</small>':'–'}</b><em class="num">${B?`Sidst ${shortDate(B.date)}`:'Log et styrkepas'}</em></div>
   </section>
-  ${backupDue?`<section class="card"><p class="rt">Tag en backup</p><p class="hint">Dine logs ligger kun på denne telefon. Kopiér backuppen og gem den fx i Noter.</p>
-    <button class="btn ghost" data-act="copy">Kopiér backup</button><textarea id="exp" readonly rows="3" hidden aria-label="Backup-tekst"></textarea></section>`:''}`;
+  `;
 }
 function habitsCard(){
   const H=habits(),n=H.filter(h=>habitDone(h.id,TODAY)).length;
@@ -1857,7 +1889,7 @@ function render(top){if(typeof acHide==='function'&&!$('#ac').hidden)acHide();ha
     (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():v==='train'?viewTrain():v==='day'?viewDay():v==='sess'?viewSess():v==='sessedit'?viewSessEdit():v==='expick'?viewPick():v==='fw'?viewFW():v==='month'?viewMonth():v==='plan'?viewPlan():viewSettings());
   syncHistory();
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||(v==='log'&&t.dataset.view===(ui.logFrom==='prog'?'prog':ui.logFrom==='train'?'train':'today'))||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))||(((v==='sess'||v==='sessedit'||v==='expick'||(v==='fw'&&!ui.fwDate))&&t.dataset.view==='train')||((v==='plan')&&t.dataset.view==='month'))));
-  document.body.classList.toggle('no-top',['today','train','log','prog','fw','plan','month','settings'].includes(v));
+  document.body.classList.toggle('no-top',['today','train','log','prog','fw','plan','month','settings','sess','sessedit','expick','day','cf'].includes(v));
   {const m=$('#main');if(ui.freeze&&ui.freeze.v===v){m.style.justifyContent='flex-start';m.style.paddingTop=ui.freeze.px+'px'}else{ui.freeze=null;m.style.justifyContent='';m.style.paddingTop=''}}
   {const st=sessFor(TODAY);$('#hdr-hi').textContent=(state.name?'Hej '+state.name+'! · ':'')+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='onboard'?'Styrke & VO₂ log':v==='train'||v==='sess'?'Hvad har du lyst til i dag?':v==='sessedit'||v==='expick'?'Byg dit eget pas':v==='day'?cap(niceDate(ui.sel)):v==='cf'?'Byg dagens WOD':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
   if(top)window.scrollTo(0,0);
