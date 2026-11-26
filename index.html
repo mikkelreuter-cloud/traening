@@ -934,7 +934,7 @@ function viewToday(){
       <button class="restbtn" data-act="skipcancel">Annullér</button></div>`
       :`<button class="linkbtn" data-act="skipask">Ikke klar i dag?</button>`):''}
 `;
-  return `<div class="tr-top"><p class="eyebrow today-date">${cap(niceDate(TODAY))}</p>${setBtn()}</div>
+  return `<div class="tr-top"><span></span>${setBtn()}</div>
   ${isDeload(TODAY)?`<p class="slim-note">↓ Deload-uge · halvt så mange sæt, samme vægt</p>`:plActive()&&plWeekNo()>0&&state.block.deloads.includes(plWeekNo()-1)?`<p class="slim-note">↓ Deload-uge i dit forløb · lettere pas, så kroppen kan nå at blive stærkere</p>`:''}
   <section class="card">
     <div class="row-between"><h3 class="sec">Denne uge</h3><span class="muted small num">${doneN} af ${planned.length} pas</span></div>
