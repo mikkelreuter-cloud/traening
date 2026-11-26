@@ -49,6 +49,9 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px
   padding-block:18px calc(170px + env(safe-area-inset-bottom,0px))}
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .no-top header.top{display:none}
+.gear-fixed{position:fixed;z-index:6;top:calc(env(safe-area-inset-top,0px) + 14px);right:max(16px,calc((100vw - 520px)/2 + 16px));box-shadow:var(--shadow)}
+.has-gear .wrap{padding-top:calc(env(safe-area-inset-top,0px) + 72px)}
+
 .swatches{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
 .sw{appearance:none;border:0;background:none;color:var(--muted);display:grid;justify-items:center;gap:6px;font:500 11px/1 var(--font);cursor:pointer;padding:0}
 .sw i{width:36px;height:36px;border-radius:50%;background:var(--c);box-shadow:0 0 0 3px var(--surface),0 0 0 3px transparent;transition:box-shadow .15s}
@@ -537,6 +540,7 @@ b,strong{font-weight:600}
 </nav>
 <div class="restbar" id="restbar" hidden><span id="rest-t" class="num">Pause</span><button data-act="reststop">Stop</button></div>
 <div class="toast" id="toast" hidden></div>
+<button class="icon-btn gear-fixed" id="gear" data-act="settings" aria-label="Indstillinger" hidden><svg viewBox="0 0 24 24"><path d="M4 7h9M18 7h2M4 17h4M13 17h7"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="10.5" cy="17" r="2.3"/></svg></button>
 <div class="tour" id="tour" hidden></div>
 <div class="ac" id="ac" hidden></div>
 
@@ -1012,7 +1016,7 @@ function viewToday(){
       <button class="restbtn" data-act="skipcancel">Annullér</button></div>`
       :`<button class="linkbtn" data-act="skipask">Ikke klar i dag?</button>`):''}
 `;
-  return `<div class="tr-top"><span></span>${setBtn()}</div>
+  return `
   ${isDeload(TODAY)?`<p class="slim-note">↓ Deload-uge · halvt så mange sæt, samme vægt</p>`:plActive()&&plWeekNo()>0&&state.block.deloads.includes(plWeekNo()-1)?`<p class="slim-note">↓ Deload-uge i dit forløb · lettere pas, så kroppen kan nå at blive stærkere</p>`:''}
   <section class="card">
     <div class="row-between"><h3 class="sec">Denne uge</h3><span class="muted small num">${doneN} af ${planned.length} pas</span></div>
@@ -1350,7 +1354,7 @@ function viewMonth(){const b=plActive(),wn=plWeekNo(),mon=mondayOf(TODAY);
     const bw=b&&st>=b.start&&st<=b.end?Math.floor((pd(st)-pd(b.start))/(7*864e5)):-1;
     return `<section class="card mw"><div class="row-between"><h3 class="sec">${i===0?'Denne uge':i===1?'Næste uge':`Uge ${isoWeek(st)}`} <span class="muted small">· ${shortDate(days[0])}–${shortDate(days[6])}</span></h3>${bw>=0&&b.deloads.includes(bw)?'<span class="tag-dl">Deload</span>':''}</div>
       ${days.map(d=>{const s=sessFor(d),op=ui.mOpen===d,done=isDone(d);return `<button class="pl-r m-r${d<TODAY?' past':''}${d===TODAY?' today':''}${op?' open':''}" data-act="mday" data-date="${d}"><span class="pl-d">${PL_SHORT[pd(d).getDay()]} ${pd(d).getDate()}</span>${chip(s.kind,s.label||KIND_LABEL[s.kind])}<span class="pl-l">${esc(s.name)}${done?' <span class="ok">✓</span>':''}</span>${s.kind==='hvile'?'':'<span class="chev">›</span>'}</button>${op?weekDetail(d):''}`}).join('')}</section>`}).join('');
-  return `<div class="tr-top"><span></span>${setBtn()}</div>${head}${weeks}`}
+  return `${head}${weeks}`}
 function isoWeek(d){const t=pd(d),x=new Date(Date.UTC(t.getFullYear(),t.getMonth(),t.getDate()));const day=x.getUTCDay()||7;x.setUTCDate(x.getUTCDate()+4-day);const y=new Date(Date.UTC(x.getUTCFullYear(),0,1));return Math.ceil(((x-y)/864e5+1)/7)}
 function viewPlan(){const P=ui.pl;if(!P){ui.view='month';return viewMonth()}
   const head=(t,sub)=>`<div class="habit-head"><button class="icon-btn" data-act="plback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">Planlæg forløb · trin ${P.step} af 3</p><h2 class="h2">${t}</h2></div></div>${sub?`<p class="note">${sub}</p>`:''}`;
@@ -1410,7 +1414,7 @@ const setBtn=()=>'<button class="icon-btn" data-act="settings" aria-label="Plan 
 function freezeTop(){const m=$('#main'),f=m.firstElementChild;if(f&&document.body.classList.contains('no-top'))ui.freeze={v:ui.view,px:Math.max(0,f.getBoundingClientRect().top-m.getBoundingClientRect().top)}}
 function viewTrain(){
   const cfToday=cfSaved(TODAY);
-  return `<div class="tr-top"><button class="btn accent" data-act="senew">+ Opret pas</button><button class="icon-btn" data-act="settings" aria-label="Plan og data"><svg viewBox="0 0 24 24"><path d="M4 7h9M18 7h2M4 17h4M13 17h7"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="10.5" cy="17" r="2.3"/></svg></button></div>
+  return `<button class="btn accent" data-act="senew">+ Opret pas</button>
   <div class="tr-list">${trainGroups().map(([g,ks])=>{const kind=SESS[ks[0]].kind,open=trOpen().has(g),today=ks.includes(sessKey(TODAY));
     return `<section class="tr-grp${open?' open':''}"><button class="tr-head k-${kind}" data-act="trgrp" data-g="${esc(g)}" aria-expanded="${open}"><span class="bar"></span><span class="nm">${g}</span>${today?'<span class="tag">I dag</span>':''}<span class="cnt">${ks.length} pas</span><span class="chev">›</span></button>${open?`<div class="tr-items">${ks.map(trainRow).join('')}</div>`:''}</section>`}).join('')}
   <button class="tr-head k-crossfit" data-act="fwopen"><span class="bar"></span><span class="nm">Fuld træning</span><span class="cnt">A · B · C · D</span><span class="chev">›</span></button>
@@ -1749,7 +1753,7 @@ function viewProg(){
     wHtml=`<div class="big"><b class="num">${fnum(last.kg)}</b><span>kg</span>${W.length>1?`<em class="num">${diff>0?'+':diff<0?'−':'±'}${fnum(Math.abs(diff))} kg siden ${shortDate(first.date)}</em>`:''}</div>${chart(W.map(l=>({x:pd(l.date).getTime(),y:l.kg})),v=>fnum(v)+' kg','vaegt')}`}
   const all=trainLogs().sort(byDate).reverse();
   const sec=(t,body,empty,btn)=>`<section class="card"><div class="row-between"><h3 class="sec">${t}</h3>${btn||''}</div>${body||`<p class="empty">${empty}</p>`}</section>`;
-  return `<div class="tr-top"><span></span>${setBtn()}</div>${G}
+  return `${G}
   ${sec('Styrke',sHtml,'Når du har logget et styrkepas, kan du følge dine løft her.')}
   ${sec('Kondition',kHtml,'Når du har logget et konditionspas, kan du følge dine minutter her.')}
   ${sec('Tests',tHtml,'Tag en test, fx 3 km løb, og se om du bliver hurtigere.','<button class="linkbtn" data-act="logtest">+ Log test</button>')}
@@ -1933,6 +1937,7 @@ function render(top){if(typeof acHide==='function'&&!$('#ac').hidden)acHide();ha
   syncHistory();
   requestAnimationFrame(moveTabInd);
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||(v==='log'&&t.dataset.view===(ui.logFrom==='prog'?'prog':ui.logFrom==='train'?'train':'today'))||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))||(((v==='sess'||v==='sessedit'||v==='expick'||(v==='fw'&&!ui.fwDate))&&t.dataset.view==='train')||((v==='plan')&&t.dataset.view==='month'))));
+  {const g=TAB_ORDER.includes(v);$('#gear').hidden=!g;document.body.classList.toggle('has-gear',g)}
   document.body.classList.toggle('no-top',['today','train','log','prog','fw','plan','month','settings','sess','sessedit','expick','day','cf','onboard'].includes(v));
   {const m=$('#main');if(ui.freeze&&ui.freeze.v===v){m.style.justifyContent='flex-start';m.style.paddingTop=ui.freeze.px+'px'}else{ui.freeze=null;m.style.justifyContent='';m.style.paddingTop=''}}
   {const st=sessFor(TODAY);$('#hdr-hi').textContent=(state.name?'Hej '+state.name+'! · ':'')+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='onboard'?'Styrke & VO₂ log':v==='train'||v==='sess'?'Hvad har du lyst til i dag?':v==='sessedit'||v==='expick'?'Byg dit eget pas':v==='day'?cap(niceDate(ui.sel)):v==='cf'?'Byg dagens WOD':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
