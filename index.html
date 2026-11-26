@@ -134,7 +134,7 @@ button.pl-r{appearance:none;border:0;border-top:1px solid var(--line);background
 .empty.center{text-align:center}
 .cal-head .icon-btn[data-act=settings]{margin-left:4px}
 
-.no-top .wrap{min-height:100dvh;box-sizing:border-box;padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))}
+.no-top .wrap{min-height:100%;box-sizing:border-box;padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))}
 .no-top #main{flex:1;justify-content:center}
 .tr-top{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
 .tr-top .btn{margin:0}
@@ -449,6 +449,8 @@ textarea{resize:vertical}
 .tab-ind{position:absolute;top:7px;bottom:7px;left:0;width:0;border-radius:999px;background:linear-gradient(135deg,var(--accent),var(--accent-2));transition:transform .38s cubic-bezier(.2,.8,.2,1),width .38s cubic-bezier(.2,.8,.2,1),opacity .2s;opacity:0;pointer-events:none}
 html,body{overflow-x:clip}
 html{background:var(--bg)}
+/* The page only scrolls when content is taller than the screen; no rubber-band or pull-to-refresh */
+html,body{height:100%;overscroll-behavior-y:none}
 @media (prefers-reduced-motion:reduce){.tab-ind{transition:none}}
 .tour{position:fixed;inset:0;z-index:20;background:rgb(0 0 0 / .55);display:flex;align-items:flex-end;justify-content:center}
 .tour[hidden]{display:none}
