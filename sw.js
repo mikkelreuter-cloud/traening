@@ -349,24 +349,21 @@ function emomAntal(min, rng) {
   var pref = d.filter(function(n){ return n <= 4; }), a = pref.length ? pref : d;
   return a[Math.floor(rng() * a.length)];
 }
-/* Pick movements per minute and whether the rotation ends with a rest minute.
-   Rest variant: n work minutes + 1 rest minute, so (n + 1) must divide the time, and the work minutes are harder. */
+/* EMOM rotation: every minute is one slot, and a rest minute counts as a slot.
+   So the rotation length (work minutes + rest minute) always divides the time. With rest, the work minutes are harder. */
 function emomPlan(min, antal, rng, valg) {
-  var uden = [1, 2, 3, 4, 5].filter(function(n){ return min % n === 0 && min / n >= 2 && (!antal || n === antal); });
-  var med  = [1, 2, 3, 4].filter(function(n){ return min % (n + 1) === 0 && min / (n + 1) >= 3 && (!antal || n === antal); });
-  var udenPref = uden.filter(function(n){ return n >= 2 && n <= 4; });
-  if (!antal && udenPref.length) uden = udenPref;
-  var medPref = med.filter(function(n){ return n >= 2; });
-  if (!antal && medPref.length) med = medPref;
-  // "nej" = never a rest minute; a fixed number of movements without "ja" also means no rest, so the time divides by that number
-  if (valg === "nej" || (antal && valg !== "ja")) med = [];
-  if (valg === "ja" && med.length) uden = [];
-  var hvile = med.length && (!uden.length || rng() < 0.35);
-  var liste = hvile ? med : (uden.length ? uden : [1]);
-  return { n: liste[Math.floor(rng() * liste.length)], hvile: !!hvile };
+  var rots = [1, 2, 3, 4, 5].filter(function(r){ return min % r === 0 && min / r >= 2 && (!antal || r === antal); });
+  if (!antal) {
+    var pref = rots.filter(function(r){ return valg === "ja" ? r >= 3 : (r >= 2 && r <= 4); });
+    if (pref.length) rots = pref;
+  }
+  if (!rots.length) rots = [antal || 1];
+  var rot = rots[Math.floor(rng() * rots.length)];
+  var hvile = rot >= 2 && (valg === "ja" || (valg !== "nej" && rng() < 0.35));
+  return { n: rot - (hvile ? 1 : 0), hvile: hvile };
 }
 function tidPasser(fmtId, min, antal, valg) {
-  if (fmtId === "emom")     return antal ? (valg === "ja" ? min % (antal + 1) === 0 && min / (antal + 1) >= 3 : min % antal === 0) : true;
+  if (fmtId === "emom")     return antal ? min % antal === 0 : true;
   if (fmtId === "exmom")    return min % 2 === 0 || min % 3 === 0;
   if (fmtId === "tabata")   return (min + 1) % 5 === 0;
   if (fmtId === "interval") return [3, 4, 5, 6].some(function(s){ return min % s === 0 && min / s >= 2; });
@@ -388,7 +385,7 @@ function byggePas(opt) {
   var graense = slotInterval(fmt.id, dom);
   var oensket = opt.antal ? Math.min(graense[1], Math.max(graense[0], opt.antal)) : 0;
   if (fmt.id === "tabata") oensket = 0;
-  if (fmt.id === "emom" && oensket && minutter % oensket && minutter % (oensket + 1)) oensket = 0;
+  if (fmt.id === "emom" && oensket && minutter % oensket) oensket = 0;
   for (var forsoeg = 0; forsoeg < 160; forsoeg++) {
     var slots = oensket;
     if (!slots) {   // intet \u00f8nske: formatets eget standardvalg
@@ -430,7 +427,7 @@ function byggePas(opt) {
       pas.seed = fr\u00f8; pas.opt = o;
       pas.oensketAntal = oensket || null;
       pas.antalGraense = graense;
-      pas.naaedeIkkeAntal = !!(oensket && pas.movs.length !== oensket);
+      pas.naaedeIkkeAntal = !!(oensket && pas.movs.length + (o.emomHvile ? 1 : 0) !== oensket);
       return pas;
     }
   }
@@ -644,7 +641,7 @@ window.CF={byggePas,alternativer,formater,prng,formatFor,domaeneFor,FORMATER,DOM
 })();
 }else{
 // Offline cache: the app shell is cached on install; pages are network-first so updates arrive, fonts are cache-first.
-const CACHE='traening-v15';
+const CACHE='traening-v16';
 const SHELL=['./','./index.html','./sw.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
