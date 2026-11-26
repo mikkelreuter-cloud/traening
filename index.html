@@ -49,6 +49,18 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px
   padding-block:18px calc(170px + env(safe-area-inset-bottom,0px))}
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .no-top header.top{display:none}
+.gl{display:grid;gap:6px;padding:12px 0;border-top:1px solid var(--line)}
+.gl:first-of-type{border-top:0}
+.gl-nums{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.gl-nums .num{font-size:24px;font-weight:600}
+.gl .meter{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.gl .meter i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--k-zone2))}
+.gl .ok{color:var(--k-zone2);margin:0}
+.gl-x{appearance:none;border:0;background:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0 4px}
+.goal-form{display:grid;gap:10px;padding-top:8px}
+.k-list{display:grid;gap:2px;margin-top:6px}
+.k-row{display:grid;gap:2px;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+
 .pl-week-edit{padding:6px 10px;gap:0}
 .pl-wrow{appearance:none;border:0;background:none;color:var(--fg);display:grid;grid-template-columns:44px 40px 1fr auto auto;align-items:center;gap:10px;padding:10px 6px;border-top:1px solid var(--line);font:500 16px/1.2 var(--font);text-align:left;cursor:pointer;width:100%}
 .pl-wrow:first-child{border-top:0}
@@ -415,7 +427,7 @@ textarea{resize:vertical}
 /* floating dark pill nav */
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;pointer-events:none;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
-.tabs .in{pointer-events:auto;max-width:380px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);background:var(--nav);border-radius:999px;padding:7px;box-shadow:0 12px 30px rgb(0 0 0 / .28)}
+.tabs .in{pointer-events:auto;max-width:380px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);background:var(--nav);border-radius:999px;padding:7px;box-shadow:0 12px 30px rgb(0 0 0 / .28)}
 .tab{appearance:none;border:0;background:transparent;color:var(--nav-fg);font:500 11px/1 var(--font);height:56px;border-radius:999px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer}
 .tab svg,.icon-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .tab.on{color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent-2))}
@@ -463,7 +475,6 @@ textarea{resize:vertical}
   <div class="in">
     <button class="tab" data-act="view" data-view="today"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>I dag</button>
     <button class="tab" data-act="view" data-view="train"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Træn</button>
-    <button class="tab" data-act="view" data-view="log"><svg viewBox="0 0 24 24"><path d="M6.5 9v6M17.5 9v6M3.5 10.5v3M20.5 10.5v3M6.5 12h11"/></svg>Log</button>
     <button class="tab" data-act="view" data-view="prog"><svg viewBox="0 0 24 24"><path d="M5 20V12M10 20V6M15 20v-9M20 20V9"/></svg>Udvikling</button>
   </div>
 </nav>
@@ -587,7 +598,7 @@ function load(){
     if(st.program==='blueprint'&&st.plan[2]==='I4'&&st.plan[0]==='Z2L')st.plan[2]='I5';
     /* v9: move 30/15 to Friday and Styrke C to Saturday, so intervals never follow a heavy leg day */
     if(st.program==='blueprint'&&st.plan[5]==='C'&&st.plan[6]==='I30B'){st.plan[5]='I30B';st.plan[6]='C';if(st.addons[5]==='MOB'){delete st.addons[5];st.addons[6]='MOB'}}
-    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.sessEdits=d.sessEdits||{};st.customSess=d.customSess||{};st.customPlan=d.customPlan||null;st.customAddons=d.customAddons||null;st.customDeload=d.customDeload;st.overrides=d.overrides||{};st.cfDays=d.cfDays||{};st.cfPrefs=d.cfPrefs||null;st.strUdstyr=d.strUdstyr||null;st.strGen=d.strGen||null;st.fw=d.fw||null;st.fwT=d.fwT||60;st.block=d.block||null;st.blockDays=d.blockDays||{};st.planSess=d.planSess||{};st.planFw=d.planFw||{};st.shifts=Array.isArray(d.shifts)?d.shifts:[];
+    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.sessEdits=d.sessEdits||{};st.customSess=d.customSess||{};st.customPlan=d.customPlan||null;st.customAddons=d.customAddons||null;st.customDeload=d.customDeload;st.overrides=d.overrides||{};st.cfDays=d.cfDays||{};st.cfPrefs=d.cfPrefs||null;st.strUdstyr=d.strUdstyr||null;st.strGen=d.strGen||null;st.fw=d.fw||null;st.goals=d.goals||[];st.fwT=d.fwT||60;st.block=d.block||null;st.blockDays=d.blockDays||{};st.planSess=d.planSess||{};st.planFw=d.planFw||{};st.shifts=Array.isArray(d.shifts)?d.shifts:[];
     if(!st.program){const untouched=Object.keys(DEFAULT_PLAN).every(k=>st.plan[k]===DEFAULT_PLAN[k]);if(untouched)st.plan={...BP_PLAN};st.addons={...BP_ADDONS}}
     /* v20: one program only — your own week. Existing data counts as already set up. */
     if(st.program!=='custom'&&!d.customPlan)st.customDeload=d.customDeload??true;
@@ -787,7 +798,7 @@ function initStyrke(date){
   const d=loadDraft();if(d&&d.date===date){ui.sess=d.sess;ui.rows=d.rows;ui.wStart=d.wStart||null;return}
   const key=sessKey(date),ok=k=>SESS[k]&&SESS[k].kind==='styrke'&&SESS[k].ex;ui.sess=ok(key)?key:(ok(ui.sess)?ui.sess:'A');initRows(ui.sess)}
 function openLog(date){
-  ui.logDate=date;const key=sessKey(date),k=SESS[key].kind;
+  ui.logFrom=ui.view;ui.logDate=date;const key=sessKey(date),k=SESS[key].kind;
   if(k==='styrke')ui.logType='styrke';else if(k==='interval'||k==='zone2'){ui.logType='kondition';ui.k.sess=key}
   initStyrke(date);ui.dirty=false;ui.view='log';render(true);
 }
@@ -1428,7 +1439,7 @@ function formTest(){
 }
 function viewLog(){
   const t=ui.logType,recent=trainLogs().sort(byDate).reverse().slice(0,5);
-  return `<div class="tr-top"><div class="seg">${Object.entries(LOGTYPE).map(([k,v])=>`<button class="${t===k?'on':''}" data-act="ltype" data-type="${k}">${v}</button>`).join('')}</div>${setBtn()}</div>
+  return `<div class="habit-head"><button class="icon-btn" data-act="logback" aria-label="Tilbage" data-back>‹</button><h2 class="h2">${{styrke:'Træning',kondition:'Kondition',vaegt:'Log vægt',test:'Log test'}[t]}</h2></div>
   <label class="field"><span>Dato</span><input type="date" id="f-date" value="${ui.logDate}"></label>
   ${t==='styrke'?formStyrke():t==='kondition'?formKond():t==='vaegt'?formVaegt():formTest()}
   <button class="btn primary" data-act="save">${t==='styrke'?'Afslut og gem pas':'Gem'}</button>
@@ -1576,38 +1587,65 @@ function viewHabit(){
       <p class="hint">Lader du tiden stå tom, logges ugens mål.</p></section>`}
     ${week}${tips}${del}`;
 }
+/* ---------- Udvikling: mål, styrke, kondition, tests, kropsvægt og historik ---------- */
+const GOAL_T={lift:'Løft',test:'Løbetest',vaegt:'Kropsvægt',week:'Pas pr. uge'};
+function liftBest(ex){const k=String(ex||'').toLowerCase();let b=0;logsOf('styrke').forEach(l=>(l.sets||[]).forEach(s=>{if(s.ex.toLowerCase()===k&&s.kg>0)b=Math.max(b,e1rm(s.kg,s.reps+(s.rir||0)))}));return b}
+function goalState(g){
+  if(g.type==='lift'){const c=liftBest(g.ex);return {label:g.ex,cur:c?fnum(c,1)+' kg':'–',tgt:fnum(g.kg)+' kg',pct:c?c/g.kg:0,sub:'anslået max for én løft'}}
+  if(g.type==='test'){const L=logsOf('test').filter(l=>l.name===g.name&&l.unit==='tid'),b=L.length?Math.min(...L.map(l=>l.value)):0;return {label:g.name,cur:b?fmtTime(b):'–',tgt:fmtTime(g.secs),pct:b?g.secs/b:0,sub:'bedste tid'}}
+  if(g.type==='vaegt'){const W=logsOf('vaegt');if(!W.length)return {label:'Kropsvægt',cur:'–',tgt:fnum(g.kg)+' kg',pct:0,sub:'seneste måling'};
+    const f=W[0].kg,l=W[W.length-1].kg,span=f-g.kg;return {label:'Kropsvægt',cur:fnum(l)+' kg',tgt:fnum(g.kg)+' kg',pct:span===0?1:(f-l)/span,sub:'seneste måling'}}
+  const wk=weekDates(TODAY),n=wk.filter(d=>sessFor(d).kind!=='hvile'&&isDone(d)).length;return {label:'Pas denne uge',cur:String(n),tgt:String(g.n),pct:n/g.n,sub:'gennemført'}}
+function goalForm(){const f=ui.goal;
+  return `<div class="goal-form"><div class="chips">${Object.entries(GOAL_T).map(([k,v])=>`<button class="${f.type===k?'on':''}" data-act="goaltype" data-v="${k}">${v}</button>`).join('')}</div>
+  ${f.type==='lift'?`<label class="field"><span>Øvelse</span><input id="g-ex" data-bind="goal.ex" data-ac="ex" autocomplete="off" value="${esc(f.ex||'')}" placeholder="Fx Squat"></label><label class="field"><span>Mål (kg for én løft)</span><input id="g-kg" inputmode="decimal" data-bind="goal.kg" value="${esc(f.kg||'')}" placeholder="Fx 120"></label>`:''}
+  ${f.type==='test'?`<label class="field"><span>Test</span><input id="g-name" data-bind="goal.name" data-ac="test" autocomplete="off" value="${esc(f.name||'3 km løb')}"></label><label class="field"><span>Måltid (mm:ss)</span><input id="g-time" data-bind="goal.time" value="${esc(f.time||'')}" placeholder="Fx 12:30"></label>`:''}
+  ${f.type==='vaegt'?`<label class="field"><span>Målvægt (kg)</span><input id="g-vkg" inputmode="decimal" data-bind="goal.kg" value="${esc(f.kg||'')}" placeholder="Fx 80"></label>`:''}
+  ${f.type==='week'?`<label class="field"><span>Antal pas pr. uge</span><input id="g-n" inputmode="numeric" data-bind="goal.n" value="${esc(f.n||'')}" placeholder="Fx 4"></label>`:''}
+  <div class="btns3" style="grid-template-columns:1fr 2fr"><button class="btn ghost" data-act="goalcancel">Annullér</button><button class="btn accent" data-act="goalsave">Gem mål</button></div></div>`}
 function viewProg(){
-  // Vægt
-  const W=logsOf('vaegt');let wHtml;
-  if(W.length){const last=W[W.length-1],first=W[0],diff=last.kg-first.kg;
-    wHtml=`<div class="big"><b class="num">${fnum(last.kg)}</b><span>kg</span>${W.length>1?`<em class="num">${diff>0?'+':diff<0?'−':'±'}${fnum(Math.abs(diff))} kg siden ${shortDate(first.date)}</em>`:''}</div>${chart(W.map(l=>({x:pd(l.date).getTime(),y:l.kg})),v=>fnum(v)+' kg','vaegt')}`}
-  else wHtml='<p class="empty">Log din vægt under Log → Vægt.</p>';
-  // Styrke
-  const exs=loggedExercises();const ex=exs.includes(ui.progEx)?ui.progEx:exs[0];let sHtml;
+  const goals=state.goals||[];
+  const G=`<section class="card"><div class="row-between"><h3 class="sec">Dine mål</h3>${ui.goal?'':`<button class="linkbtn" data-act="goalnew">+ Nyt mål</button>`}</div>
+    ${goals.map(g=>{const st=goalState(g),pc=Math.max(0,Math.min(1,st.pct));return `<div class="gl"><div class="row-between"><b>${esc(st.label)}</b><button class="gl-x" data-act="goaldel" data-id="${g.id}" aria-label="Slet mål">×</button></div>
+      <div class="gl-nums"><span class="num">${st.cur}</span><span class="muted small">${st.sub} · mål ${st.tgt}</span></div>
+      <div class="meter"><i style="width:${Math.round(pc*100)}%"></i></div>${pc>=1?'<p class="small ok">✓ Mål nået</p>':''}</div>`}).join('')}
+    ${!goals.length&&!ui.goal?'<p class="empty">Sæt et mål, fx et løft, en løbetid eller antal pas om ugen.</p>':''}
+    ${ui.goal?goalForm():''}</section>`;
+  // Strength
+  const exs=loggedExercises();const ex=exs.includes(ui.progEx)?ui.progEx:exs[0];let sHtml='';
   if(ex){const k=ex.toLowerCase(),pts=[];let bw=true;
     logsOf('styrke').forEach(l=>l.sets.forEach(s=>{if(s.ex.toLowerCase()===k&&s.kg>0)bw=false}));
     logsOf('styrke').forEach(l=>{const ss=l.sets.filter(s=>s.ex.toLowerCase()===k);if(!ss.length)return;pts.push({x:pd(l.date).getTime(),y:Math.max(...ss.map(s=>bw?s.reps:e1rm(s.kg,s.reps+(s.rir||0))))})});
-    const best=Math.max(...pts.map(p=>p.y)),l=lastSet(ex);
+    const best=Math.max(...pts.map(p=>p.y)),l=lastSet(ex),g=goals.find(x=>x.type==='lift'&&x.ex.toLowerCase()===k);
     sHtml=`<label class="field"><span>Øvelse</span><select id="p-ex">${exs.map(e=>`<option${e===ex?' selected':''}>${esc(e)}</option>`).join('')}</select></label>
-    <div class="big"><b class="num">${bw?best:fnum(best,1)}</b><span>${bw?'gentagelser (bedste sæt)':'kg · anslået max for én løft'}</span>${l?`<em class="num">Sidst: ${l.kg?fnum(l.kg)+' kg':'kropsvægt'} · ${l.saet}×${l.reps}</em>`:''}</div>
-    ${chart(pts,v=>bw?Math.round(v)+' reps':fnum(v)+' kg','styrke')}
-    ${bw?'':'<p class="hint">Appen regner ud, hvad du cirka kunne løfte én gang, ud fra dine sæt. Så kan du se fremgang, selvom du løfter forskellige vægte og gentagelser.</p>'}`}
-  else sHtml='<p class="empty">Log et styrkepas, så dukker dine løft op her.</p>';
+    <div class="big"><b class="num">${bw?best:fnum(best,1)}</b><span>${bw?'gentagelser (bedste sæt)':'kg · anslået max for én løft'}</span>${l?`<em class="num">Sidst: ${l.kg?fnum(l.kg)+' kg':'kropsvægt'} · ${l.saet}×${l.reps}${g?` · mål ${fnum(g.kg)} kg`:''}</em>`:''}</div>
+    ${chart(pts,v=>bw?Math.round(v)+' reps':fnum(v)+' kg','styrke')}`}
+  // Condition: minutes per week for the last 8 weeks + latest sessions
+  const K=logsOf('kondition');let kHtml='';
+  if(K.length){const mon=mondayOf(TODAY),wk=[];for(let i=7;i>=0;i--){const st=ds(new Date(pd(mon).getFullYear(),pd(mon).getMonth(),pd(mon).getDate()-7*i)),en=ds(new Date(pd(st).getFullYear(),pd(st).getMonth(),pd(st).getDate()+6));
+      wk.push({x:pd(st).getTime(),y:Math.round(K.filter(l=>l.date>=st&&l.date<=en).reduce((a,l)=>a+(l.dur||0),0)/60)})}
+    const last4=wk.slice(-4).reduce((a,w)=>a+w.y,0);
+    kHtml=`<div class="big"><b class="num">${last4}</b><span>min de sidste 4 uger</span></div>${chart(wk,v=>Math.round(v)+' min','interval')}
+      <div class="k-list">${K.slice(-5).reverse().map(l=>`<div class="k-row"><span>${esc(l.name||'Kondition')}</span><span class="muted small num">${shortDate(l.date)} · ${Math.round((l.dur||0)/60)} min${l.dist?` · ${fnum(l.dist)} km`:''}${l.hr?` · puls ${l.hr}`:''}</span></div>`).join('')}</div>`}
   // Tests
-  const tn=testNames();const tsel=tn.includes(ui.progTest)?ui.progTest:tn[0];let tHtml;
+  const tn=testNames();const tsel=tn.includes(ui.progTest)?ui.progTest:tn[0];let tHtml='';
   if(tsel){const L=logsOf('test').filter(l=>l.name===tsel),unit=L[L.length-1].unit,lower=unit==='tid';
     const best=lower?Math.min(...L.map(l=>l.value)):Math.max(...L.map(l=>l.value));
     tHtml=`<label class="field"><span>Test</span><select id="p-test">${tn.map(n=>`<option${n===tsel?' selected':''}>${esc(n)}</option>`).join('')}</select></label>
     <div class="big"><b class="num">${unit==='tid'?fmtTime(best):fnum(best,2)}</b><span>${unit==='tid'?'bedste tid':'bedste · '+esc(unit)}</span></div>
-    ${chart(L.filter(l=>l.unit===unit).map(l=>({x:pd(l.date).getTime(),y:l.value})),v=>fmtVal(v,unit),'test')}
-    ${lower?'<p class="hint">Lavere er bedre.</p>':''}`}
-  else tHtml='<p class="empty">Log fx en 3 km løbetest under Log → Test.</p>';
+    ${chart(L.filter(l=>l.unit===unit).map(l=>({x:pd(l.date).getTime(),y:l.value})),v=>fmtVal(v,unit),'test')}`}
+  // Body weight
+  const W=logsOf('vaegt');let wHtml='';
+  if(W.length){const last=W[W.length-1],first=W[0],diff=last.kg-first.kg;
+    wHtml=`<div class="big"><b class="num">${fnum(last.kg)}</b><span>kg</span>${W.length>1?`<em class="num">${diff>0?'+':diff<0?'−':'±'}${fnum(Math.abs(diff))} kg siden ${shortDate(first.date)}</em>`:''}</div>${chart(W.map(l=>({x:pd(l.date).getTime(),y:l.kg})),v=>fnum(v)+' kg','vaegt')}`}
   const all=trainLogs().sort(byDate).reverse();
-  return `${calMonth()}
-  ${W.length?`<section class="card"><h3 class="sec">Kropsvægt</h3>${wHtml}</section>`:''}
-  ${ex?`<section class="card"><h3 class="sec">Styrke</h3>${sHtml}</section>`:''}
-  ${tsel?`<section class="card"><h3 class="sec">Tests og tider</h3>${tHtml}</section>`:''}
-  ${all.length?`<section><h3 class="sec">Historik</h3><div class="card">${all.slice(0,60).map(logItem).join('')}</div></section>`:'<p class="empty center">Log dit første pas, så ser du din udvikling her.</p>'}`;
+  const sec=(t,body,empty,btn)=>`<section class="card"><div class="row-between"><h3 class="sec">${t}</h3>${btn||''}</div>${body||`<p class="empty">${empty}</p>`}</section>`;
+  return `<div class="tr-top"><span></span>${setBtn()}</div>${G}
+  ${sec('Styrke',sHtml,'Når du har logget et styrkepas, kan du følge dine løft her.')}
+  ${sec('Kondition',kHtml,'Når du har logget et konditionspas, kan du følge dine minutter her.')}
+  ${sec('Tests',tHtml,'Tag en test, fx 3 km løb, og se om du bliver hurtigere.','<button class="linkbtn" data-act="logtest">+ Log test</button>')}
+  ${sec('Kropsvægt',wHtml,'Vej dig en gang imellem og se udviklingen.','<button class="linkbtn" data-act="logvaegt">+ Log vægt</button>')}
+  ${all.length?`<section><h3 class="sec">Historik</h3><div class="card">${all.slice(0,60).map(logItem).join('')}</div></section>`:''}`;
 }
 function viewSettings(){
   return `<h2 class="h2">Plan og data</h2>
@@ -1802,7 +1840,7 @@ function render(top){if(typeof acHide==='function'&&!$('#ac').hidden)acHide();ha
     (timer&&v!=='timer'?'<button class="btn primary" data-act="view" data-view="timer">Timeren kører · gå tilbage</button>':'')+
     (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():v==='train'?viewTrain():v==='day'?viewDay():v==='sess'?viewSess():v==='sessedit'?viewSessEdit():v==='expick'?viewPick():v==='fw'?viewFW():v==='plan'?viewPlan():viewSettings());
   syncHistory();
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))||((v==='sess'||v==='sessedit'||v==='expick'||v==='fw'||v==='plan')&&t.dataset.view==='train')));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||(v==='log'&&t.dataset.view===(ui.logFrom==='prog'?'prog':ui.logFrom==='train'?'train':'today'))||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))||((v==='sess'||v==='sessedit'||v==='expick'||v==='fw'||v==='plan')&&t.dataset.view==='train')));
   document.body.classList.toggle('no-top',['today','train','log','prog','fw','plan'].includes(v));
   {const m=$('#main');if(ui.freeze&&ui.freeze.v===v){m.style.justifyContent='flex-start';m.style.paddingTop=ui.freeze.px+'px'}else{ui.freeze=null;m.style.justifyContent='';m.style.paddingTop=''}}
   {const st=sessFor(TODAY);$('#hdr-hi').textContent=(state.name?'Hej '+state.name+'! · ':'')+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='onboard'?'Styrke & VO₂ log':v==='train'||v==='sess'?'Hvad har du lyst til i dag?':v==='sessedit'||v==='expick'?'Byg dit eget pas':v==='day'?cap(niceDate(ui.sel)):v==='cf'?'Byg dagens WOD':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
@@ -1882,7 +1920,7 @@ function doRestore(){
   let d;try{d=JSON.parse(ui.impText)}catch(e){d=null}
   if(!d||!Array.isArray(d.logs)){ui.pendingRestore=false;render();return toast('Teksten er ikke en gyldig backup')}
   if(!ui.pendingRestore){ui.pendingRestore=true;return render()}
-  state={sessEdits:d.sessEdits||{},customSess:d.customSess||{},plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:'custom',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,name:d.name,onboarded:true,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,strUdstyr:d.strUdstyr||null,strGen:d.strGen||null,fw:d.fw||null,fwT:d.fwT||60,block:d.block||null,blockDays:d.blockDays||{},planSess:d.planSess||{},planFw:d.planFw||{},shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);applySess();
+  state={sessEdits:d.sessEdits||{},customSess:d.customSess||{},plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:'custom',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,name:d.name,onboarded:true,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,strUdstyr:d.strUdstyr||null,strGen:d.strGen||null,fw:d.fw||null,fwT:d.fwT||60,goals:d.goals||[],block:d.block||null,blockDays:d.blockDays||{},planSess:d.planSess||{},planFw:d.planFw||{},shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);applySess();
 }
 function guessUnit(name){
   const prev=logsOf('test').filter(l=>l.name===name);if(prev.length)return prev[prev.length-1].unit;
@@ -1909,7 +1947,7 @@ document.addEventListener('click',e=>{
       render();break}
     case 'addset':{const r=ui.rows[+b.dataset.i],l=r.sets[r.sets.length-1]||{kg:'',reps:r.tReps?String(r.tReps):'',rir:''};r.sets.push({kg:l.kg,reps:l.reps,rir:'',done:false});ui.dirty=true;saveDraft();render();break}
     case 'rmset':{const r=ui.rows[+b.dataset.i];if(r.sets.length>1)r.sets.pop();ui.dirty=true;saveDraft();render();break}
-    case 'logtest':ui.logType='test';ui.logDate=TODAY;ui.view='log';render(true);break;
+    case 'logtest':ui.logFrom=ui.view;ui.logType='test';ui.logDate=TODAY;ui.view='log';render(true);break;
     case 'view':ui.view=b.dataset.view;if(ui.view==='log'&&!ui.dirty){openLog(TODAY);return}render(true);break;
     case 'settings':ui.view='settings';render(true);break;
     case 'logday':openLog(b.dataset.date);break;
@@ -1959,6 +1997,18 @@ document.addEventListener('click',e=>{
     case 'trempty':ui.logDate=TODAY;ui.logType='styrke';ui.sess='X';ui.rows=[makeRow('',3,8,2)];ui.dirty=true;ui.view='log';render(true);break;
     case 'mprev':if(--ui.calM<0){ui.calM=11;ui.calY--}render();break;
     case 'mnext':if(++ui.calM>11){ui.calM=0;ui.calY++}render();break;
+    case 'goalnew':freezeTop();ui.goal={type:'lift',ex:'',kg:'',name:'3 km løb',time:'',n:''};render();break;
+    case 'goalcancel':ui.goal=null;render();break;
+    case 'goaltype':ui.goal.type=b.dataset.v;render();break;
+    case 'goalsave':{const f=ui.goal,id=Date.now().toString(36);let g=null;
+      if(f.type==='lift'&&f.ex.trim()&&num(f.kg)>0)g={id,type:'lift',ex:f.ex.trim(),kg:num(f.kg)};
+      else if(f.type==='test'){const m=/^(\d+):(\d{1,2})$/.exec((f.time||'').trim());if(m)g={id,type:'test',name:(f.name||'3 km løb').trim(),secs:+m[1]*60+ +m[2]}}
+      else if(f.type==='vaegt'&&num(f.kg)>0)g={id,type:'vaegt',kg:num(f.kg)};
+      else if(f.type==='week'&&num(f.n)>0)g={id,type:'week',n:Math.round(num(f.n))};
+      if(!g){toast('Udfyld målet');break}state.goals=[...(state.goals||[]),g];ui.goal=null;save();render();toast('Mål gemt');break}
+    case 'goaldel':state.goals=(state.goals||[]).filter(g=>g.id!==b.dataset.id);save();render();break;
+    case 'logback':ui.view=ui.logFrom&&ui.logFrom!=='log'?ui.logFrom:'today';render(true);break;
+    case 'logvaegt':ui.logFrom=ui.view;ui.logType='vaegt';ui.logDate=TODAY;ui.view='log';render(true);break;
     case 'ltype':ui.logType=b.dataset.type;if(ui.logType==='styrke'&&!ui.rows.length)initStyrke(ui.logDate);render();break;
     case 'addrow':ui.rows.push(makeRow('',3,8,2));ui.dirty=true;render();{const el=$('#r'+(ui.rows.length-1)+'-ex');if(el)el.focus()}break;
     case 'rmrow':ui.rows.splice(+b.dataset.i,1);ui.dirty=true;saveDraft();render();break;
@@ -2002,7 +2052,7 @@ document.addEventListener('click',e=>{
     case 'pldl':ui.pl.deload=b.dataset.v==='1';render();break;
     case 'plst':ui.pl.start=b.dataset.v;render();break;
     case 'plbuild':ui.pl.preview=plBuild(ui.pl);ui.pl.step=3;render(true);break;
-    case 'placcept':{const st=ui.pl.preview.start;plAccept();ui.pl=null;const d=pd(st);ui.calY=d.getFullYear();ui.calM=d.getMonth();ui.view='prog';render(true);toast('Planen ligger nu i din kalender');break}
+    case 'placcept':{const st=ui.pl.preview.start;plAccept();ui.pl=null;ui.wsel=undefined;ui.view='today';render(true);toast('Planen er lagt ind');break}
     case 'plstop':plStop();render();toast('Forløbet er stoppet');break;
     case 'fwopen':ui.fwDate=null;ui.fwSwap=null;ui.fwLog=null;if(!state.fw){state.fw=fwNew();save()}ui.view='fw';render(true);break;
     case 'fwday':ui.fwDate=b.dataset.date;ui.fwSwap=null;ui.fwLog=null;ui.view='fw';render(true);break;
