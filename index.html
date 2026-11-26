@@ -518,6 +518,8 @@ b,strong{font-weight:600}
 .wd .dn{font-size:17px;font-weight:600}
 .done-msg{font-weight:600}
 .sug{font-size:14px;font-weight:500}
+.pl-prog{display:flex;gap:4px;margin:-4px 0 14px}.pl-prog i{flex:1;height:3px;border-radius:2px;background:var(--line)}.pl-prog i.on{background:var(--accent)}
+.stepper{justify-content:center}
 </style>
 </head>
 <body>
@@ -1301,7 +1303,7 @@ function plTypeOfKey(k){if(!k||k==='R')return 'hvile';if(k==='S'||(SESS[k]&&SESS
   const s=SESS[k];if(!s)return 'hvile';if(s.kind==='interval'||s.kind==='zone2')return 'kondition';if(/^AR/.test(k))return 'restitution';if(s.kind==='mobilitet')return 'mobilitet';return 'hvile'}
 function plStart(){const t={};PL_DOW.forEach(d=>t[d]=plTypeOfKey(state.plan[d]));
   const days=PL_DOW.filter(d=>['styrke','crossfit','kondition'].includes(t[d]));
-  return {step:1,types:t,weeks:4,goal:'styrke',dist:5,cur:3,pace:300,curPace:330,deload:true,start:'next',preview:null,pick:null}}
+  return {step:'goal',types:t,weeks:4,goal:'styrke',dist:5,cur:3,pace:300,curPace:330,deload:true,start:'next',preview:null,pick:null}}
 /* Sets × reps @ % for week i (0-based) of the block. Deload weeks are lighter; a strength block ends with a test. */
 const PL_PROG={styrke:[[5,5,70],[5,4,75],[5,3,80],[4,3,85],[5,2,85],[4,2,88],[3,2,90]],
   muskler:[[4,10,60],[4,8,67],[4,8,70],[4,6,75],[5,6,75],[4,5,78],[4,5,80]],
@@ -1403,36 +1405,44 @@ function viewMonth(){const b=plActive(),wn=plWeekNo(),mon=mondayOf(TODAY);
       ${days.map(d=>{const s=sessFor(d),op=ui.mOpen===d,done=isDone(d);return `<button class="pl-r m-r${d<TODAY?' past':''}${d===TODAY?' today':''}${op?' open':''}" data-act="mday" data-date="${d}"><span class="pl-d">${PL_SHORT[pd(d).getDay()]} ${pd(d).getDate()}</span>${chip(s.kind,s.label||KIND_LABEL[s.kind])}<span class="pl-l">${esc(s.name)}${done?' <span class="ok">✓</span>':''}</span>${s.kind==='hvile'?'':'<span class="chev">›</span>'}</button>${op?weekDetail(d):''}`}).join('')}</section>`}).join('');
   return `${head}${weeks}`}
 function isoWeek(d){const t=pd(d),x=new Date(Date.UTC(t.getFullYear(),t.getMonth(),t.getDate()));const day=x.getUTCDay()||7;x.setUTCDate(x.getUTCDate()+4-day);const y=new Date(Date.UTC(x.getUTCFullYear(),0,1));return Math.ceil(((x-y)/864e5+1)/7)}
+/* The wizard asks one thing per screen. Which screens appear depends on the goal (run goals add distance and pace). */
+function plSteps(P){const run=isRun(P.goal);return ['goal',...(run?['dist',P.goal==='distance'?'cur':'pace',...(P.goal==='pace'?['curpace']:[])]:[]),'weeks',...(P.weeks>=4?['deload']:[]),'start','week']}
+function plWk(P){if(isRun(P.goal)){const r=runWeeks(P);if(!r[0].includes(P.weeks))P.weeks=r[1];return r}if(P.weeks>8)P.weeks=8;return [[1,2,3,4,5,6,7,8],0]}
 function viewPlan(){const P=ui.pl;if(!P){ui.view='month';return viewMonth()}
-  const head=(t,sub)=>`<div class="habit-head"><button class="icon-btn" data-act="plback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">Planlæg forløb · trin ${P.step} af 3</p><h2 class="h2">${t}</h2></div></div>${sub?`<p class="note">${sub}</p>`:''}`;
-  if(P.step===1){const heavy=d=>['styrke','crossfit'].includes(P.types[d]);
-    // Mark runs of 3+ heavy days in a row (Mon-Sun, wrapping) and a week with no rest at all
-    const warn=new Set();PL_DOW.forEach((d,i)=>{const run=[0,1,2].map(k=>PL_DOW[(i+k)%7]);if(run.every(heavy))run.forEach(x=>warn.add(x))});
+  const steps=plSteps(P);if(P.step!=='review'&&!steps.includes(P.step))P.step=steps[0];
+  const idx=steps.indexOf(P.step),n=steps.length;
+  const head=(t,sub)=>`<div class="habit-head"><button class="icon-btn" data-act="plback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">Planlæg forløb${idx>=0?` · ${idx+1} af ${n}`:''}</p><h2 class="h2">${t}</h2></div></div>${idx>=0?`<div class="pl-prog">${steps.map((_,k)=>`<i class="${k<=idx?'on':''}"></i>`).join('')}</div>`:''}${sub?`<p class="note">${sub}</p>`:''}`;
+  const nav=(lbl,act,dis)=>`<div class="btns3" style="grid-template-columns:1fr 2fr">${idx>0?`<button class="btn ghost" data-act="plprev">Tilbage</button>`:`<button class="btn ghost" data-act="plback">Annullér</button>`}<button class="btn accent" data-act="${act||'plnext'}"${dis?' disabled':''}>${lbl||'Næste'}</button></div>`;
+  const card=(x)=>`<section class="card">${x}</section>`;
+  const opt=(act,v,on,l,d)=>`<button class="fmt${on?' on':''}" data-act="${act}" data-v="${v}"><b>${l}</b>${d?`<small>${d}</small>`:''}</button>`;
+  const stepper=(f,dist)=>`<div class="stepper"><button data-act="plpace" data-f="${f}" data-v="-5" aria-label="Hurtigere">−</button><b class="num">${fmtPace(P[f])} /km</b><button data-act="plpace" data-f="${f}" data-v="5" aria-label="Langsommere">+</button></div><p class="hint num" style="text-align:center">${RUN_D[P.dist]} på ${fmtTime(P[f]*P.dist)}</p>`;
+  switch(P.step){
+  case 'goal':return head('Hvad er dit mål?')+card(`<div class="fmt-grid">${Object.entries(PL_GOALS).map(([k,[l,d]])=>opt('plgoal',k,P.goal===k,l,d)).join('')}</div>`)+nav();
+  case 'dist':{const dists=P.goal==='pace'?[5,10,21.1]:[5,10,21.1,42.2];if(!dists.includes(P.dist))P.dist=5;
+    return head(P.goal==='pace'?'Hvilken distance vil du løbe hurtigere?':'Hvilken distance vil du nå?')+card(`<div class="fmt-grid">${dists.map(d=>opt('pldist',d,P.dist===d,RUN_D[d])).join('')}</div>`)+nav()}
+  case 'cur':return head('Hvor langt kan du løbe nu?','Din længste tur uden at gå.')+card(`<div class="chips">${[1,3,5,8,12,16,21].map(k=>`<button class="${P.cur===k?'on':''}" data-act="plcur" data-v="${k}">${k} km</button>`).join('')}</div>`)+nav();
+  case 'pace':return head('Hvilken pace vil du ramme?',`Målet for ${RUN_D[P.dist].toLowerCase()}.`)+card(stepper('pace'))+nav();
+  case 'curpace':return head('Hvad er din pace nu?',`Hvad du kan løbe ${RUN_D[P.dist].toLowerCase()} på i dag.`)+card(stepper('curPace'))+nav();
+  case 'weeks':{const [wk,rec]=plWk(P);
+    return head('Hvor mange uger?')+card(`<div class="chips">${wk.map(k=>`<button class="${P.weeks===k?'on':''}" data-act="plweeks" data-v="${k}">${k}${k===rec?' ★':''}</button>`).join('')}</div>${rec?`<p class="hint">★ anbefalet for ${RUN_D[P.dist].toLowerCase()}</p>`:''}`)+nav()}
+  case 'deload':return head('Skal der være lette uger?')+card(`<div class="fmt-grid">${opt('pldl',1,P.deload,'Let uge hver 4. uge','Kroppen når at komme sig. Anbefalet.')}${opt('pldl',0,!P.deload,'Ingen','Fuld belastning hele vejen.')}</div>`)+nav();
+  case 'start':return head('Hvornår vil du starte?')+card(`<div class="fmt-grid">${opt('plst','this',P.start==='this','Denne uge','Dage der er gået springes over.')}${opt('plst','next',P.start==='next','Næste uge','Starter mandag.')}</div>`)+nav();
+  case 'week':{const heavy=d=>['styrke','crossfit'].includes(P.types[d]);
+    const warn=new Set();PL_DOW.forEach((d,i)=>{const r=[0,1,2].map(k=>PL_DOW[(i+k)%7]);if(r.every(heavy))r.forEach(x=>warn.add(x))});
     const cnt={};PL_DOW.forEach(d=>cnt[P.types[d]]=(cnt[P.types[d]]||0)+1);
     const noRest=!PL_DOW.some(d=>['hvile','restitution','mobilitet'].includes(P.types[d]));
-    return head('Din uge')+`<section class="card pl-week-edit">${PL_DOW.map(d=>`<button class="pl-wrow k-${PL_TYPES[P.types[d]][1]}" data-act="plpick" data-d="${d}"><span class="pl-wd">${PL_SHORT[d]}</span>${plIcon(P.types[d])}<span class="pl-wt">${PL_TYPES[P.types[d]][0]}</span>${warn.has(d)||noRest?'<span class="pl-warn" title="Mange tunge dage i træk">!</span>':''}<span class="chev">›</span></button>`).join('')}</section>
+    const run=isRun(P.goal),nRun=PL_DOW.filter(d=>P.types[d]==='kondition').length;
+    return head('Hvordan ser din uge ud?')+`<section class="card pl-week-edit">${PL_DOW.map(d=>`<button class="pl-wrow k-${PL_TYPES[P.types[d]][1]}" data-act="plpick" data-d="${d}"><span class="pl-wd">${PL_SHORT[d]}</span>${plIcon(P.types[d])}<span class="pl-wt">${PL_TYPES[P.types[d]][0]}</span>${warn.has(d)||noRest?'<span class="pl-warn" title="Mange tunge dage i træk">!</span>':''}<span class="chev">›</span></button>`).join('')}</section>
     <div class="pl-sum">${Object.keys(PL_TYPES).filter(t=>cnt[t]).map(t=>`<span class="k-${PL_TYPES[t][1]}"><span class="bar"></span>${cnt[t]} ${PL_TYPES[t][0].toLowerCase()}</span>`).join('')}</div>
-    <button class="btn accent" data-act="plnext">Videre</button>
+    ${run&&!nRun?'<p class="hint warn-t">Gør mindst 2 dage til kondition for at bygge en løbeplan.</p>':''}
+    ${nav('Byg planen','plbuild',run&&!nRun)}
     ${P.pick!=null?`<div class="sheet-bg" data-act="plclose"><div class="sheet" role="dialog" aria-label="${PL_SHORT[P.pick]}"><p class="sheet-t">${cap(DAYS[P.pick])}</p><div class="sheet-grid">${Object.keys(PL_TYPES).map(t=>`<button class="sheet-b k-${PL_TYPES[t][1]}${P.types[P.pick]===t?' on':''}" data-act="plset" data-v="${t}">${plIcon(t)}<span>${PL_TYPES[t][0]}</span></button>`).join('')}</div></div></div>`:''}`}
-  if(P.step===2){const run=isRun(P.goal),nRun=PL_DOW.filter(d=>P.types[d]==='kondition').length;
-    let wk=[1,2,3,4,5,6,7,8],rec=0;if(run){const r=runWeeks(P);wk=r[0];rec=r[1];if(!wk.includes(P.weeks))P.weeks=rec}else if(P.weeks>8)P.weeks=8;
-    const dists=P.goal==='pace'?[5,10,21.1]:[5,10,21.1,42.2];if(run&&!dists.includes(P.dist))P.dist=5;
-    const runBox=run?`<div class="field"><span>Distance</span><div class="chips">${dists.map(d=>`<button class="${P.dist===d?'on':''}" data-act="pldist" data-v="${d}">${RUN_D[d]}</button>`).join('')}</div></div>
-      ${P.goal==='distance'?`<div class="field"><span>Længste tur du kan løbe nu</span><div class="chips">${[1,3,5,8,12,16,21].map(k=>`<button class="${P.cur===k?'on':''}" data-act="plcur" data-v="${k}">${k} km</button>`).join('')}</div></div>`
-      :`<div class="field"><span>Mål-pace</span><div class="stepper"><button data-act="plpace" data-f="pace" data-v="-5" aria-label="Hurtigere">−</button><b class="num">${fmtPace(P.pace)} /km</b><button data-act="plpace" data-f="pace" data-v="5" aria-label="Langsommere">+</button></div><p class="hint num">${RUN_D[P.dist]} på ${fmtTime(P.pace*P.dist)}</p></div>
-        <div class="field"><span>Din pace nu</span><div class="stepper"><button data-act="plpace" data-f="curPace" data-v="-5" aria-label="Hurtigere">−</button><b class="num">${fmtPace(P.curPace)} /km</b><button data-act="plpace" data-f="curPace" data-v="5" aria-label="Langsommere">+</button></div><p class="hint num">${RUN_D[P.dist]} på ${fmtTime(P.curPace*P.dist)}</p></div>`}
-      ${nRun?'':'<p class="hint warn-t">Du har ingen konditionsdage i din uge. Gå tilbage og gør mindst 2 dage til kondition.</p>'}`:'';
-    return head('Hvor længe og mod hvad?')+`<section class="card"><div class="field"><span>Mål</span><div class="fmt-grid">${Object.entries(PL_GOALS).map(([k,[l,d]])=>`<button class="fmt${P.goal===k?' on':''}" data-act="plgoal" data-v="${k}"><b>${l}</b><small>${d}</small></button>`).join('')}</div></div>
-    ${runBox}
-    <div class="field"><span>Antal uger</span><div class="chips">${wk.map(n=>`<button class="${P.weeks===n?'on':''}" data-act="plweeks" data-v="${n}">${n}${n===rec?' ★':''}</button>`).join('')}</div>${rec?`<p class="hint">★ anbefalet for ${RUN_D[P.dist].toLowerCase()}</p>`:''}</div>
-    ${P.weeks>=4?`<div class="field"><span>Deload</span><div class="chips"><button class="${P.deload?'on':''}" data-act="pldl" data-v="1">Let uge hver 4. uge</button><button class="${P.deload?'':'on'}" data-act="pldl" data-v="0">Ingen</button></div></div>`:''}
-    <div class="field"><span>Start</span><div class="chips"><button class="${P.start==='this'?'on':''}" data-act="plst" data-v="this">Denne uge</button><button class="${P.start==='next'?'on':''}" data-act="plst" data-v="next">Næste uge</button></div></div></section>
-    <div class="btns3" style="grid-template-columns:1fr 2fr"><button class="btn ghost" data-act="plprev">Tilbage</button><button class="btn accent" data-act="plbuild"${run&&!nRun?' disabled':''}>Byg planen</button></div>`}
+  }
   const pv=P.preview;
   return head('Din plan',`${pv.P.weeks} ${pv.P.weeks===1?'uge':'uger'} · ${esc(plGoalName(pv.P))}. Se den igennem, og acceptér når den ser rigtig ud.`)+
     pv.weeks.map(w=>`<section class="card pl-week"><div class="row-between"><h3 class="sec">Uge ${w.w+1} · ${shortDate(w.days[0].date)}–${shortDate(w.days[6].date)}</h3>${w.dl?'<span class="tag-dl">Deload</span>':w.test?'<span class="tag-dl">Test</span>':''}</div>
       ${w.days.map(x=>{const op=P.open===x.date;return `<button class="pl-r${x.past?' past':''}${op?' open':''}" data-act="plopenday" data-date="${x.date}"${x.past?' disabled':''}><span class="pl-d">${PL_SHORT[x.dow]}</span>${chip(PL_TYPES[x.t][1],PL_TYPES[x.t][0])}<span class="pl-l">${esc(x.past?'Allerede gået':x.label)}</span>${x.past||x.key==='R'?'':'<span class="chev">›</span>'}</button>${op?plDetail(x,pv):''}`}).join('')}</section>`).join('')+
-    `<button class="btn accent" data-act="placcept">Acceptér plan</button><div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn ghost" data-act="plprev">Ret valg</button><button class="btn ghost" data-act="plbuild">🎲 Byg igen</button></div>`}
+    `<button class="btn accent" data-act="placcept">Acceptér plan</button><div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn ghost" data-act="plprev">Ret ugen</button><button class="btn ghost" data-act="plbuild">🎲 Byg igen</button></div>`}
 
 /* ---------- Tab changes: the page slides sideways and the coloured pill slides to the new tab ---------- */
 const TAB_ORDER=['today','train','month','prog'];
@@ -2241,22 +2251,22 @@ document.addEventListener('click',e=>{
     case 'cfeq':{const all=cfUdstyrAlle(),P=cfPrefs();let have=(P.udstyr||all).slice();const u=b.dataset.v;have=have.includes(u)?have.filter(x=>x!==u):have.concat(u);state.cfPrefs={...P,udstyr:have.length===all.length?null:have};save();render();break}
     case 'cfgen':{const wasPas=ui.cf.step==='pas';const p=cfGenerate();ui.cf.step='pas';render(!wasPas);if(!p)toast('Ingen gyldige pas med de valg');break}
     case 'plopen':ui.pl=plStart();ui.view='plan';render(true);break;
-    case 'plback':if(ui.pl&&ui.pl.step>1&&navDepth===0){ui.pl.step--;render(true)}else{ui.view='month';render(true)}break;
+    case 'plback':{const P=ui.pl;if(P&&P.step==='review'){P.step='week';render(true);break}const st=P?plSteps(P):[],k=P?st.indexOf(P.step):-1;if(k>0&&navDepth===0){P.step=st[k-1];render(true)}else{ui.view='month';render(true)}break}
     case 'plopenday':{freezeTop();const d=b.dataset.date;ui.pl.open=ui.pl.open===d?null:d;render();break}
     case 'plpick':ui.pl.pick=+b.dataset.d;render();break;
     case 'plclose':ui.pl.pick=null;render();break;
     case 'plset':ui.pl.types[ui.pl.pick]=b.dataset.v;ui.pl.pick=null;render();break;
-    case 'plnext':ui.pl.step++;ui.pl.pick=null;render(true);break;
-    case 'plprev':ui.pl.step=Math.max(1,ui.pl.step-1);render(true);break;
+    case 'plnext':{const P=ui.pl,st=plSteps(P),k=st.indexOf(P.step);P.pick=null;if(st[k+1]){P.step=st[k+1];if(P.step==='weeks')plWk(P)}render(true);break}
+    case 'plprev':{const P=ui.pl;if(P.step==='review')P.step='week';else{const st=plSteps(P),k=st.indexOf(P.step);P.step=st[Math.max(0,k-1)]}render(true);break}
     case 'pltype':ui.pl.types[+b.dataset.d]=b.dataset.v;render();break;
     case 'plweeks':ui.pl.weeks=+b.dataset.v;render();break;
     case 'plgoal':{const P=ui.pl;P.goal=b.dataset.v;if(isRun(P.goal)){const r=runWeeks(P);P.weeks=r[1]}else if(P.weeks>8)P.weeks=4;render();break}
     case 'pldist':{const P=ui.pl;P.dist=+b.dataset.v;P.weeks=runWeeks(P)[1];render();break}
     case 'plcur':ui.pl.cur=+b.dataset.v;render();break;
     case 'plpace':{const P=ui.pl,f=b.dataset.f;P[f]=Math.max(150,Math.min(600,P[f]+ +b.dataset.v));if(f==='pace'&&P.curPace<P.pace)P.curPace=P.pace;if(f==='curPace'&&P.curPace<P.pace)P.pace=P.curPace;render();break}
-    case 'pldl':ui.pl.deload=b.dataset.v==='1';render();break;
+    case 'pldl':ui.pl.deload=b.dataset.v==='1'||b.dataset.v==='true';render();break;
     case 'plst':ui.pl.start=b.dataset.v;render();break;
-    case 'plbuild':ui.pl.preview=plBuild(ui.pl);ui.pl.step=3;render(true);break;
+    case 'plbuild':ui.pl.preview=plBuild(ui.pl);ui.pl.step='review';render(true);break;
     case 'placcept':{const st=ui.pl.preview.start;plAccept();ui.pl=null;ui.mOpen=null;ui.view='month';render(true);toast('Planen er lagt ind');break}
     case 'plstop':plStop();render();toast('Forløbet er stoppet');break;
     case 'fwopen':ui.fwDate=null;ui.fwSwap=null;ui.fwLog=null;if(!state.fw){state.fw=fwNew();save()}ui.view='fw';render(true);break;
