@@ -49,6 +49,23 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px
   padding-block:18px calc(170px + env(safe-area-inset-bottom,0px))}
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .no-top header.top{display:none}
+.pl-week-edit{padding:6px 10px;gap:0}
+.pl-wrow{appearance:none;border:0;background:none;color:var(--fg);display:grid;grid-template-columns:44px 40px 1fr auto auto;align-items:center;gap:10px;padding:10px 6px;border-top:1px solid var(--line);font:500 16px/1.2 var(--font);text-align:left;cursor:pointer;width:100%}
+.pl-wrow:first-child{border-top:0}
+.pl-wd{color:var(--muted);font-size:14px}
+.pl-wrow .chev{color:var(--muted);font-size:20px}
+.pl-ic{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:color-mix(in srgb,var(--k) 18%,transparent);color:var(--k)}
+.pl-ic svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pl-warn{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font:700 12px/20px var(--font);text-align:center}
+.pl-sum{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 14px;font-size:13px;color:var(--muted)}
+.pl-sum>span{display:inline-flex;align-items:center;gap:6px}
+.sheet-bg{position:fixed;inset:0;z-index:20;background:rgb(0 0 0 / .5);display:flex;align-items:flex-end;justify-content:center;animation:wdin .15s ease-out}
+.sheet{background:var(--surface);width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom,0px));display:grid;gap:12px}
+.sheet-t{margin:0;text-align:center;font-weight:600}
+.sheet-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sheet-b{appearance:none;border:2px solid transparent;background:var(--surface-2);color:var(--fg);border-radius:16px;padding:14px 4px;display:grid;justify-items:center;gap:8px;font:500 13px/1.2 var(--font);cursor:pointer}
+.sheet-b.on{border-color:var(--k)}
+.sheet-b .pl-ic{width:44px;height:44px;border-radius:14px}
 .pl-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .pl-day{appearance:none;border:0;border-radius:14px;padding:14px 0;background:var(--surface-2);color:var(--fg);font:600 14px/1 var(--font);cursor:pointer}
 .pl-day.on{background:var(--pill);color:var(--pill-fg)}
@@ -1147,6 +1164,9 @@ function fwLines(){const w=fwW(),l=fwL(w.b.lift),p=fwC();
    The plan is stored as one session key per date (state.blockDays). It wins over the weekly plan,
    but a manual change on a single day (override or skip) still wins over the plan. */
 const PL_TYPES={styrke:['Styrke','styrke'],crossfit:['Fuld træning','crossfit'],kondition:['Kondition','interval'],restitution:['Aktiv restitution','mobilitet'],mobilitet:['Mobilitet','mobilitet'],hvile:['Hvile','hvile']};
+const PL_ICON={styrke:'<path d="M6.5 8v8M17.5 8v8M3.5 10v4M20.5 10v4M6.5 12h11"/>',crossfit:'<path d="M12 3c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2.5-5 .5 1.5 1.5 2 2.5 2 0-2.5-1-4.5 0-7z"/>',
+  kondition:'<path d="M3 12h4l2.5-6 4 12L16 12h5"/>',restitution:'<path d="M5 19c0-8 6-13 14-14-1 8-6 14-14 14zM5 19l7-7"/>',mobilitet:'<circle cx="12" cy="5" r="2"/><path d="M12 8v5l-4 6M12 13l4 6M6 10h12"/>',hvile:'<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>'};
+const plIcon=t=>`<span class="pl-ic k-${PL_TYPES[t][1]}"><svg viewBox="0 0 24 24">${PL_ICON[t]}</svg></span>`;
 const PL_GOALS={styrke:['Blive stærkere','Tungere løft, færre gentagelser. Sidste uge er en test.'],kondition:['Bedre kondition','Flere og længere intervaller. Styrke holdes ved lige.'],allround:['Allround (CrossFit)','Varierede styrkeskemaer og WODs. God arbejdskapacitet.'],muskler:['Mere muskelmasse','Flere gentagelser og mere bonusarbejde.']};
 const PL_DOW=[1,2,3,4,5,6,0];
 const PL_SHORT={1:'Man',2:'Tir',3:'Ons',4:'Tor',5:'Fre',6:'Lør',0:'Søn'};
@@ -1156,7 +1176,7 @@ function plTypeOfKey(k){if(!k||k==='R')return 'hvile';if(k==='S'||(SESS[k]&&SESS
   const s=SESS[k];if(!s)return 'hvile';if(s.kind==='interval'||s.kind==='zone2')return 'kondition';if(/^AR/.test(k))return 'restitution';if(s.kind==='mobilitet')return 'mobilitet';return 'hvile'}
 function plStart(){const t={};PL_DOW.forEach(d=>t[d]=plTypeOfKey(state.plan[d]));
   const days=PL_DOW.filter(d=>['styrke','crossfit','kondition'].includes(t[d]));
-  return {step:1,days,types:t,weeks:4,goal:'styrke',deload:true,start:'next',preview:null}}
+  return {step:1,types:t,weeks:4,goal:'styrke',deload:true,start:'next',preview:null,pick:null}}
 /* Sets × reps @ % for week i (0-based) of the block. Deload weeks are lighter; a strength block ends with a test. */
 const PL_PROG={styrke:[[5,5,70],[5,4,75],[5,3,80],[4,3,85],[5,2,85],[4,2,88],[3,2,90]],
   muskler:[[4,10,60],[4,8,67],[4,8,70],[4,6,75],[5,6,75],[4,5,78],[4,5,80]],
@@ -1233,16 +1253,17 @@ function plStop(){const bd={},ps={},pf={};Object.entries(state.blockDays||{}).fo
 const plActive=()=>state.block&&state.block.end>=TODAY?state.block:null;
 function plWeekNo(){const b=plActive();if(!b)return 0;return Math.floor((pd(mondayOf(TODAY))-pd(b.start))/(7*864e5))+1}
 function viewPlan(){const P=ui.pl;if(!P){ui.view='train';return viewTrain()}
-  const head=(t,sub)=>`<div class="habit-head"><button class="icon-btn" data-act="plback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">Planlæg forløb · trin ${P.step} af 4</p><h2 class="h2">${t}</h2></div></div>${sub?`<p class="note">${sub}</p>`:''}`;
-  if(P.step===1)return head('Hvilke dage vil du træne?','Valgt ud fra din nuværende uge. Tryk for at ændre.')+`<section class="card"><div class="pl-days">${PL_DOW.map(d=>`<button class="pl-day${P.days.includes(d)?' on':''}" data-act="plday" data-v="${d}">${PL_SHORT[d]}</button>`).join('')}</div>
-    <p class="hint">${P.days.length} træningsdage. 3-5 dage giver plads til både træning og restitution.</p></section><button class="btn accent" data-act="plnext"${P.days.length?'':' disabled'}>Videre</button>`;
-  if(P.step===2){const opts=d=>P.days.includes(d)?['styrke','crossfit','kondition']:['hvile','restitution','mobilitet'];
-    const nL=PL_DOW.filter(d=>['styrke','crossfit'].includes(P.types[d])&&P.days.includes(d)).length;
-    return head('Hvad skal hver dag være?','Appen fordeler muskelgrupperne, så du ikke rammer det samme to dage i træk.')+`<section class="card">${PL_DOW.map(d=>{const o=opts(d);if(!o.includes(P.types[d]))P.types[d]=o[0];
-      return `<div class="pl-row"><b>${PL_SHORT[d]}</b><div class="chips">${o.map(t=>`<button class="${P.types[d]===t?'on':''}" data-act="pltype" data-d="${d}" data-v="${t}">${PL_TYPES[t][0]}</button>`).join('')}</div></div>`}).join('')}
-      <p class="hint">${nL?`${nL} ${nL===1?'dag':'dage'} med tunge løft. `:''}Fuld træning = opvarmning, styrke, WOD og bonus.</p></section>
-      <div class="btns3" style="grid-template-columns:1fr 2fr"><button class="btn ghost" data-act="plprev">Tilbage</button><button class="btn accent" data-act="plnext">Videre</button></div>`}
-  if(P.step===3)return head('Hvor længe og mod hvad?')+`<section class="card"><div class="field"><span>Antal uger</span><div class="chips">${[1,2,3,4,5,6,7,8].map(n=>`<button class="${P.weeks===n?'on':''}" data-act="plweeks" data-v="${n}">${n}</button>`).join('')}</div></div>
+  const head=(t,sub)=>`<div class="habit-head"><button class="icon-btn" data-act="plback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">Planlæg forløb · trin ${P.step} af 3</p><h2 class="h2">${t}</h2></div></div>${sub?`<p class="note">${sub}</p>`:''}`;
+  if(P.step===1){const heavy=d=>['styrke','crossfit'].includes(P.types[d]);
+    // Mark runs of 3+ heavy days in a row (Mon-Sun, wrapping) and a week with no rest at all
+    const warn=new Set();PL_DOW.forEach((d,i)=>{const run=[0,1,2].map(k=>PL_DOW[(i+k)%7]);if(run.every(heavy))run.forEach(x=>warn.add(x))});
+    const cnt={};PL_DOW.forEach(d=>cnt[P.types[d]]=(cnt[P.types[d]]||0)+1);
+    const noRest=!PL_DOW.some(d=>['hvile','restitution','mobilitet'].includes(P.types[d]));
+    return head('Din uge')+`<section class="card pl-week-edit">${PL_DOW.map(d=>`<button class="pl-wrow k-${PL_TYPES[P.types[d]][1]}" data-act="plpick" data-d="${d}"><span class="pl-wd">${PL_SHORT[d]}</span>${plIcon(P.types[d])}<span class="pl-wt">${PL_TYPES[P.types[d]][0]}</span>${warn.has(d)||noRest?'<span class="pl-warn" title="Mange tunge dage i træk">!</span>':''}<span class="chev">›</span></button>`).join('')}</section>
+    <div class="pl-sum">${Object.keys(PL_TYPES).filter(t=>cnt[t]).map(t=>`<span class="k-${PL_TYPES[t][1]}"><span class="bar"></span>${cnt[t]} ${PL_TYPES[t][0].toLowerCase()}</span>`).join('')}</div>
+    <button class="btn accent" data-act="plnext">Videre</button>
+    ${P.pick!=null?`<div class="sheet-bg" data-act="plclose"><div class="sheet" role="dialog" aria-label="${PL_SHORT[P.pick]}"><p class="sheet-t">${cap(DAYS[P.pick])}</p><div class="sheet-grid">${Object.keys(PL_TYPES).map(t=>`<button class="sheet-b k-${PL_TYPES[t][1]}${P.types[P.pick]===t?' on':''}" data-act="plset" data-v="${t}">${plIcon(t)}<span>${PL_TYPES[t][0]}</span></button>`).join('')}</div></div></div>`:''}`}
+  if(P.step===2)return head('Hvor længe og mod hvad?')+`<section class="card"><div class="field"><span>Antal uger</span><div class="chips">${[1,2,3,4,5,6,7,8].map(n=>`<button class="${P.weeks===n?'on':''}" data-act="plweeks" data-v="${n}">${n}</button>`).join('')}</div></div>
     <div class="field"><span>Mål</span><div class="fmt-grid">${Object.entries(PL_GOALS).map(([k,[l,d]])=>`<button class="fmt${P.goal===k?' on':''}" data-act="plgoal" data-v="${k}"><b>${l}</b><small>${d}</small></button>`).join('')}</div></div>
     ${P.weeks>=4?`<div class="field"><span>Deload</span><div class="chips"><button class="${P.deload?'on':''}" data-act="pldl" data-v="1">Let uge hver 4. uge</button><button class="${P.deload?'':'on'}" data-act="pldl" data-v="0">Ingen</button></div></div>`:''}
     <div class="field"><span>Start</span><div class="chips"><button class="${P.start==='this'?'on':''}" data-act="plst" data-v="this">Denne uge</button><button class="${P.start==='next'?'on':''}" data-act="plst" data-v="next">Næste uge</button></div></div></section>
@@ -1956,15 +1977,17 @@ document.addEventListener('click',e=>{
     case 'cfgen':{const wasPas=ui.cf.step==='pas';const p=cfGenerate();ui.cf.step='pas';render(!wasPas);if(!p)toast('Ingen gyldige pas med de valg');break}
     case 'plopen':ui.pl=plStart();ui.view='plan';render(true);break;
     case 'plback':if(ui.pl&&ui.pl.step>1&&navDepth===0){ui.pl.step--;render(true)}else{ui.view='train';render(true)}break;
-    case 'plday':{const d=+b.dataset.v,P=ui.pl;P.days=P.days.includes(d)?P.days.filter(x=>x!==d):P.days.concat(d);render();break}
-    case 'plnext':{const P=ui.pl;if(P.step===1){PL_DOW.forEach(d=>{const tr=['styrke','crossfit','kondition'].includes(P.types[d]);if(P.days.includes(d)&&!tr)P.types[d]='styrke';if(!P.days.includes(d)&&tr)P.types[d]='hvile'})}P.step++;render(true);break}
-    case 'plprev':ui.pl.step=Math.max(1,ui.pl.step-(ui.pl.step===4?1:1));render(true);break;
+    case 'plpick':ui.pl.pick=+b.dataset.d;render();break;
+    case 'plclose':ui.pl.pick=null;render();break;
+    case 'plset':ui.pl.types[ui.pl.pick]=b.dataset.v;ui.pl.pick=null;render();break;
+    case 'plnext':ui.pl.step++;ui.pl.pick=null;render(true);break;
+    case 'plprev':ui.pl.step=Math.max(1,ui.pl.step-1);render(true);break;
     case 'pltype':ui.pl.types[+b.dataset.d]=b.dataset.v;render();break;
     case 'plweeks':ui.pl.weeks=+b.dataset.v;render();break;
     case 'plgoal':ui.pl.goal=b.dataset.v;render();break;
     case 'pldl':ui.pl.deload=b.dataset.v==='1';render();break;
     case 'plst':ui.pl.start=b.dataset.v;render();break;
-    case 'plbuild':ui.pl.preview=plBuild(ui.pl);ui.pl.step=4;render(true);break;
+    case 'plbuild':ui.pl.preview=plBuild(ui.pl);ui.pl.step=3;render(true);break;
     case 'placcept':{const st=ui.pl.preview.start;plAccept();ui.pl=null;const d=pd(st);ui.calY=d.getFullYear();ui.calM=d.getMonth();ui.view='prog';render(true);toast('Planen ligger nu i din kalender');break}
     case 'plstop':plStop();render();toast('Forløbet er stoppet');break;
     case 'fwopen':ui.fwDate=null;ui.fwSwap=null;ui.fwLog=null;if(!state.fw){state.fw=fwNew();save()}ui.view='fw';render(true);break;
