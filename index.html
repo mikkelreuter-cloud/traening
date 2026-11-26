@@ -1381,6 +1381,11 @@ function plAccept(){const pv=ui.pl.preview;if(!pv)return;
   const end=pv.weeks[pv.weeks.length-1].days[6].date;state.block={start:pv.start,end,weeks:pv.P.weeks,goal:pv.P.goal,goalName:plGoalName(pv.P),deloads:pv.weeks.filter(w=>w.dl).map(w=>w.w)};
   applySess();save()}
 /* Stopping removes everything the plan put in the calendar. Only days you actually trained keep their session, so the history still makes sense. */
+/* Empty the calendar: no plan, no fixed week, no one-off sessions. Days you trained keep their session. */
+function wipeCalendar(){const done=new Set((state.logs||[]).map(l=>l.date)),keep=d=>d<TODAY&&done.has(d);
+  plStop();['overrides','skips','cfDays'].forEach(f=>{state[f]=Object.fromEntries(Object.entries(state[f]||{}).filter(([d])=>keep(d)))});
+  const rest={};PL_DOW.forEach(d=>rest[d]='R');state.plan={...rest};state.addons={};if(state.customPlan)state.customPlan={...rest};if(state.customAddons)state.customAddons={};
+  applySess();save()}
 function plStop(){const done=new Set((state.logs||[]).map(l=>l.date)),bd={},ps={},pf={};
   Object.entries(state.blockDays||{}).forEach(([d,k])=>{if(d<TODAY&&done.has(d))bd[d]=k});
   const dk=k=>k.slice(1,5)+'-'+k.slice(5,7)+'-'+k.slice(7,9);
@@ -1909,6 +1914,8 @@ function viewSettings(){
     <button class="btn ${ui.pendingRestore?'danger armed':'ghost'}" data-act="restore">${ui.pendingRestore?'Tryk igen: erstat alle data':'Gendan'}</button>`:''}</section>
   <section class="card"><h3 class="sec">Ny i appen?</h3><button class="btn ghost" data-act="tourshow">Vis rundvisning</button></section>
   <section class="card"><h3 class="sec">Nulstil</h3>
+    <button class="btn danger${ui.pendingCal?' armed':''}" data-act="wipecal">${ui.pendingCal?'Tryk igen for at rydde kalenderen':'Ryd kalenderen'}</button>
+    <p class="hint">Sletter alle planlagte træninger, forløb og din faste uge. Dine logs bliver.</p>
     <button class="btn danger${ui.pendingWipe?' armed':''}" data-act="wipe">${ui.pendingWipe?'Tryk igen for at slette alle logs':'Slet alle logs'}</button></section>`;
 }
 
@@ -2366,6 +2373,7 @@ document.addEventListener('click',e=>{
     case 'mobdone':{const k=b.dataset.key,d=b.dataset.date||TODAY,S=SESS[k];state.logs.push({id:Date.now().toString(36),date:d,type:'mobilitet',name:S.name,dur:S.min*60});save();render();toast('Gemt');break}
     case 'copy':doCopy();break;
     case 'restore':doRestore();break;
+    case 'wipecal':if(ui.pendingCal){wipeCalendar();ui.pendingCal=false;toast('Kalenderen er ryddet')}else ui.pendingCal=true;render();break;
     case 'wipe':if(ui.pendingWipe){state.logs=[];save();ui.pendingWipe=false;toast('Alle logs slettet')}else ui.pendingWipe=true;render();break;
   }
 });
