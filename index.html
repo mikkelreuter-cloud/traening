@@ -1290,12 +1290,37 @@ function runSess(P,kind,bi,nb,wi,date){const g=P.pace,f=nb>1?bi/(nb-1):1,lerp=(a
     name='Intervaller '+set;steps=['10 min roligt + 4 korte stigningsløb',`${set} i ${fmtPace(ip)}/km`,D<=5?'90 sek rolig jog mellem':'2 min rolig jog mellem','10 min roligt til sidst'];min=45;kd='interval'}
   else if(kind==='T'){const m=Math.round(lerp(15,30)/5)*5,tp=pc?g+(D<=5?18:D<=10?8:-8):0;
     name=`Tempoløb ${m} min`;steps=['10 min roligt',pc?`${m} min i ${fmtPace(tp)}/km`:`${m} min i et tempo, hvor du kun kan sige få ord`,'10 min roligt til sidst'];min=m+20;kd='interval'}
+  else if(kind==='F'&&wi.w%2===1){const n=Math.round(lerp(6,10));
+    name=`Bakkeløb ${n} × 45 sek`;steps=['10 min roligt hen til en bakke',`${n} × 45 sek hurtigt op ad bakken`,'Gå eller jog roligt ned igen som pause','10 min roligt til sidst'];min=25+n*2;kd='interval'}
   else if(kind==='F'){const n=Math.round(lerp(6,10)),sec=bi>=nb/2?2:1;
     name=`Fartleg ${n} × ${sec} min`;steps=['10 min roligt',`${n} × ${sec} min hurtigt / 2 min roligt`,'5 min roligt til sidst'];min=15+n*(sec+2);kd='interval'}
   else if(kind==='L'){let km;if(pc){const a={5:8,10:12,21.1:16}[D]||10,b={5:12,10:16,21.1:22}[D]||14;km=lerp(a,b)}else{const a=Math.max(2,P.cur),b=Math.max(RUN_PEAK[D],P.cur);km=lerp(a,b)}
     km=Math.round(km*2)/2;name=`Langtur ${fmtKm(km)} km`;steps=[`${fmtKm(km)} km roligt ${easy}`,'Gå gerne et par minutter, hvis du skal'];min=Math.round(km*(pc?g+75:390)/60)}
-  else{const m=Math.round(lerp(25,45)/5)*5;name=`Roligt løb ${m} min`;steps=[`${m} min roligt ${easy}`];min=m}
+  else{const m=Math.round(lerp(25,45)/5)*5,st=wi.w%2===1;name=`Roligt løb ${m} min${st?' + stigningsløb':''}`;steps=[`${m} min roligt ${easy}`,...(st?['Til sidst 6 × 20 sek stigningsløb: byg op til hurtigt, gå tilbage']:[])];min=m+(st?5:0)}
   return [k,{name,kind:kd,steps,min,dur:min+' min',note:pc?`Mål-pace: ${fmtPace(g)}/km på ${RUN_D[D].toLowerCase()}.`:''}]}
+/* Conditioning that changes from week to week. Hard days rotate between interval formats, easy days between machines,
+   threshold days between tempo formats. Volume still grows through the block. */
+const CD_MODE=['Løb','Cykel','Romaskine','Skierg','March med oppakning'];
+const CD_HARD=[
+  i=>{const n=4+(i>=2);return [`${n}×4 min`,[`${n} × 4 min hårdt`,'3 min roligt mellem'],Array(n).fill([240,180])]},
+  i=>{const n=5+(i>=2);return [`${n}×3 min`,[`${n} × 3 min hårdt`,'2 min roligt mellem'],Array(n).fill([180,120])]},
+  i=>{const n=3+(i>=2);return [`30/15 · ${n} serier`,[`${n} serier: 10 × (30 sek hurtigt + 15 sek let)`,'3 min roligt mellem serierne'],'3015:'+n]},
+  i=>{const p=i>=2?[1,2,3,4,3,2,1]:[1,2,3,2,1];return ['Pyramide '+p.join('-'),[`${p.join('-')} min hårdt`,'Pause er halvt så lang som intervallet før'],p.map(m=>[m*60,m*30])]},
+  i=>{const n=6+2*(i>=2);return [`${n}×2 min`,[`${n} × 2 min hårdt`,'1 min roligt mellem'],Array(n).fill([120,60])]},
+  i=>{const n=8+2*(i>=2);return [`${n}×1 min`,[`${n} × 1 min meget hårdt`,'1 min roligt mellem'],Array(n).fill([60,60])]}];
+const CD_TEMPO=[i=>[3,8+2*(i>=2),2],i=>[2,12+3*(i>=2),3],i=>[4,6+2*(i>=2),2],i=>[1,20+5*(i>=2),0]];
+function condSess(kind,i,w,slot,date){const k='K'+date.replace(/-/g,''),ph=[['Opvarmning',600,'easy']],mode=CD_MODE[(w+slot*2)%CD_MODE.length];let name,steps,note;
+  if(kind==='hard'){const [nm,st,rep]=CD_HARD[(w+slot)%CD_HARD.length](i);name='Intervaller '+nm;steps=['10 min roligt for at varme op',...st,'5 min roligt til sidst'];
+    if(typeof rep==='string'){const n=+rep.split(':')[1];for(let a=1;a<=n;a++){for(let r=1;r<=10;r++){ph.push([`Serie ${a} · ${r}/10 · hårdt`,30,'work']);if(r<10)ph.push([`Serie ${a} · ${r}/10 · let`,15,'rest'])}if(a<n)ph.push(['Seriepause',180,'rest'])}}
+    else rep.forEach(([wk,rs],j)=>{ph.push([`Interval ${j+1} af ${rep.length} · hårdt`,wk,'work']);if(j<rep.length-1)ph.push(['Aktiv pause',rs,'rest'])});
+    note='Valgfrit: løb, cykel, ro eller ski. Hårdt, men jævnt hele vejen. Sidste interval skal være lige så godt som det første.'}
+  else if(kind==='tempo'){const [n,m,r]=CD_TEMPO[(w+slot)%CD_TEMPO.length](i);name=n>1?`Tærskel ${n}×${m} min`:`Tærskel ${m} min`;
+    steps=['10 min roligt for at varme op',n>1?`${n} × ${m} min i et tempo, hvor du kun kan sige få ord`:`${m} min sammenhængende i et tempo, hvor du kun kan sige få ord`,...(n>1?[`${r} min roligt mellem`]:[]),'5 min roligt til sidst'];
+    for(let a=1;a<=n;a++){ph.push([n>1?`Tærskel ${a} af ${n}`:'Tærskel',m*60,'work']);if(a<n)ph.push(['Pause',r*60,'rest'])}note=`Forslag: ${mode.toLowerCase()}.`}
+  else{const m=Math.min(75,40+i*5);name=`Zone 2 · ${mode} ${m} min`;steps=[`${m} min ${mode.toLowerCase()} i roligt tempo`,'60–70 % af maks puls','Du skal kunne tale i hele sætninger'];
+    return [k,{name,kind:'zone2',steps,min:m,dur:m+' min',phases:[['Zone 2 · roligt tempo',m*60,'easy']],note:'Skift gerne maskine. Det giver samme effekt og skåner benene.'}]}
+  ph.push(['Nedvarmning',300,'easy']);const min=Math.round(ph.reduce((a,p)=>a+p[1],0)/60);
+  return [k,{name,kind:'interval',steps,min,dur:'ca. '+min+' min',phases:ph,note}]}
 const PL_DOW=[1,2,3,4,5,6,0];
 const PL_SHORT={1:'Man',2:'Tir',3:'Ons',4:'Tor',5:'Fre',6:'Lør',0:'Søn'};
 const PL_LOWER=['squat','hinge','clean','snatch'];
@@ -1338,15 +1363,21 @@ function plAccFor(pat,n,used){const out=[];(PL_ACC[pat]||[]).slice(0,n).forEach(
 function plBuild(P){
   const mon=mondayOf(TODAY),start=P.start==='next'?ds(new Date(pd(mon).getFullYear(),pd(mon).getMonth(),pd(mon).getDate()+7)):mon;
   const pats=plPatterns(P),info=plWeekInfo(P),lifting=PL_DOW.filter(d=>pats[d]),nLift=lifting.length;
-  // Fixed per weekday through the block: main lift, secondary lift and accessories
+  // Per weekday: movement pattern stays (so the week stays balanced). The main lift stays for a whole wave (needed to progress),
+  // a strength goal keeps it all block (it ends in a test). Accessories change every week.
+  const waveOf=wi=>{const E=P.deload?(P.dlEvery||4):3;return Math.floor(wi.w/E)};
+  const mainOpts=pat=>{const o=PL_MAIN[pat].map(n=>strFor(n)).filter(x=>x&&strOk(x));return o.length?o:[plLibPick(PL_MAIN[pat])]};
   const fixed={};lifting.forEach(d=>{const pat=pats[d],used=new Set(),main=plLibPick(PL_MAIN[pat]);used.add(main[0]);
     const sec=nLift<=2&&P.types[d]==='styrke'?(nLift===1?['press_h','pull']:[PL_SECOND[pat]]).filter(Boolean).map(p=>{const x=plLibPick(PL_MAIN[p]);used.add(x[0]);return x}):[];
     const fwl=FW_LIFTS.filter(x=>x[2]===pat&&fwEqOk(x[3])),fwBar=fwl.filter(x=>x[4]);
-    fixed[d]={pat,main,sec,acc:plAccFor(pat,P.goal==='muskler'?3:2,used),fwLift:(fwBar[0]||fwl[0]||FW_LIFTS.find(x=>x[2]===pat))[0]}});
+    fixed[d]={pat,main,sec,acc:plAccFor(pat,P.goal==='muskler'?3:2,used),fwLift:(fwBar[0]||fwl[0]||FW_LIFTS.find(x=>x[2]===pat))[0],fwOpts:(fwBar.length?fwBar:fwl).map(x=>x[0]),lastAcc:new Set()}});
+  const weekly=(d,wi)=>{const f=fixed[d],wv=waveOf(wi),mo=mainOpts(f.pat),main=P.goal==='styrke'?f.main:mo[wv%mo.length];
+    const used=new Set([main[0],...f.sec.map(x=>x[0]),...f.lastAcc]);const acc=plAccFor(f.pat,P.goal==='muskler'?3:2,used);
+    f.lastAcc=new Set(acc.map(x=>x[0]));const fo=f.fwOpts.length?f.fwOpts:[f.fwLift];return {...f,main,acc,fwLift:P.goal==='styrke'?f.fwLift:fo[wv%fo.length]}};
   const days={},sess={},fws={},weeks=[];let arN=0,mobN=0;
   info.forEach(wi=>{const wk={...wi,days:[]};const dose=plDose(P,wi);let cardioN=0;
     PL_DOW.forEach((dow,j)=>{const date=ds(new Date(pd(start).getFullYear(),pd(start).getMonth(),pd(start).getDate()+wi.w*7+j));const t=P.types[dow];let key='R',label='Hvile';
-      if(t==='styrke'){const f=fixed[dow],k='P'+date.replace(/-/g,'');const bar=STR_BY.get(f.main[0].toLowerCase())[1]===EQ_ST;
+      if(t==='styrke'){const f=weekly(dow,wi),k='P'+date.replace(/-/g,'');const bar=STR_BY.get(f.main[0].toLowerCase())[1]===EQ_ST;
         const mainRow=dose.test?[f.main[0],6,3,1]:[f.main[0],dose.s,dose.r,dose.rir];
         const accSets=wi.dl?2:P.goal==='muskler'?4:3;
         const ex=[mainRow,...f.sec.map(x=>[x[0],wi.dl?2:3,8,2]),...f.acc.map(x=>[x[0],accSets,P.goal==='muskler'?Math.max(x[5],10):x[5],x[6]])];
@@ -1354,19 +1385,19 @@ function plBuild(P){
         sess[k]={name:`${f.main[0]} · uge ${wi.w+1}`,kind:'styrke',dur:'ca. '+Math.round((ex.reduce((a,x)=>a+x[1],0))*2.2+8)+' min',ex,
           note:(wi.dl?'Deload-uge: let og kort, så kroppen kan nå at blive stærkere. ':'')+`Hovedløft: ${what}.`+(bar&&dose.pct?' % af din 1RM. Kender du den ikke, så vælg en vægt du kunne løfte ca. 2 gange mere.':'')};
         key=k;label=`${f.main[0]} ${what}`}
-      else if(t==='crossfit'){const f=fixed[dow],k='F'+date.replace(/-/g,''),l=fwL(f.fwLift),T=fwT();
+      else if(t==='crossfit'){const f=weekly(dow,wi),k='F'+date.replace(/-/g,''),l=fwL(f.fwLift),T=fwT();
         let b;if(P.goal==='allround'&&!wi.dl&&!wi.test&&l[4]){const ids=['across','ladder','wave','531','emom','wave','ladder'],s=FW_SCHEMES.find(x=>x.id===ids[wi.i%ids.length]);b=s&&s.pats.includes(l[2])?{lift:l[0],scheme:s.id,lines:s.lines(l),note:s.note,min:s.min,heavy:s.heavy,pct:true}:null}
         if(!b){const lines=dose.test?['Byg op til en ny 3RM','Ca. 6-8 sæt, hvile 2:30 mellem de tunge']:wi.dl?['3 × 5 @ 60 %','Let og hurtigt. Fokus på teknik']:[`${dose.s} sæt × ${dose.r}${l[4]?` @ ${dose.pct} %`:` · ${dose.rir} i tanken`}`,'Ét sæt hvert 2:00-2:30 min'];
-          b={lift:l[0],scheme:dose.test?'build':wi.dl?'across':'across',lines,note:wi.dl?'Deload-uge: let, så kroppen kan nå at blive stærkere.':'Samme løft hver uge, lidt tungere hver gang.',min:dose.test?18:wi.dl?10:14,heavy:dose.pct>=80||dose.test?1:0,pct:!!l[4]&&!dose.test}}
+          b={lift:l[0],scheme:dose.test?'build':wi.dl?'across':'across',lines,note:wi.dl?'Deload-uge: let, så kroppen kan nå at blive stærkere.':'Samme løft i denne periode, lidt tungere hver uge.',min:dose.test?18:wi.dl?10:14,heavy:dose.pct>=80||dose.test?1:0,pct:!!l[4]&&!dose.test}}
         const w={T,b,a:fwGenA(b),c:fwGenC(b,wi.dl?45:T),d:fwGenD(b,wi.dl?45:T),plan:true};fws[date]=w;
         const p=w.c?cfRebuild(w.c):null;sess[k]={name:`Fuld træning · ${l[1]}`,kind:'crossfit',fw:true,dur:`${T} min`};key=k;label=`${l[1]} + ${p?p.overskrift:'WOD'}`}
       else if(t==='kondition'&&isRun(P.goal)){cardioN++;const nRun=PL_DOW.filter(d=>P.types[d]==='kondition').length,nb=info.filter(x=>x.i>=0).length;
         const order=P.goal==='pace'?{1:['I'],2:['I','L'],3:['I','T','L'],4:['I','E','T','L'],5:['I','E','T','E','L'],6:['E','I','E','T','E','L'],7:['E','I','E','T','E','E','L']}:{1:['L'],2:['E','L'],3:['E','F','L'],4:['E','F','E','L'],5:['E','F','E','T','L'],6:['E','F','E','T','E','L'],7:['E','F','E','T','E','E','L']};
         const [k,ss]=runSess({...P,nRun},order[Math.min(7,nRun)][cardioN-1],Math.max(0,wi.i),Math.max(1,nb),wi,date);sess[k]=ss;key=k;label=ss.name}
       else if(t==='kondition'){cardioN++;const kond=P.goal==='kondition',i=Math.max(0,wi.i);
-        if(wi.dl)key=cardioN===1?'Z2':'R';
-        else{const slot=(cardioN-1)%(kond?3:2);key=slot===0?(kond&&i>=2?'I5':'I4'):slot===1?(i>=2?'Z2L':'Z2'):(i>=2?'I30B':'I30')}
-        label=key==='R'?'Hvile (deload)':SESS[key].name}
+        if(wi.dl&&cardioN>1){key='R';label='Hvile (deload)'}
+        else{const slot=(cardioN-1)%(kond?3:2),kind=wi.dl?'easy':slot===0?'hard':slot===1?'easy':'tempo';
+          const [k,ss]=condSess(kind,i,wi.w,cardioN-1,date);sess[k]=ss;key=k;label=ss.name}}
       else if(t==='restitution'){key='AR'+(1+(arN++%5));label=SESS[key].name}
       else if(t==='mobilitet'){key=(mobN++%2)?'BAL':'MOB';label=SESS[key].name}
       if(date>=TODAY)days[date]=key;wk.days.push({date,dow,t,key,label,past:date<TODAY})});
@@ -1934,7 +1965,8 @@ function buildPhases(key){
   if(key==='I4'||key==='I5'){const n=key==='I5'?5:4;add('Opvarmning',600,'easy');for(let i=1;i<=n;i++){add(`Interval ${i} af ${n} · hårdt`,240,'work');if(i<n)add('Aktiv pause',180,'rest')}add('Nedvarmning',300,'easy')}
   else if(key==='I30'){add('Opvarmning',600,'easy');for(let s=1;s<=3;s++){for(let r=1;r<=10;r++){add(`Serie ${s} · ${r}/10 · hårdt`,30,'work');if(r<10)add(`Serie ${s} · ${r}/10 · let`,15,'rest')}if(s<3)add('Seriepause',180,'rest')}add('Nedvarmning',300,'easy')}
   else if(key==='I30B'){add('Opvarmning',600,'easy');for(let s=1;s<=4;s++){for(let r=1;r<=10;r++){add(`Serie ${s} · ${r}/10 · hårdt`,30,'work');if(r<10)add(`Serie ${s} · ${r}/10 · let`,15,'rest')}if(s<4)add('Seriepause',180,'rest')}add('Nedvarmning',300,'easy')}
-  else if(SESS[key]&&SESS[key].custom){const S=SESS[key];add(S.name,Math.max(60,(S.min||30)*60),S.kind==='interval'?'work':'easy')}
+  else if(SESS[key]&&SESS[key].phases)SESS[key].phases.forEach(p=>add(p[0],p[1],p[2]));
+  else if(SESS[key]&&(SESS[key].custom||SESS[key].plan)){const S=SESS[key];add(S.name,Math.max(60,(S.min||30)*60),S.kind==='interval'?'work':'easy')}
   else add('Zone 2 · roligt tempo',key==='Z2L'?3600:2700,'easy');
   return P;
 }
