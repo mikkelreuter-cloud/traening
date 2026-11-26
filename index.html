@@ -49,6 +49,19 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px
   padding-block:18px calc(170px + env(safe-area-inset-bottom,0px))}
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .no-top header.top{display:none}
+.swatches{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.sw{appearance:none;border:0;background:none;color:var(--muted);display:grid;justify-items:center;gap:6px;font:500 11px/1 var(--font);cursor:pointer;padding:0}
+.sw i{width:36px;height:36px;border-radius:50%;background:var(--c);box-shadow:0 0 0 3px var(--surface),0 0 0 3px transparent;transition:box-shadow .15s}
+.sw.on i{box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--c)}
+.sw.on{color:var(--fg)}
+.pl-goal{margin:2px 0 0;font-size:20px;font-weight:600}
+.pl-meter{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden;margin:6px 0 4px}
+.pl-meter i{display:block;height:100%;border-radius:3px;background:var(--accent)}
+.mw{gap:0}
+.m-r.today .pl-d{color:var(--accent);font-weight:600}
+.m-r .ok{color:var(--k-zone2)}
+.m-r{grid-template-columns:52px auto 1fr auto}
+
 .gl{display:grid;gap:6px;padding:12px 0;border-top:1px solid var(--line)}
 .gl:first-of-type{border-top:0}
 .gl-nums{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
@@ -427,7 +440,7 @@ textarea{resize:vertical}
 /* floating dark pill nav */
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;pointer-events:none;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
-.tabs .in{pointer-events:auto;max-width:380px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);background:var(--nav);border-radius:999px;padding:7px;box-shadow:0 12px 30px rgb(0 0 0 / .28)}
+.tabs .in{pointer-events:auto;max-width:380px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);background:var(--nav);border-radius:999px;padding:7px;box-shadow:0 12px 30px rgb(0 0 0 / .28)}
 .tab{appearance:none;border:0;background:transparent;color:var(--nav-fg);font:500 11px/1 var(--font);height:56px;border-radius:999px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer}
 .tab svg,.icon-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .tab.on{color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent-2))}
@@ -475,6 +488,7 @@ textarea{resize:vertical}
   <div class="in">
     <button class="tab" data-act="view" data-view="today"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>I dag</button>
     <button class="tab" data-act="view" data-view="train"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Træn</button>
+    <button class="tab" data-act="view" data-view="month"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Planen</button>
     <button class="tab" data-act="view" data-view="prog"><svg viewBox="0 0 24 24"><path d="M5 20V12M10 20V6M15 20v-9M20 20V9"/></svg>Udvikling</button>
   </div>
 </nav>
@@ -598,7 +612,7 @@ function load(){
     if(st.program==='blueprint'&&st.plan[2]==='I4'&&st.plan[0]==='Z2L')st.plan[2]='I5';
     /* v9: move 30/15 to Friday and Styrke C to Saturday, so intervals never follow a heavy leg day */
     if(st.program==='blueprint'&&st.plan[5]==='C'&&st.plan[6]==='I30B'){st.plan[5]='I30B';st.plan[6]='C';if(st.addons[5]==='MOB'){delete st.addons[5];st.addons[6]='MOB'}}
-    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.sessEdits=d.sessEdits||{};st.customSess=d.customSess||{};st.customPlan=d.customPlan||null;st.customAddons=d.customAddons||null;st.customDeload=d.customDeload;st.overrides=d.overrides||{};st.cfDays=d.cfDays||{};st.cfPrefs=d.cfPrefs||null;st.strUdstyr=d.strUdstyr||null;st.strGen=d.strGen||null;st.fw=d.fw||null;st.goals=d.goals||[];st.fwT=d.fwT||60;st.block=d.block||null;st.blockDays=d.blockDays||{};st.planSess=d.planSess||{};st.planFw=d.planFw||{};st.shifts=Array.isArray(d.shifts)?d.shifts:[];
+    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.sessEdits=d.sessEdits||{};st.customSess=d.customSess||{};st.customPlan=d.customPlan||null;st.customAddons=d.customAddons||null;st.customDeload=d.customDeload;st.overrides=d.overrides||{};st.cfDays=d.cfDays||{};st.cfPrefs=d.cfPrefs||null;st.strUdstyr=d.strUdstyr||null;st.strGen=d.strGen||null;st.fw=d.fw||null;st.theme=d.theme||'auto';st.accent=d.accent||'orange';st.goals=d.goals||[];st.fwT=d.fwT||60;st.block=d.block||null;st.blockDays=d.blockDays||{};st.planSess=d.planSess||{};st.planFw=d.planFw||{};st.shifts=Array.isArray(d.shifts)?d.shifts:[];
     if(!st.program){const untouched=Object.keys(DEFAULT_PLAN).every(k=>st.plan[k]===DEFAULT_PLAN[k]);if(untouched)st.plan={...BP_PLAN};st.addons={...BP_ADDONS}}
     /* v20: one program only — your own week. Existing data counts as already set up. */
     if(st.program!=='custom'&&!d.customPlan)st.customDeload=d.customDeload??true;
@@ -617,13 +631,19 @@ function applySess(){Object.keys(SESS).forEach(k=>{if(!SESS_BASE[k])delete SESS[
   for(const [k,c] of Object.entries(state.customSess||{}))SESS[k]={...c,custom:true};
   for(const [k,c] of Object.entries(state.planSess||{}))SESS[k]={...c,plan:true}}
 applySess();
+/* Theme and accent colour chosen in settings */
+const ACCENTS={orange:['Orange','#FF7A2E','#FFA766'],blaa:['Blå','#3B82F6','#7FB0FF'],groen:['Grøn','#10B981','#5EE0B5'],lilla:['Lilla','#8B5CF6','#B9A0FF'],pink:['Pink','#EC4899','#F7A1CC'],roed:['Rød','#EF4444','#FF8A8A']};
+function applyLook(){const r=document.documentElement;if(state.theme==='dark'||state.theme==='light')r.dataset.theme=state.theme;else delete r.dataset.theme;
+  const a=ACCENTS[state.accent];if(a&&state.accent!=='orange'){r.style.setProperty('--accent',a[1]);r.style.setProperty('--accent-2',a[2])}else{r.style.removeProperty('--accent');r.style.removeProperty('--accent-2')}
+  const dark=state.theme==='dark'||(state.theme!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);document.querySelectorAll('meta[name=theme-color]').forEach(m=>m.setAttribute('content',dark?'#0F1012':'#ECEDEF'))}
+applyLook();
 const customKeys=kind=>Object.keys(state.customSess||{}).filter(k=>state.customSess[k].kind===kind);
 
 /* ---------- data queries ---------- */
 const mondayOf=s=>weekDates(s)[0];
 /* Deload: every DELOAD_EVERY-th week of the cycle → half the sets, same weight, one interval session */
 function cycleWeek(s){if(!state.cycleStart)return 0;return Math.floor((pd(mondayOf(s))-pd(state.cycleStart))/(7*864e5))}
-const isDeload=s=>!(state.blockDays||{})[s]&&(state.program==='blueprint'||(state.program==='custom'&&state.customDeload!==false))&&!!state.cycleStart&&cycleWeek(s)>=0&&cycleWeek(s)%DELOAD_EVERY===DELOAD_EVERY-1;
+const isDeload=s=>false&&(state.program==='blueprint'||(state.program==='custom'&&state.customDeload!==false))&&!!state.cycleStart&&cycleWeek(s)>=0&&cycleWeek(s)%DELOAD_EVERY===DELOAD_EVERY-1;
 /* Skips make a day a rest day. Shifts push every later session one day forward (plan of day d comes from d minus the shifts before it). */
 const isSkipped=s=>!!(state.skips||{})[s];
 function planDate(s){const n=(state.shifts||[]).filter(x=>x<s).length;if(!n)return s;const d=pd(s);d.setDate(d.getDate()-n);return ds(d)}
@@ -920,7 +940,7 @@ function weekDetail(d,extra){const s=sessFor(d),done=isDone(d),cf=s.kind==='cros
     <p class="small ${done?'ok':'muted'}">${status}</p>
     ${s.kind!=='hvile'&&sum.length?`<ul class="wdet-l">${sum.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}
     ${extra||''}
-    ${d!==TODAY&&s.kind!=='hvile'?`<button class="restbtn" data-act="calday" data-date="${d}">Se træning ›</button>`:''}</div>`}
+    ${(d!==TODAY||extra===undefined)&&s.kind!=='hvile'?`<button class="restbtn" data-act="calday" data-date="${d}">Se træning ›</button>`:''}</div>`}
 function viewToday(){
   const s=sessFor(TODAY),done=isDone(TODAY),wk=weekDates(TODAY);
   const planned=wk.filter(d=>sessFor(d).kind!=='hvile'),doneN=planned.filter(isDone).length;
@@ -1276,7 +1296,21 @@ function plDetail(x,pv){if(x.key==='R')return '';
       ${w.d.length?`<p class="fw-sub">D) Bonus</p><p>${esc(w.d.join(' · '))}</p>`:''}</div>`}
   const s=pv.sess[x.key]||SESS[x.key];if(!s)return '';
   return `<div class="pl-det"><p class="muted small">${esc(s.dur||'')}</p>${sessionBody(s,x.date)}${s.note?`<p class="note">${esc(s.note)}</p>`:''}</div>`}
-function viewPlan(){const P=ui.pl;if(!P){ui.view='train';return viewTrain()}
+/* ---------- Planen: the plan for the coming month ---------- */
+function viewMonth(){const b=plActive(),wn=plWeekNo(),mon=mondayOf(TODAY);
+  const head=b?`<section class="card"><div class="row-between"><h3 class="sec">Dit forløb</h3><span class="muted small">${wn<1?`Starter ${shortDate(b.start)}`:`Uge ${wn} af ${b.weeks}`}</span></div>
+      <p class="pl-goal">${esc(PL_GOALS[b.goal][0])}</p><p class="muted small">${shortDate(b.start)}–${shortDate(b.end)}${b.deloads&&b.deloads.length?` · deload i uge ${b.deloads.map(x=>x+1).join(' og ')}`:''}</p>
+      <div class="meter pl-meter"><i style="width:${Math.max(0,Math.min(100,Math.round((wn-1)/b.weeks*100+100/b.weeks*((pd(TODAY).getDay()+6)%7+1)/7)))}%"></i></div>
+      <div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn ghost" data-act="plopen">Nyt forløb</button><button class="btn ghost" data-act="plstop">Stop forløbet</button></div></section>`
+    :`<section class="card"><h3 class="sec">Intet forløb endnu</h3><p class="muted small">Din faste uge gentages. Planlæg 1-8 uger med et mål, så bliver træningen bygget op uge for uge.</p><button class="btn accent" data-act="plopen">Planlæg forløb</button></section>`;
+  const weeks=[0,1,2,3,4].map(i=>{const st=ds(new Date(pd(mon).getFullYear(),pd(mon).getMonth(),pd(mon).getDate()+7*i));
+    const days=[0,1,2,3,4,5,6].map(j=>ds(new Date(pd(st).getFullYear(),pd(st).getMonth(),pd(st).getDate()+j)));
+    const bw=b&&st>=b.start&&st<=b.end?Math.floor((pd(st)-pd(b.start))/(7*864e5)):-1;
+    return `<section class="card mw"><div class="row-between"><h3 class="sec">${i===0?'Denne uge':i===1?'Næste uge':`Uge ${isoWeek(st)}`} <span class="muted small">· ${shortDate(days[0])}–${shortDate(days[6])}</span></h3>${bw>=0&&b.deloads.includes(bw)?'<span class="tag-dl">Deload</span>':''}</div>
+      ${days.map(d=>{const s=sessFor(d),op=ui.mOpen===d,done=isDone(d);return `<button class="pl-r m-r${d<TODAY?' past':''}${d===TODAY?' today':''}${op?' open':''}" data-act="mday" data-date="${d}"><span class="pl-d">${PL_SHORT[pd(d).getDay()]} ${pd(d).getDate()}</span>${chip(s.kind,s.label||KIND_LABEL[s.kind])}<span class="pl-l">${esc(s.name)}${done?' <span class="ok">✓</span>':''}</span>${s.kind==='hvile'?'':'<span class="chev">›</span>'}</button>${op?weekDetail(d):''}`}).join('')}</section>`}).join('');
+  return `<div class="tr-top"><span></span>${setBtn()}</div>${head}${weeks}`}
+function isoWeek(d){const t=pd(d),x=new Date(Date.UTC(t.getFullYear(),t.getMonth(),t.getDate()));const day=x.getUTCDay()||7;x.setUTCDate(x.getUTCDate()+4-day);const y=new Date(Date.UTC(x.getUTCFullYear(),0,1));return Math.ceil(((x-y)/864e5+1)/7)}
+function viewPlan(){const P=ui.pl;if(!P){ui.view='month';return viewMonth()}
   const head=(t,sub)=>`<div class="habit-head"><button class="icon-btn" data-act="plback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">Planlæg forløb · trin ${P.step} af 3</p><h2 class="h2">${t}</h2></div></div>${sub?`<p class="note">${sub}</p>`:''}`;
   if(P.step===1){const heavy=d=>['styrke','crossfit'].includes(P.types[d]);
     // Mark runs of 3+ heavy days in a row (Mon-Sun, wrapping) and a week with no rest at all
@@ -1304,7 +1338,7 @@ function freezeTop(){const m=$('#main'),f=m.firstElementChild;if(f&&document.bod
 function viewTrain(){
   const cfToday=cfSaved(TODAY);
   return `<div class="tr-top"><button class="btn accent" data-act="senew">+ Opret pas</button><button class="icon-btn" data-act="settings" aria-label="Plan og data"><svg viewBox="0 0 24 24"><path d="M4 7h9M18 7h2M4 17h4M13 17h7"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="10.5" cy="17" r="2.3"/></svg></button></div>
-  <div class="tr-list"><button class="tr-head k-styrke pl-entry" data-act="plopen"><span class="bar"></span><span class="nm">Planlæg forløb</span><span class="cnt">${plActive()?(plWeekNo()<1?`Starter ${shortDate(plActive().start)}`:`Uge ${plWeekNo()} af ${plActive().weeks}`):'1-8 uger'}</span><span class="chev">›</span></button>${trainGroups().map(([g,ks])=>{const kind=SESS[ks[0]].kind,open=trOpen().has(g),today=ks.includes(sessKey(TODAY));
+  <div class="tr-list">${trainGroups().map(([g,ks])=>{const kind=SESS[ks[0]].kind,open=trOpen().has(g),today=ks.includes(sessKey(TODAY));
     return `<section class="tr-grp${open?' open':''}"><button class="tr-head k-${kind}" data-act="trgrp" data-g="${esc(g)}" aria-expanded="${open}"><span class="bar"></span><span class="nm">${g}</span>${today?'<span class="tag">I dag</span>':''}<span class="cnt">${ks.length} pas</span><span class="chev">›</span></button>${open?`<div class="tr-items">${ks.map(trainRow).join('')}</div>`:''}</section>`}).join('')}
   <button class="tr-head k-crossfit" data-act="fwopen"><span class="bar"></span><span class="nm">Fuld træning</span><span class="cnt">A · B · C · D</span><span class="chev">›</span></button>
   <button class="tr-head k-crossfit" data-act="cfopen" data-date="${TODAY}"><span class="bar"></span><span class="nm">CrossFit${cfToday?` · ${esc(cfToday.title||'')}`:''}</span>${sessKey(TODAY)==='CF'?'<span class="tag">I dag</span>':''}<span class="cnt">Byg pas</span><span class="chev">›</span></button></div>`;
@@ -1648,43 +1682,25 @@ function viewProg(){
   ${all.length?`<section><h3 class="sec">Historik</h3><div class="card">${all.slice(0,60).map(logItem).join('')}</div></section>`:''}`;
 }
 function viewSettings(){
-  return `<h2 class="h2">Plan og data</h2>
+  return `<div class="habit-head"><button class="icon-btn" data-act="setback" aria-label="Tilbage" data-back>‹</button><h2 class="h2">Indstillinger</h2></div>
   <section class="card"><h3 class="sec">Dig</h3>
     <label class="field"><span>Navn</span><input id="nm" value="${esc(state.name||'')}" placeholder="Dit navn"></label></section>
-  ${customWeekCard()}
+  <section class="card"><h3 class="sec">Udseende</h3>
+    <div class="field"><span>Tema</span><div class="chips">${[['auto','Som telefonen'],['dark','Mørk'],['light','Lys']].map(([k,l])=>`<button class="${(state.theme||'auto')===k?'on':''}" data-act="settheme" data-v="${k}">${l}</button>`).join('')}</div></div>
+    <div class="field"><span>Accentfarve</span><div class="swatches">${Object.entries(ACCENTS).map(([k,[l,c]])=>`<button class="sw${(state.accent||'orange')===k?' on':''}" data-act="setaccent" data-v="${k}" aria-label="${l}" style="--c:${c}"><i></i><span>${l}</span></button>`).join('')}</div></div></section>
   <section class="card"><h3 class="sec">Puls</h3>
     <label class="field"><span>Makspuls (slag i minuttet)</span><input id="hrmax" inputmode="numeric" value="${state.hrmax||''}" placeholder="fx 190"></label>
-    <p class="hint">Bedst målt i slutningen af en hård test. Kender du den ikke, så brug 208 − 0,7 × din alder som start.</p>
+    <p class="hint">Bruges til at vise dine pulszoner i intervaller og zone 2, så du ved hvor hårdt du skal arbejde. Kender du den ikke, så brug 208 − 0,7 × din alder.</p>
     ${state.hrmax?`<p class="hint num">Zone 2: ${hr(.6)}–${hr(.7)} · Intervaller: ${hr(.9)}–${hr(.95)}</p>`:''}</section>
-  ${state.customDeload!==false?`<section class="card"><h3 class="sec">Let uge (deload)</h3>
-    <p class="hint num">Hver ${DELOAD_EVERY}. uge tager du halvt så mange sæt med samme vægt, så kroppen kan nå at blive stærkere. ${state.cycleStart?(isDeload(TODAY)?'Du er i en let uge nu.':`Du er i uge ${cycleWeek(TODAY)%DELOAD_EVERY+1} af ${DELOAD_EVERY}.`):''}</p>
-    <button class="btn ghost" data-act="cyclereset">Start forfra fra denne uge</button></section>`:''}
-  ${true?'':`<section class="card"><h3 class="sec">Ugeplan</h3><p class="hint">Vælg hvilket pas der ligger på hver ugedag. Vil du også styre mobilitet og deload, så vælg Egen ovenfor.</p>
-    ${[1,2,3,4,5,6,0].map(d=>`<label class="field inline"><span>${cap(DAYS[d])}</span><select id="p-${d}" data-plan="${d}">${Object.entries(SESS).map(([k,s])=>`<option value="${k}"${state.plan[d]===k?' selected':''}>${s.name}</option>`).join('')}</select></label>`).join('')}
-    <button class="btn ghost" data-act="resetplan">Gendan standardplan</button></section>`}
-  <section class="card"><h3 class="sec">Backup</h3>
-    <p class="hint">Alt gemmes kun i browseren på denne telefon. Kopiér en backup en gang imellem og gem teksten fx i Noter.</p>
-    <button class="btn ghost" data-act="copy">Kopiér backup</button>
+  <section class="card"><h3 class="sec">Dine data</h3>
+    <p class="hint">Alt gemmes automatisk på telefonen. En backup skal du kun bruge, hvis du skifter telefon eller sletter appens data.</p>
+    <button class="restbtn" data-act="bktog">${ui.bk?'Skjul':'Flyt til en ny telefon'}</button>
+    ${ui.bk?`<button class="btn ghost" data-act="copy">Kopiér backup</button>
     <textarea id="exp" readonly rows="3" hidden aria-label="Backup-tekst"></textarea>
     <label class="field"><span>Gendan fra backup</span><textarea id="imp" rows="3" data-bind="impText" placeholder="Indsæt backup-tekst her">${esc(ui.impText)}</textarea></label>
-    <button class="btn ${ui.pendingRestore?'danger armed':'ghost'}" data-act="restore">${ui.pendingRestore?'Tryk igen: erstat alle data':'Gendan'}</button></section>
-  ${plActive()?`<section class="card"><h3 class="sec">Dit forløb</h3><p class="note">${plActive().weeks} uger · ${esc(PL_GOALS[plActive().goal][0])} · ${shortDate(plActive().start)}–${shortDate(plActive().end)}. Du er i uge ${Math.max(1,plWeekNo())}.</p>
-    <button class="btn ghost" data-act="plopen">Planlæg nyt forløb</button><button class="restbtn" data-act="plstop">Stop forløbet fra i dag</button></section>`:''}
+    <button class="btn ${ui.pendingRestore?'danger armed':'ghost'}" data-act="restore">${ui.pendingRestore?'Tryk igen: erstat alle data':'Gendan'}</button>`:''}</section>
   <section class="card"><h3 class="sec">Ny i appen?</h3><button class="btn ghost" data-act="tourshow">Vis rundvisning</button></section>
-  <section class="card"><h3 class="sec">Bag planen</h3>
-    <ul class="facts">
-      <li>Intervaller på 2 min eller mere giver mest forbedring af konditionen.</li>
-      <li>Styrke og kondition kan sagtens trænes sammen. Cykel og romaskine påvirker styrken mindre end løb.</li>
-      <li>Træner du begge dele samme dag, så tag styrken først.</li>
-      <li>Du behøver ikke presse hvert sæt til du ikke kan mere. Stop 1–3 gentagelser før, så bliver du lige så stærk og kommer dig hurtigere.</li>
-    </ul></section>
-  <section class="card"><h3 class="sec">Sådan regnes vægtforslaget</h3>
-    <ul class="facts">
-      <li>Rammer du målet for gentagelser og "tilbage i tanken", lægges 2,5 kg på næste gang (2 kg på håndvægte).</li>
-      <li>Var det lettere end målet, går vægten mere op. Var det hårdere, går den ned. Højst 10 % ad gangen.</li>
-      <li>Øvelser uden vægt, fx pull-ups: én gentagelse mere pr. sæt. Klarer du 3 mere end målet, så tag 2,5 kg på.</li>
-    </ul></section>
-  <section class="card"><h3 class="sec">Slet alt</h3>
+  <section class="card"><h3 class="sec">Nulstil</h3>
     <button class="btn danger${ui.pendingWipe?' armed':''}" data-act="wipe">${ui.pendingWipe?'Tryk igen for at slette alle logs':'Slet alle logs'}</button></section>`;
 }
 
@@ -1830,7 +1846,7 @@ function syncHistory(){const k=navKey();if(k===lastNav)return;
   lastNav=k;navFromPop=false;replaceNext=false}
 addEventListener('popstate',e=>{const st=e.state;if(!st||!st.view)return;navDepth=Math.max(0,navDepth-1);
   if(st.view==='onboard'&&state.onboarded){history.back();return}
-  navFromPop=true;ui.view=st.view;if(st.sel)ui.sel=st.sel;if(st.trKey)ui.trKey=st.trKey;if(ui.cf&&st.cfStep)ui.cf.step=st.cfStep;if(ui.ob&&st.obStep)ui.ob.step=st.obStep;if(ui.pl&&st.plStep)ui.pl.step=st.plStep;if(st.view==='plan'&&!ui.pl)st.view=ui.view='train';
+  navFromPop=true;ui.view=st.view;if(st.sel)ui.sel=st.sel;if(st.trKey)ui.trKey=st.trKey;if(ui.cf&&st.cfStep)ui.cf.step=st.cfStep;if(ui.ob&&st.obStep)ui.ob.step=st.obStep;if(ui.pl&&st.plStep)ui.pl.step=st.plStep;if(st.view==='plan'&&!ui.pl)st.view=ui.view='month';
   if((st.view==='sessedit'||st.view==='expick')&&!ui.se)ui.view='train';if(st.view==='expick'&&!ui.pick)ui.view='sessedit';
   render(true);if(ui.view==='sessedit'&&ui.seScroll){scrollTo(0,ui.seScroll);ui.seScroll=0}});
 function render(top){if(typeof acHide==='function'&&!$('#ac').hidden)acHide();habitCss();
@@ -1838,10 +1854,10 @@ function render(top){if(typeof acHide==='function'&&!$('#ac').hidden)acHide();ha
   const v=ui.view;$('.tabs').hidden=v==='onboard';$('.top .icon-btn').hidden=v==='onboard';
   $('#main').innerHTML=(storageOK?'':'<p class="warn">Browseren tillader ikke at gemme her. Åbn siden i Chrome og tilføj den til startskærmen, ellers forsvinder dine logs.</p>')+
     (timer&&v!=='timer'?'<button class="btn primary" data-act="view" data-view="timer">Timeren kører · gå tilbage</button>':'')+
-    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():v==='train'?viewTrain():v==='day'?viewDay():v==='sess'?viewSess():v==='sessedit'?viewSessEdit():v==='expick'?viewPick():v==='fw'?viewFW():v==='plan'?viewPlan():viewSettings());
+    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():v==='train'?viewTrain():v==='day'?viewDay():v==='sess'?viewSess():v==='sessedit'?viewSessEdit():v==='expick'?viewPick():v==='fw'?viewFW():v==='month'?viewMonth():v==='plan'?viewPlan():viewSettings());
   syncHistory();
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||(v==='log'&&t.dataset.view===(ui.logFrom==='prog'?'prog':ui.logFrom==='train'?'train':'today'))||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))||((v==='sess'||v==='sessedit'||v==='expick'||v==='fw'||v==='plan')&&t.dataset.view==='train')));
-  document.body.classList.toggle('no-top',['today','train','log','prog','fw','plan'].includes(v));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||(v==='log'&&t.dataset.view===(ui.logFrom==='prog'?'prog':ui.logFrom==='train'?'train':'today'))||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))||(((v==='sess'||v==='sessedit'||v==='expick'||(v==='fw'&&!ui.fwDate))&&t.dataset.view==='train')||((v==='plan')&&t.dataset.view==='month'))));
+  document.body.classList.toggle('no-top',['today','train','log','prog','fw','plan','month','settings'].includes(v));
   {const m=$('#main');if(ui.freeze&&ui.freeze.v===v){m.style.justifyContent='flex-start';m.style.paddingTop=ui.freeze.px+'px'}else{ui.freeze=null;m.style.justifyContent='';m.style.paddingTop=''}}
   {const st=sessFor(TODAY);$('#hdr-hi').textContent=(state.name?'Hej '+state.name+'! · ':'')+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='onboard'?'Styrke & VO₂ log':v==='train'||v==='sess'?'Hvad har du lyst til i dag?':v==='sessedit'||v==='expick'?'Byg dit eget pas':v==='day'?cap(niceDate(ui.sel)):v==='cf'?'Byg dagens WOD':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
   if(top)window.scrollTo(0,0);
@@ -1920,7 +1936,7 @@ function doRestore(){
   let d;try{d=JSON.parse(ui.impText)}catch(e){d=null}
   if(!d||!Array.isArray(d.logs)){ui.pendingRestore=false;render();return toast('Teksten er ikke en gyldig backup')}
   if(!ui.pendingRestore){ui.pendingRestore=true;return render()}
-  state={sessEdits:d.sessEdits||{},customSess:d.customSess||{},plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:'custom',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,name:d.name,onboarded:true,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,strUdstyr:d.strUdstyr||null,strGen:d.strGen||null,fw:d.fw||null,fwT:d.fwT||60,goals:d.goals||[],block:d.block||null,blockDays:d.blockDays||{},planSess:d.planSess||{},planFw:d.planFw||{},shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);applySess();
+  state={sessEdits:d.sessEdits||{},customSess:d.customSess||{},plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:'custom',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,name:d.name,onboarded:true,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,strUdstyr:d.strUdstyr||null,strGen:d.strGen||null,fw:d.fw||null,fwT:d.fwT||60,theme:d.theme||'auto',accent:d.accent||'orange',goals:d.goals||[],block:d.block||null,blockDays:d.blockDays||{},planSess:d.planSess||{},planFw:d.planFw||{},shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);applySess();
 }
 function guessUnit(name){
   const prev=logsOf('test').filter(l=>l.name===name);if(prev.length)return prev[prev.length-1].unit;
@@ -1949,7 +1965,12 @@ document.addEventListener('click',e=>{
     case 'rmset':{const r=ui.rows[+b.dataset.i];if(r.sets.length>1)r.sets.pop();ui.dirty=true;saveDraft();render();break}
     case 'logtest':ui.logFrom=ui.view;ui.logType='test';ui.logDate=TODAY;ui.view='log';render(true);break;
     case 'view':ui.view=b.dataset.view;if(ui.view==='log'&&!ui.dirty){openLog(TODAY);return}render(true);break;
-    case 'settings':ui.view='settings';render(true);break;
+    case 'settings':ui.setFrom=ui.view;ui.view='settings';render(true);break;
+    case 'setback':ui.view=ui.setFrom&&ui.setFrom!=='settings'?ui.setFrom:'today';render(true);break;
+    case 'settheme':state.theme=b.dataset.v;save();applyLook();render();break;
+    case 'setaccent':state.accent=b.dataset.v;save();applyLook();render();break;
+    case 'bktog':ui.bk=!ui.bk;render();break;
+    case 'mday':{freezeTop();const d=b.dataset.date;ui.mOpen=ui.mOpen===d?null:d;render();break}
     case 'logday':openLog(b.dataset.date);break;
     case 'calday':case 'sel':{ui.dayBack=ui.view==='day'?ui.dayBack:ui.view;ui.sel=b.dataset.date;const d=pd(ui.sel);ui.calY=d.getFullYear();ui.calM=d.getMonth();ui.view='day';render(true);break}
     case 'dayback':ui.view=ui.dayBack||'today';render(true);break;
@@ -2039,7 +2060,7 @@ document.addEventListener('click',e=>{
     case 'cfeq':{const all=cfUdstyrAlle(),P=cfPrefs();let have=(P.udstyr||all).slice();const u=b.dataset.v;have=have.includes(u)?have.filter(x=>x!==u):have.concat(u);state.cfPrefs={...P,udstyr:have.length===all.length?null:have};save();render();break}
     case 'cfgen':{const wasPas=ui.cf.step==='pas';const p=cfGenerate();ui.cf.step='pas';render(!wasPas);if(!p)toast('Ingen gyldige pas med de valg');break}
     case 'plopen':ui.pl=plStart();ui.view='plan';render(true);break;
-    case 'plback':if(ui.pl&&ui.pl.step>1&&navDepth===0){ui.pl.step--;render(true)}else{ui.view='train';render(true)}break;
+    case 'plback':if(ui.pl&&ui.pl.step>1&&navDepth===0){ui.pl.step--;render(true)}else{ui.view='month';render(true)}break;
     case 'plopenday':{freezeTop();const d=b.dataset.date;ui.pl.open=ui.pl.open===d?null:d;render();break}
     case 'plpick':ui.pl.pick=+b.dataset.d;render();break;
     case 'plclose':ui.pl.pick=null;render();break;
@@ -2052,7 +2073,7 @@ document.addEventListener('click',e=>{
     case 'pldl':ui.pl.deload=b.dataset.v==='1';render();break;
     case 'plst':ui.pl.start=b.dataset.v;render();break;
     case 'plbuild':ui.pl.preview=plBuild(ui.pl);ui.pl.step=3;render(true);break;
-    case 'placcept':{const st=ui.pl.preview.start;plAccept();ui.pl=null;ui.wsel=undefined;ui.view='today';render(true);toast('Planen er lagt ind');break}
+    case 'placcept':{const st=ui.pl.preview.start;plAccept();ui.pl=null;ui.mOpen=null;ui.view='month';render(true);toast('Planen er lagt ind');break}
     case 'plstop':plStop();render();toast('Forløbet er stoppet');break;
     case 'fwopen':ui.fwDate=null;ui.fwSwap=null;ui.fwLog=null;if(!state.fw){state.fw=fwNew();save()}ui.view='fw';render(true);break;
     case 'fwday':ui.fwDate=b.dataset.date;ui.fwSwap=null;ui.fwLog=null;ui.view='fw';render(true);break;
