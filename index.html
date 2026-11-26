@@ -435,6 +435,21 @@ const SESS={
   BAL:{name:'Balance og mobilitet',kind:'mobilitet',dur:'15 min',min:15,
      steps:['Etbensstand med lukkede øjne · 3 × 30 sek pr. ben','Etbens rumænsk dødløft · 2 × 8 pr. ben','Kosakker-squat · 2 × 6 pr. side','Tå-gang og hæl-gang · 2 × 20 m','Hoftebøjer- og baglårsstræk · 1 min pr. side','Rolig vejrtrækning på ryggen · 2 min'],
      note:'Balance holder ankler, knæ og hofter skadefri.'},
+  AR1:{name:'Restitutionstur',kind:'mobilitet',label:'Aktiv restitution',dur:'25 min',min:25,
+     steps:['25 min gang, cykel eller svømning i meget roligt tempo','Under 60 % af maks puls · hårdhed 2–3 af 10','Du skal kunne synge eller føre en samtale uden pause'],
+     note:'Let bevægelse øger blodgennemstrømningen uden at give ny træthed. Bedst dagen efter et hårdt pas.'},
+  AR2:{name:'Cykel-flush',kind:'mobilitet',label:'Aktiv restitution',dur:'20 min',min:20,
+     steps:['5 min meget roligt','3 × (3 min let modstand og høj kadence, 90–100 omdr./min + 1 min helt roligt)','3 min roligt til sidst','Hold pulsen under 65 % af maks'],
+     note:'Høj kadence med lav modstand får blodet rundt i benene uden at belaste musklerne. Godt efter tunge ben-dage.'},
+  AR3:{name:'Rul og stræk',kind:'mobilitet',label:'Aktiv restitution',dur:'20 min',min:20,
+     steps:['Foam roller · 60–90 sek pr. område: lægge, lår forside, baglår, baller, øvre ryg','Rul langsomt og stop 10 sek på ømme punkter. Det må gerne ømme, ikke gøre ondt','Hoftebøjerstræk · 2 × 30 sek pr. side','Baglårsstræk · 2 × 30 sek pr. side','Bryststræk i dørkarm · 2 × 30 sek'],
+     note:'Foam rolling kan mindske ømhed og give bedre bevægelighed i timerne efter. Drik vand bagefter.'},
+  AR4:{name:'Let kropsvægtcirkel',kind:'mobilitet',label:'Aktiv restitution',dur:'20 min',min:20,
+     steps:['3 runder i roligt tempo:','10 air squats','10 glute bridges','8 bird dogs pr. side','10 vægarmstræk (armene op ad væggen)','20 sek dead bug','1 min march på stedet','Hårdhed 3–4 af 10. Du skal ikke blive forpustet'],
+     note:'Holder bevægemønstrene i gang og løsner stive led uden at belaste. Ingen vægte.'},
+  AR5:{name:'Rolig yoga og vejrtrækning',kind:'mobilitet',label:'Aktiv restitution',dur:'15 min',min:15,
+     steps:['Kat-ko · 1 min','Nedadgående hund · 5 rolige vejrtrækninger','Lav lunge · 5 vejrtrækninger pr. side','Barnets stilling · 1 min','Liggende rotation · 1 min pr. side','Vejrtrækning på ryggen · 2 min: 4 sek ind, 6 sek ud'],
+     note:'Lang udånding sænker pulsen og hjælper kroppen ned i gear. Godt om aftenen.'},
   S:{name:'Styrke',kind:'styrke',dur:'ca. 60 min',steps:['Appen vælger dagens styrkepas.'],note:''},
   CF:{name:'CrossFit',kind:'crossfit',dur:'',steps:['Vælg format og tid, og byg dagens pas.'],note:''},
   R:{name:'Hvile',kind:'hvile',dur:'',steps:['Gåtur eller let mobilitet','Søvn og mad er dagens træning'],note:''}
@@ -823,7 +838,7 @@ function viewToday(){
     <button class="btn ghost" data-act="tipok">Forstået</button></section>`:'';
   return `${tips}${isDeload(TODAY)?`<section class="banner" style="background:linear-gradient(135deg,var(--k-zone2),var(--k-styrke))"><span class="bi">↓</span><div><b>Deload-uge</b><p>Halvdelen af sættene, samme vægt og kun ét intervalpas. Kroppen bygger op, så du kommer stærkere tilbage næste uge.</p></div></section>`:''}
   <section class="card">
-    <div class="row-between">${chip(s.kind,KIND_LABEL[s.kind])}${s.dur?`<span class="muted small">${s.dur}</span>`:''}</div>
+    <div class="row-between">${chip(s.kind,s.label||KIND_LABEL[s.kind])}${s.dur?`<span class="muted small">${s.dur}</span>`:''}</div>
     <h2 class="sess">${esc(s.name)}</h2>
     ${sessionBody(s)}
     ${s.note?`<p class="note">${esc(s.note)}</p>`:''}
@@ -910,7 +925,7 @@ function dayCard(sel){
   const se=sessFor(sel),L=logsOn(sel).filter(l=>!HABIT_LOG(l.type)).sort(byDate);
   return `<section class="card">
     <p class="eyebrow">${cap(niceDate(sel))}${sel===TODAY?' · i dag':''}</p>
-    <div class="row-between"><h2 class="sess">${esc(se.name)}</h2>${chip(se.kind,KIND_LABEL[se.kind])}</div>
+    <div class="row-between"><h2 class="sess">${esc(se.name)}</h2>${chip(se.kind,se.label||KIND_LABEL[se.kind])}</div>
     ${sessionBody(se,sel)}
     ${addonFor(sel)?`<p class="note">+ ${esc(addonFor(sel).s.name)} (${addonFor(sel).s.dur}) bagefter</p>`:''}
     ${L.length?`<h3 class="sec">Logget</h3><div>${L.map(logItem).join('')}</div>`:''}
@@ -920,7 +935,7 @@ function dayCard(sel){
   </section>`;
 }
 /* ---------- Træn: start any session, any day ---------- */
-const trainGroups=()=>[['Styrke',['A','B','C'].concat(customKeys('styrke'))],['Intervaller',['I4','I5','I30','I30B'].concat(customKeys('interval'))],['Rolig kondition (zone 2)',['Z2','Z2L'].concat(customKeys('zone2'))],['Mobilitet',['MOB','BAL'].concat(customKeys('mobilitet'))]];
+const trainGroups=()=>[['Styrke',['A','B','C'].concat(customKeys('styrke'))],['Intervaller',['I4','I5','I30','I30B'].concat(customKeys('interval'))],['Rolig kondition (zone 2)',['Z2','Z2L'].concat(customKeys('zone2'))],['Mobilitet',['MOB','BAL'].concat(customKeys('mobilitet'))],['Aktiv restitution',['AR1','AR2','AR3','AR4','AR5']]];
 function trainRow(k){const se=SESS[k],t=sessKey(TODAY)===k;
   return `<button class="tr-row k-${se.kind}${t?' today':''}" data-act="trsess" data-key="${k}"><span class="bar"></span><span class="nm">${esc(se.name)}</span>${t?'<span class="tag">I dag</span>':''}<span class="chev">›</span></button>`}
 function viewTrain(){
@@ -933,9 +948,9 @@ function viewTrain(){
 function viewSess(){
   const k=ui.trKey,se=SESS[k];if(!se){ui.view='train';return viewTrain()}
   return `<div class="habit-head"><button class="icon-btn" data-act="view" data-view="train" aria-label="Tilbage" data-back>‹</button><h2 class="h2">${esc(se.name)}</h2></div>
-  <section class="card k-${se.kind}"><div class="row-between">${chip(se.kind,KIND_LABEL[se.kind])}${se.dur?`<span class="muted small">${esc(se.dur)}</span>`:''}</div>
+  <section class="card k-${se.kind}"><div class="row-between">${chip(se.kind,se.label||KIND_LABEL[se.kind])}${se.dur?`<span class="muted small">${esc(se.dur)}</span>`:''}</div>
     ${sessionBody(se)}${se.note?`<p class="note">${esc(se.note)}</p>`:''}
-    <button class="btn accent" data-act="trstart" data-key="${k}">Start</button>
+    <button class="btn accent" data-act="trstart" data-key="${k}">${se.kind==='mobilitet'?`Færdig · ${se.min||10} min`:'Start'}</button>
     <button class="btn ghost" data-act="seedit" data-key="${k}">Rediger pas</button></section>`;
 }
 const SE_KINDS=[['styrke','Styrke','Øvelser med sæt og vægt'],['interval','Hård kondition','Fx intervaller'],['zone2','Rolig kondition','Fx en rolig tur'],['mobilitet','Mobilitet','Smidighed og udstrækning']];
@@ -1092,7 +1107,7 @@ function viewHabits(){
   <button class="btn ghost" data-act="nhopen">+ Tilføj vane</button>
   <section class="card"><h3 class="sec">Streak</h3><div class="goals">${habits().map(h=>{const st=habitStreak(h.id);return `<div class="goal k-${h.id}"><span class="gl">${h.name}</span><span class="gv num"><b>${st}</b> ${st===1?'dag':'dage'} i træk</span></div>`}).join('')}</div></section>`;
 }
-const planGroups=()=>[['Styrke',['S'].concat(customKeys('styrke'))],['Intervaller',['I4','I5','I30','I30B'].concat(customKeys('interval'))],['Rolig kondition (zone 2)',['Z2','Z2L'].concat(customKeys('zone2'))],['CrossFit',['CF']],['Mobilitet',['MOB','BAL'].concat(customKeys('mobilitet'))],['Hvile',['R']]];
+const planGroups=()=>[['Styrke',['S'].concat(customKeys('styrke'))],['Intervaller',['I4','I5','I30','I30B'].concat(customKeys('interval'))],['Rolig kondition (zone 2)',['Z2','Z2L'].concat(customKeys('zone2'))],['CrossFit',['CF']],['Mobilitet',['MOB','BAL'].concat(customKeys('mobilitet'))],['Aktiv restitution',['AR1','AR2','AR3','AR4','AR5']],['Hvile',['R']]];
 const SHORT={S:'Styrke',A:'Styrke A',B:'Styrke B',C:'Styrke C',I4:'4 × 4 min',I5:'5 × 4 min',I30:'30/15 sek',I30B:'30/15 sek · 4 serier',Z2:'Rolig · 45 min',Z2L:'Rolig · 60 min',CF:'CrossFit',MOB:'Mobilitet',BAL:'Balance',R:'Hvile'};
 /* One row per day; tap a day to pick its session with buttons. ctx 'st' edits the saved plan, 'ob' the first-run draft. */
 function weekEditor(ctx,plan,addons){
