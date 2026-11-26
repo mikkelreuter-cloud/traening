@@ -726,8 +726,8 @@ const cfUdstyrAlle=()=>[...new Set(CF.BEVAEGELSER.map(m=>m.udstyr))].filter(u=>u
 const cfMovById=id=>CF.BEVAEGELSER.find(m=>m.id===id);
 /* Minute-based formats get their own time options, so the time divides evenly into rounds */
 const CF_MIN_FMT={emom:[10,12,14,15,16,18,20,21,24,25,28,30],exmom:[10,12,15,16,18,20,24,30],tabata:[4,9,14,19],interval:[12,15,16,18,20,24,30]};
-const CF_MIN_HINT={emom:'Tiden går op i antallet af øvelser, så hver øvelse får lige mange runder. Fx 16 min = 4 øvelser × 4 runder.',exmom:'Tiden går op i 2 eller 3 minutter, så sidste runde bliver hel.',interval:'Tiden deles i lige store sæt, fx 16 min = 4 sæt à 4 min.',tabata:'Hver øvelse er 4 min (8 × 20/10 sek) med 1 min pause imellem.'};
-function cfMinFor(fmtId){if(CF_MIN_FMT[fmtId]){const a=cfPrefs().antal;if(fmtId==='emom')return a?CF_MIN_FMT.emom.filter(m=>m%a===0&&m/a>=2):[10,12,15,16,18,20,24,30];return CF_MIN_FMT[fmtId]}
+const CF_MIN_HINT={emom:'Tiden går op i rotationen, så hver øvelse får lige mange runder. Fx 16 min = 4 øvelser × 4 runder. Nogle pas får et hvileminut i rotationen, fx 3 øvelser + 1 hvile × 4 runder. Så er arbejdsminutterne hårdere.',exmom:'Tiden går op i 2 eller 3 minutter, så sidste runde bliver hel.',interval:'Tiden deles i lige store sæt, fx 16 min = 4 sæt à 4 min.',tabata:'Hver øvelse er 4 min (8 × 20/10 sek) med 1 min pause imellem.'};
+function cfMinFor(fmtId){if(CF_MIN_FMT[fmtId]){const a=cfPrefs().antal;if(fmtId==='emom')return a?CF_MIN_FMT.emom.filter(m=>(m%a===0&&m/a>=2)||(a<5&&m%(a+1)===0&&m/(a+1)>=3)):[10,12,15,16,18,20,24,30];return CF_MIN_FMT[fmtId]}
   const f=CF.formatFor(fmtId);return f?CF_MIN.filter(m=>f.domaener.includes(CF.domaeneFor(m).id)):CF_MIN}
 function cfPrefs(){return {niveau:'Øvet',fokus:'',antal:0,udstyr:null,...(state.cfPrefs||{})}}
 function cfOpt(){const c=ui.cf,P=cfPrefs();return {format:c.fmt,minutter:c.min,niveau:P.niveau,fokus:P.fokus,antal:P.antal,udstyr:P.udstyr||[]}}

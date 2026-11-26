@@ -349,8 +349,21 @@ function emomAntal(min, rng) {
   var pref = d.filter(function(n){ return n <= 4; }), a = pref.length ? pref : d;
   return a[Math.floor(rng() * a.length)];
 }
+/* Pick movements per minute and whether the rotation ends with a rest minute.
+   Rest variant: n work minutes + 1 rest minute, so (n + 1) must divide the time, and the work minutes are harder. */
+function emomPlan(min, antal, rng) {
+  var uden = [1, 2, 3, 4, 5].filter(function(n){ return min % n === 0 && min / n >= 2 && (!antal || n === antal); });
+  var med  = [1, 2, 3, 4].filter(function(n){ return min % (n + 1) === 0 && min / (n + 1) >= 3 && (!antal || n === antal); });
+  var udenPref = uden.filter(function(n){ return n >= 2 && n <= 4; });
+  if (!antal && udenPref.length) uden = udenPref;
+  var medPref = med.filter(function(n){ return n >= 2; });
+  if (!antal && medPref.length) med = medPref;
+  var hvile = med.length && (!uden.length || rng() < 0.35);
+  var liste = hvile ? med : (uden.length ? uden : [1]);
+  return { n: liste[Math.floor(rng() * liste.length)], hvile: !!hvile };
+}
 function tidPasser(fmtId, min, antal) {
-  if (fmtId === "emom")     return antal ? min % antal === 0 : true;
+  if (fmtId === "emom")     return antal ? (min % antal === 0 || (min % (antal + 1) === 0 && min / (antal + 1) >= 3)) : true;
   if (fmtId === "exmom")    return min % 2 === 0 || min % 3 === 0;
   if (fmtId === "tabata")   return (min + 1) % 5 === 0;
   if (fmtId === "interval") return [3, 4, 5, 6].some(function(s){ return min % s === 0 && min / s >= 2; });
@@ -372,17 +385,18 @@ function byggePas(opt) {
   var graense = slotInterval(fmt.id, dom);
   var oensket = opt.antal ? Math.min(graense[1], Math.max(graense[0], opt.antal)) : 0;
   if (fmt.id === "tabata") oensket = 0;
-  if (fmt.id === "emom" && oensket && minutter % oensket) oensket = 0;
+  if (fmt.id === "emom" && oensket && minutter % oensket && minutter % (oensket + 1)) oensket = 0;
   for (var forsoeg = 0; forsoeg < 160; forsoeg++) {
     var slots = oensket;
     if (!slots) {   // intet \u00f8nske: formatets eget standardvalg
       if (fmt.id === "doedved") slots = 1;
-      else if (fmt.id === "emom") slots = emomAntal(minutter, rng);
+      else if (fmt.id === "emom") slots = 0;
       else if (fmt.id === "chipper") slots = (dom.id === "ultra" ? 6 : 5);
       else if (fmt.id === "stige_ned" || fmt.id === "stige_op") slots = 2;
       else if (fmt.id === "tabata") slots = Math.max(1, Math.min(4, Math.round((minutter + 1) / 5)));
       else if (fmt.id === "interval") slots = 2;
     }
+    if (fmt.id === "emom") { var pl = emomPlan(minutter, oensket, rng); slots = pl.n; o.emomHvile = pl.hvile; }
     var frit = (fmt.id === "chipper" || fmt.id === "doedved" || fmt.id === "tabata" ||
                 fmt.id === "emom" || fmt.id === "interval" || (slots && slots > 6));
     var movs;
@@ -473,6 +487,13 @@ function linjerFor(fmt, movs, reps, ekstra) {
   if (fmt.id === "doedved") {
     return ["Minut 1: 1 " + movs[0].navn, "Minut 2: 2 " + movs[0].navn, "Minut 3: 3 ... og s\u00e5 videre"];
   }
+  if (fmt.id === "emom" && ekstra.hvile) {
+    if (movs.length === 1) return ["Ulige minut: " + linje(movs[0], reps[0]), "Lige minut: hvile"];
+    var udH = movs.map(function(m, i){ return "Minut " + (i + 1) + ": " + linje(m, reps[i]); });
+    udH.push("Minut " + (movs.length + 1) + ": hvile");
+    udH.push("Gentag " + Math.floor((ekstra.minutter || 0) / (movs.length + 1)) + " runder (" + (ekstra.minutter || "") + " minutter i alt)");
+    return udH;
+  }
   if (fmt.id === "emom") {
     if (movs.length === 1) return ["Hvert minut: " + linje(movs[0], reps[0])];
     if (movs.length === 2) return ["Ulige minut: " + linje(movs[0], reps[0]),
@@ -515,12 +536,14 @@ function formater(fmt, dom, minutter, movs, o, rng) {
     reps = null;
     strategi = "Reps stiger med \u00e9n pr. runde. Runde " + top + " er " + top + " reps af hver \u2014 hold hvilen kort tidligt, hvor det er billigt.";
   } else if (fmt.id === "emom") {
-    reps = movs.map(function(m){ return p\u00e6ntTal(m.rate * 0.6, m.rate); });
-    var nE = movs.length, rE = Math.floor(minutter / nE);
-    overskrift = "EMOM " + minutter + (nE >= 2 ? " \u00b7 " + rE + " runder" : "");
-    strategi = "Arbejdet skal tage 35-45 sekunder, s\u00e5 du f\u00e5r reel hvile. Tager det over 50 sekunder, er reps sat for h\u00f8jt."
-      + (nE >= 2 ? " " + nE + " \u00f8velser \u00d7 " + rE + " runder = " + (nE * rE) + " minutter, s\u00e5 hver \u00f8velse f\u00e5r lige mange runder."
-                 : " Samme \u00f8velse hele vejen \u2014 godt til at bygge volumen uden at miste teknik.");
+    var hv = !!o.emomHvile, nE = movs.length, rot = nE + (hv ? 1 : 0), rE = Math.floor(minutter / rot);
+    reps = movs.map(function(m){ return p\u00e6ntTal(m.rate * (hv ? 0.75 : 0.6), m.rate); });
+    overskrift = "EMOM " + minutter + (rot >= 2 ? " \u00b7 " + rE + " runder" : "");
+    strategi = hv
+      ? "Hvert " + rot + ". minut er hvile, s\u00e5 arbejdsminutterne er h\u00e5rdere: 45-50 sekunder arbejde. Brug hvileminuttet til at f\u00e5 pulsen ned, ikke til at g\u00e5 rundt. " + nE + " arbejdsminut" + (nE > 1 ? "ter" : "") + " + 1 hvile \u00d7 " + rE + " runder = " + (rot * rE) + " minutter."
+      : "Arbejdet skal tage 35-45 sekunder, s\u00e5 du f\u00e5r reel hvile. Tager det over 50 sekunder, er reps sat for h\u00f8jt."
+        + (nE >= 2 ? " " + nE + " \u00f8velser \u00d7 " + rE + " runder = " + (nE * rE) + " minutter, s\u00e5 hver \u00f8velse f\u00e5r lige mange runder."
+                   : " Samme \u00f8velse hele vejen \u2014 godt til at bygge volumen uden at miste teknik.");
   } else if (fmt.id === "exmom") {
     var rH = rng(), hver = (minutter % 2 === 0 && minutter % 3 === 0) ? (rH < 0.5 ? 2 : 3) : (minutter % 3 === 0 ? 3 : 2);
     reps = s\u00e6tReps(movs, hver * 60 * 0.6);
@@ -559,7 +582,7 @@ function formater(fmt, dom, minutter, movs, o, rng) {
     overskrift = "Stigende EMOM (d\u00f8d ved)";
     strategi = "Minut 1 er \u00e9n rep, minut 2 er to, og s\u00e5 videre indtil du ikke kan gennemf\u00f8re minuttet.";
   }
-  var ekstra = { skema: skema, top: top_, minutter: minutter };
+  var ekstra = { skema: skema, top: top_, minutter: minutter, hvile: fmt.id === "emom" && !!o.emomHvile };
   linjer = linjerFor(fmt, movs, reps, ekstra);
   return {
     format: fmt, overskrift: overskrift, skema: skema, minutter: minutter, domaene: dom,
@@ -618,7 +641,7 @@ window.CF={byggePas,alternativer,formater,prng,formatFor,domaeneFor,FORMATER,DOM
 })();
 }else{
 // Offline cache: the app shell is cached on install; pages are network-first so updates arrive, fonts are cache-first.
-const CACHE='traening-v13';
+const CACHE='traening-v14';
 const SHELL=['./','./index.html','./sw.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
