@@ -203,7 +203,19 @@ section{display:flex;flex-direction:column;gap:12px}
 .exed input.exn-in{text-align:left;padding:10px 10px}
 .exed span{font-size:11px;color:var(--muted);text-align:center}
 .exed .rm{appearance:none;border:0;background:var(--surface-2);color:var(--muted);height:40px;border-radius:10px;cursor:pointer;font-size:16px}
-.tr-grp{display:flex;flex-direction:column;gap:8px}
+.tr-grp{display:flex;flex-direction:column}
+.tr-list{display:flex;flex-direction:column;gap:10px}
+.tr-head{appearance:none;border:0;width:100%;display:flex;align-items:center;gap:10px;padding:18px 16px;border-radius:18px;background:var(--surface);color:var(--fg);font:600 17px/1.2 var(--font);text-align:left;cursor:pointer;box-shadow:var(--shadow)}
+.tr-head .nm{flex:1;min-width:0}
+.tr-head .cnt{font-size:13px;font-weight:400;color:var(--muted)}
+.tr-head .tag{font-size:12px;font-weight:500;color:var(--accent)}
+.tr-head .chev{color:var(--muted);font-size:20px;transition:transform .2s;display:inline-block}
+.tr-grp.open .tr-head .chev{transform:rotate(90deg)}
+.tr-grp.open .tr-head{border-radius:18px 18px 6px 6px}
+.tr-items{display:flex;flex-direction:column;gap:6px;margin-top:6px;padding-left:14px}
+.tr-items .tr-row{padding:13px 14px;font-size:15px;box-shadow:none;background:var(--surface-2)}
+.tr-head .bar,.tr-row .bar{flex:none}
+
 .tr-card{background:var(--surface);border-radius:20px;padding:16px;display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;box-shadow:var(--shadow)}
 .tr-card b{font-weight:500;font-size:17px;display:flex;align-items:center;gap:8px}
 .tr-card small{font-size:13px;color:var(--muted);line-height:1.4;grid-column:1}
@@ -938,12 +950,15 @@ function dayCard(sel){
 const trainGroups=()=>[['Styrke',['A','B','C'].concat(customKeys('styrke'))],['Intervaller',['I4','I5','I30','I30B'].concat(customKeys('interval'))],['Rolig kondition (zone 2)',['Z2','Z2L'].concat(customKeys('zone2'))],['Mobilitet',['MOB','BAL'].concat(customKeys('mobilitet'))],['Aktiv restitution',['AR1','AR2','AR3','AR4','AR5']]];
 function trainRow(k){const se=SESS[k],t=sessKey(TODAY)===k;
   return `<button class="tr-row k-${se.kind}${t?' today':''}" data-act="trsess" data-key="${k}"><span class="bar"></span><span class="nm">${esc(se.name)}</span>${t?'<span class="tag">I dag</span>':''}<span class="chev">›</span></button>`}
+/* Open groups in the Træn list; starts with the group that holds today's session */
+function trOpen(){if(!ui.trOpen){const g=trainGroups().find(([,ks])=>ks.includes(sessKey(TODAY)));ui.trOpen=new Set(g?[g[0]]:[])}return ui.trOpen}
 function viewTrain(){
   const cfToday=cfSaved(TODAY);
   return `<h2 class="h2">Træn</h2><p class="note">Tryk på et pas for at se det, starte det eller rette i det.</p>
   <button class="btn accent" data-act="senew">+ Opret pas</button>
-  ${trainGroups().map(([g,ks])=>`<section class="tr-grp"><h3 class="sec">${g}</h3>${ks.map(trainRow).join('')}</section>`).join('')}
-  <section class="tr-grp"><h3 class="sec">CrossFit</h3><button class="tr-row k-crossfit${sessKey(TODAY)==='CF'?' today':''}" data-act="cfopen" data-date="${TODAY}"><span class="bar"></span><span class="nm">CrossFit${cfToday?` · ${esc(cfToday.title||'')}`:''}</span>${sessKey(TODAY)==='CF'?'<span class="tag">I dag</span>':''}<span class="chev">›</span></button></section>`;
+  <div class="tr-list">${trainGroups().map(([g,ks])=>{const kind=SESS[ks[0]].kind,open=trOpen().has(g),today=ks.includes(sessKey(TODAY));
+    return `<section class="tr-grp${open?' open':''}"><button class="tr-head k-${kind}" data-act="trgrp" data-g="${esc(g)}" aria-expanded="${open}"><span class="bar"></span><span class="nm">${g}</span>${today?'<span class="tag">I dag</span>':''}<span class="cnt">${ks.length} pas</span><span class="chev">›</span></button>${open?`<div class="tr-items">${ks.map(trainRow).join('')}</div>`:''}</section>`}).join('')}
+  <button class="tr-head k-crossfit" data-act="cfopen" data-date="${TODAY}"><span class="bar"></span><span class="nm">CrossFit${cfToday?` · ${esc(cfToday.title||'')}`:''}</span>${sessKey(TODAY)==='CF'?'<span class="tag">I dag</span>':''}<span class="cnt">Byg pas</span><span class="chev">›</span></button></div>`;
 }
 function viewSess(){
   const k=ui.trKey,se=SESS[k];if(!se){ui.view='train';return viewTrain()}
@@ -1566,6 +1581,7 @@ document.addEventListener('click',e=>{
       else if(se.kind==='interval'||se.kind==='zone2')startTimer(k);
       else if(se.kind==='mobilitet'){state.logs.push({id:Date.now().toString(36),date:TODAY,type:'mobilitet',name:se.name,dur:se.min*60});save();render();toast(se.name+' logget · '+se.min+' min')}
       break}
+    case 'trgrp':{const o=trOpen(),g=b.dataset.g;o.has(g)?o.delete(g):o.add(g);render();break}
     case 'trsess':ui.trKey=b.dataset.key;ui.view='sess';render(true);break;
     case 'trrand':{ui.se=seDraft(null);ui.seDel=false;const o=strOpts(),ex=strSuggest(o);if(ex.length)ui.se.ex=ex;ui.seAuto=ui.se.name=`${STR_FOCUS[o.focus][0]} · ${o.min} min · ${STR_INT[o.int][0].toLowerCase()}`;ui.view='sessedit';render(true);break}
     case 'senew':ui.se=seDraft(null);ui.seDel=false;ui.view='sessedit';render(true);break;
