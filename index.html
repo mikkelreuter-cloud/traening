@@ -273,6 +273,7 @@ section{display:flex;flex-direction:column;gap:12px}
 .tr-row{appearance:none;border:0;width:100%;display:flex;align-items:center;gap:10px;padding:15px 16px;border-radius:16px;background:var(--surface);color:var(--fg);font:500 16px/1.2 var(--font);text-align:left;cursor:pointer;box-shadow:var(--shadow)}
 .tr-row .nm{flex:1;min-width:0}
 .tr-row .tag{font-size:12px;font-weight:500;color:var(--accent)}
+.tr-row .muted-tag{color:var(--muted);font-weight:500}
 .tr-row .chev{color:var(--muted);font-size:18px}
 .tr-row.today{outline:2px solid var(--accent);outline-offset:-2px}
 .exblk{padding:12px 0;border-top:1px solid var(--line);display:grid;gap:8px}
@@ -1101,11 +1102,16 @@ function dayCard(sel){
   </section>`;
 }
 /* ---------- Træn: start any session, any day ---------- */
-const trainGroups=()=>[['Styrke',['A','B','C'].concat(customKeys('styrke'))],['Intervaller',['I4','I5','I30','I30B'].concat(customKeys('interval'))],['Rolig kondition (zone 2)',['Z2','Z2L'].concat(customKeys('zone2'))],['Mobilitet',['MOB','BAL'].concat(customKeys('mobilitet').filter(k=>state.customSess[k].label!=='Aktiv restitution'))],['Aktiv restitution',['AR1','AR2','AR3','AR4','AR5'].concat(customKeys('mobilitet').filter(k=>state.customSess[k].label==='Aktiv restitution'))],['Dine CrossFit-pas',customKeys('crossfit')]].filter(([,ks])=>ks.length);
+/* Four headings cover all training: [title, colour kind, session keys] */
+const restCustom=ar=>customKeys('mobilitet').filter(k=>(state.customSess[k].label==='Aktiv restitution')===ar);
+const trainGroups=()=>[['Styrke','styrke',['A','B','C'].concat(customKeys('styrke'))],
+  ['Kondition','interval',['I4','I5','I30','I30B'].concat(customKeys('interval'),['Z2','Z2L'],customKeys('zone2'))],
+  ['CrossFit','crossfit',customKeys('crossfit')],
+  ['Restitution','mobilitet',['MOB','BAL'].concat(restCustom(false),['AR1','AR2','AR3','AR4','AR5'],restCustom(true))]];
 function trainRow(k){const se=SESS[k],t=sessKey(TODAY)===k;
   return `<button class="tr-row k-${se.kind}${t?' today':''}" data-act="trsess" data-key="${k}"><span class="bar"></span><span class="nm">${esc(se.name)}</span>${t?'<span class="tag">I dag</span>':''}<span class="chev">›</span></button>`}
 /* Open groups in the Træn list; starts with the group that holds today's session */
-function trOpen(){if(!ui.trOpen){const g=trainGroups().find(([,ks])=>ks.includes(sessKey(TODAY)));ui.trOpen=new Set(g?[g[0]]:[])}return ui.trOpen}
+function trOpen(){if(!ui.trOpen){const tk=sessKey(TODAY),g=tk==='CF'?['CrossFit']:trainGroups().find(([,,ks])=>ks.includes(tk));ui.trOpen=new Set(g?[g[0]]:[])}return ui.trOpen}
 /* ---------- Fuld træning: A opvarmning · B styrke · C WOD · D bonus ----------
    Built from patterns in published CrossFit class programming:
    - Warm-up = a little cardio, 2 rounds of general drills, drills for the day's lift, then build-up sets.
@@ -1418,10 +1424,11 @@ function freezeTop(){const m=$('#main'),f=m.firstElementChild;if(f&&document.bod
 function viewTrain(){
   const cfToday=cfSaved(TODAY);
   return `<button class="btn accent" data-act="senew">+ Opret pas</button>
-  <div class="tr-list">${trainGroups().map(([g,ks])=>{const kind=SESS[ks[0]].kind,open=trOpen().has(g),today=ks.includes(sessKey(TODAY));
-    return `<section class="tr-grp${open?' open':''}"><button class="tr-head k-${kind}" data-act="trgrp" data-g="${esc(g)}" aria-expanded="${open}"><span class="bar"></span><span class="nm">${g}</span>${today?'<span class="tag">I dag</span>':''}<span class="cnt">${ks.length} pas</span><span class="chev">›</span></button>${open?`<div class="tr-items">${ks.map(trainRow).join('')}</div>`:''}</section>`}).join('')}
-  <button class="tr-head k-crossfit" data-act="fwopen"><span class="bar"></span><span class="nm">Fuld træning</span><span class="cnt">A · B · C · D</span><span class="chev">›</span></button>
-  <button class="tr-head k-crossfit" data-act="cfopen" data-date="${TODAY}"><span class="bar"></span><span class="nm">CrossFit${cfToday?` · ${esc(cfToday.title||'')}`:''}</span>${sessKey(TODAY)==='CF'?'<span class="tag">I dag</span>':''}<span class="cnt">Byg pas</span><span class="chev">›</span></button></div>`;
+  <div class="tr-list">${trainGroups().map(([g,kind,ks])=>{const open=trOpen().has(g),tk=sessKey(TODAY),today=ks.includes(tk)||(g==='CrossFit'&&tk==='CF');
+    const extra=g==='CrossFit'?`<button class="tr-row k-crossfit${tk==='CF'?' today':''}" data-act="cfopen" data-date="${TODAY}"><span class="bar"></span><span class="nm">Byg en WOD${cfToday?` · ${esc(cfToday.title||'')}`:''}</span>${tk==='CF'?'<span class="tag">I dag</span>':''}<span class="chev">›</span></button>
+      <button class="tr-row k-crossfit" data-act="fwopen"><span class="bar"></span><span class="nm">Fuld træning</span><span class="tag muted-tag">A · B · C · D</span><span class="chev">›</span></button>`:'';
+    const n=ks.length+(g==='CrossFit'?2:0);
+    return `<section class="tr-grp${open?' open':''}"><button class="tr-head k-${kind}" data-act="trgrp" data-g="${esc(g)}" aria-expanded="${open}"><span class="bar"></span><span class="nm">${g}</span>${today?'<span class="tag">I dag</span>':''}<span class="cnt">${n} pas</span><span class="chev">›</span></button>${open?`<div class="tr-items">${extra}${ks.map(trainRow).join('')}</div>`:''}</section>`}).join('')}</div>`;
 }
 function viewSess(){
   const k=ui.trKey,se=SESS[k];if(!se){ui.view='train';return viewTrain()}
