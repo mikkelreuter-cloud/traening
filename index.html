@@ -49,6 +49,15 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px
   padding-block:18px calc(170px + env(safe-area-inset-bottom,0px))}
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .no-top header.top{display:none}
+.wd.is-sel:not(.is-today){box-shadow:inset 0 0 0 1.5px var(--muted)}
+.wd.is-sel.is-today{box-shadow:0 0 0 2px var(--accent)}
+.wdet{margin-top:6px;padding:14px;border-radius:16px;background:var(--surface-2);display:grid;gap:6px;animation:wdin .18s ease-out}
+@keyframes wdin{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.wdet-n{margin:2px 0 0;font-size:19px;font-weight:600}
+.wdet p{margin:0}
+.wdet .ok{color:var(--k-zone2)}
+.wdet-l{margin:2px 0 4px;padding-left:18px;font-size:14px;line-height:1.5;color:var(--fg)}
+
 .today-date{font-size:15px}
 .slim-note{margin:0;font-size:13px;color:var(--muted);text-align:center}
 .linkbtn{appearance:none;border:0;background:none;color:var(--muted);font:500 14px/1.3 var(--font);padding:6px;cursor:pointer;text-align:center}
@@ -837,11 +846,22 @@ function viewCF(){
 }
 function nextSession(from){const d=pd(from);for(let i=1;i<=7;i++){const n=ds(new Date(d.getFullYear(),d.getMonth(),d.getDate()+i)),s=sessFor(n);if(s.kind!=='hvile')return {d:n,s,i}}return null}
 const daysSince=d=>Math.round((pd(TODAY)-pd(d))/864e5);
-function weekCell(d){
+function weekCell(d,act){
   const s=sessFor(d),dt=pd(d);
-  return `<button class="wd k-${s.kind}${d===TODAY?' is-today':''}${isDone(d)?' is-done':''}" data-act="calday" data-date="${d}" aria-label="${niceDate(d)}: ${s.name}">
+  return `<button class="wd k-${s.kind}${d===TODAY?' is-today':''}${isDone(d)?' is-done':''}${act&&ui.wsel===d?' is-sel':''}" data-act="${act||'calday'}" data-date="${d}" aria-label="${niceDate(d)}: ${s.name}">
     <span class="dl">${DAYS[dt.getDay()].slice(0,2)}</span><span class="dn num">${dt.getDate()}</span><span class="bar"></span></button>`;
 }
+/* Details for a tapped day in the week strip on I dag */
+function weekDetail(d){const s=sessFor(d),done=isDone(d),cf=s.kind==='crossfit'?cfSaved(d):null;
+  const sum=s.kind==='styrke'&&s.ex?s.ex.map(e=>`${e[0].replace(/ \(.*\)$/,'')} · ${e[1]}×${e[2]}`):
+    s.kind==='crossfit'?(cf?[cf.title||'Pas klar']:['Pas bygges på dagen']):(s.steps||[]).slice(0,4);
+  const status=done?'✓ Gennemført':s.kind==='hvile'?(isSkipped(d)?'Sprunget over':'Hviledag'):d<TODAY?'Ikke logget':d===TODAY?'I dag':'Planlagt';
+  return `<div class="wdet">
+    <div class="row-between"><span class="muted small">${cap(niceDate(d))}</span>${chip(s.kind,s.label||KIND_LABEL[s.kind])}</div>
+    <h3 class="wdet-n">${esc(s.name)}${s.dur?`<span class="muted small"> · ${esc(s.dur)}</span>`:''}</h3>
+    <p class="small ${done?'ok':'muted'}">${status}</p>
+    ${s.kind!=='hvile'&&sum.length?`<ul class="wdet-l">${sum.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}
+    <button class="restbtn" data-act="calday" data-date="${d}">Åbn dagen ›</button></div>`}
 function viewToday(){
   const s=sessFor(TODAY),done=isDone(TODAY),wk=weekDates(TODAY);
   const planned=wk.filter(d=>sessFor(d).kind!=='hvile'),doneN=planned.filter(isDone).length;
@@ -880,7 +900,8 @@ function viewToday(){
   ${addonCard(TODAY)}
   <section class="card">
     <div class="row-between"><h3 class="sec">Denne uge</h3><span class="muted small num">${doneN} af ${planned.length} pas</span></div>
-    <div class="week">${wk.map(weekCell).join('')}</div>
+    <div class="week">${wk.map(d=>weekCell(d,'wsel')).join('')}</div>
+    ${ui.wsel&&wk.includes(ui.wsel)?weekDetail(ui.wsel):''}
   </section>
   ${testDue?`<button class="linkbtn" data-act="logtest">${lastT?'Tid til en ny 3 km test ›':'Lav en starttest: 3 km så hurtigt du kan ›'}</button>`:''}
   ${''}<section class="stats" hidden>
@@ -1668,6 +1689,7 @@ document.addEventListener('click',e=>{
       state.logs.push({id:Date.now().toString(36),date:ui.cf.date,type:'crossfit',name:p.overskrift,score:r.score.trim(),rpe:num(r.rpe),note:r.note.trim(),seed:p.seed,ids:p.movs.map(m=>m.id),linjer:p.linjer,dur:p.minutter*60});
       save();render();toast('Resultat gemt');break}
     case 'addontog':freezeTop();ui.addonOpen=!ui.addonOpen;render();break;
+    case 'wsel':{freezeTop();const d=b.dataset.date;ui.wsel=ui.wsel===d?null:d;render();break}
     case 'todaytog':freezeTop();ui.todayOpen=!ui.todayOpen;render();break;
     case 'skipask':freezeTop();ui.skipAsk=true;render();break;
     case 'skipcancel':freezeTop();ui.skipAsk=false;render();break;
