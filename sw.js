@@ -540,10 +540,9 @@ function formater(fmt, dom, minutter, movs, o, rng) {
     reps = movs.map(function(m){ return p\u00e6ntTal(m.rate * (hv ? 0.75 : 0.6), m.rate); });
     overskrift = "EMOM " + minutter + (rot >= 2 ? " \u00b7 " + rE + " runder" : "") + (hv ? " \u00b7 med hvileminut" : "");
     strategi = hv
-      ? "Hvert " + rot + ". minut er hvile, s\u00e5 arbejdsminutterne er h\u00e5rdere: 45-50 sekunder arbejde. Brug hvileminuttet til at f\u00e5 pulsen ned, ikke til at g\u00e5 rundt. " + nE + " arbejdsminut" + (nE > 1 ? "ter" : "") + " + 1 hvile \u00d7 " + rE + " runder = " + (rot * rE) + " minutter."
+      ? "Hvert " + rot + ". minut er hvile, s\u00e5 arbejdsminutterne er h\u00e5rdere: 45-50 sekunder arbejde. Brug hvileminuttet til at f\u00e5 pulsen ned, ikke til at g\u00e5 rundt."
       : "Arbejdet skal tage 35-45 sekunder, s\u00e5 du f\u00e5r reel hvile. Tager det over 50 sekunder, er reps sat for h\u00f8jt."
-        + (nE >= 2 ? " " + nE + " \u00f8velser \u00d7 " + rE + " runder = " + (nE * rE) + " minutter, s\u00e5 hver \u00f8velse f\u00e5r lige mange runder."
-                   : " Samme \u00f8velse hele vejen \u2014 godt til at bygge volumen uden at miste teknik.");
+        + (nE === 1 ? " Samme \u00f8velse hele vejen \u2014 godt til at bygge volumen uden at miste teknik." : "");
   } else if (fmt.id === "exmom") {
     var rH = rng(), hver = (minutter % 2 === 0 && minutter % 3 === 0) ? (rH < 0.5 ? 2 : 3) : (minutter % 3 === 0 ? 3 : 2);
     reps = s\u00e6tReps(movs, hver * 60 * 0.6);
@@ -641,7 +640,7 @@ window.CF={byggePas,alternativer,formater,prng,formatFor,domaeneFor,FORMATER,DOM
 })();
 }else{
 // Offline cache: the app shell is cached on install; pages are network-first so updates arrive, fonts are cache-first.
-const CACHE='traening-v17';
+const CACHE='traening-v18';
 const SHELL=['./','./index.html','./sw.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
