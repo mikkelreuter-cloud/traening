@@ -49,6 +49,18 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px
   padding-block:18px calc(170px + env(safe-area-inset-bottom,0px))}
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .no-top header.top{display:none}
+.fw-sec{gap:8px}
+.fw-h{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:10px;margin-bottom:4px}
+.fw-h h3{margin:0;font-size:18px;font-weight:600}
+.fw-l{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--pill);color:var(--pill-fg);font-weight:700;font-size:14px}
+.fw-roll{width:40px;height:40px;font-size:17px}
+.fw-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;font-size:15px;line-height:1.35;padding:2px 0}
+.fw-sw{appearance:none;border:0;background:var(--surface-2);color:var(--muted);width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:15px}
+.fw-sub{margin:6px 0 0;font-size:13px;color:var(--muted)}
+.fw-lift{font-size:20px;font-weight:600}
+.fw-lines p{margin:4px 0;font-size:15px;font-weight:500}
+.hint.center{text-align:center}
+
 .wd.is-sel:not(.is-today){box-shadow:inset 0 0 0 1.5px var(--muted)}
 .wd.is-sel.is-today{box-shadow:0 0 0 2px var(--accent)}
 .wdet{margin-top:6px;padding:14px;border-radius:16px;background:var(--surface-2);display:grid;gap:6px;animation:wdin .18s ease-out}
@@ -542,7 +554,7 @@ function load(){
     if(st.program==='blueprint'&&st.plan[2]==='I4'&&st.plan[0]==='Z2L')st.plan[2]='I5';
     /* v9: move 30/15 to Friday and Styrke C to Saturday, so intervals never follow a heavy leg day */
     if(st.program==='blueprint'&&st.plan[5]==='C'&&st.plan[6]==='I30B'){st.plan[5]='I30B';st.plan[6]='C';if(st.addons[5]==='MOB'){delete st.addons[5];st.addons[6]='MOB'}}
-    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.sessEdits=d.sessEdits||{};st.customSess=d.customSess||{};st.customPlan=d.customPlan||null;st.customAddons=d.customAddons||null;st.customDeload=d.customDeload;st.overrides=d.overrides||{};st.cfDays=d.cfDays||{};st.cfPrefs=d.cfPrefs||null;st.strUdstyr=d.strUdstyr||null;st.strGen=d.strGen||null;st.shifts=Array.isArray(d.shifts)?d.shifts:[];
+    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.sessEdits=d.sessEdits||{};st.customSess=d.customSess||{};st.customPlan=d.customPlan||null;st.customAddons=d.customAddons||null;st.customDeload=d.customDeload;st.overrides=d.overrides||{};st.cfDays=d.cfDays||{};st.cfPrefs=d.cfPrefs||null;st.strUdstyr=d.strUdstyr||null;st.strGen=d.strGen||null;st.fw=d.fw||null;st.fwT=d.fwT||60;st.shifts=Array.isArray(d.shifts)?d.shifts:[];
     if(!st.program){const untouched=Object.keys(DEFAULT_PLAN).every(k=>st.plan[k]===DEFAULT_PLAN[k]);if(untouched)st.plan={...BP_PLAN};st.addons={...BP_ADDONS}}
     /* v20: one program only — your own week. Existing data counts as already set up. */
     if(st.program!=='custom'&&!d.customPlan)st.customDeload=d.customDeload??true;
@@ -984,6 +996,141 @@ function trainRow(k){const se=SESS[k],t=sessKey(TODAY)===k;
   return `<button class="tr-row k-${se.kind}${t?' today':''}" data-act="trsess" data-key="${k}"><span class="bar"></span><span class="nm">${esc(se.name)}</span>${t?'<span class="tag">I dag</span>':''}<span class="chev">›</span></button>`}
 /* Open groups in the Træn list; starts with the group that holds today's session */
 function trOpen(){if(!ui.trOpen){const g=trainGroups().find(([,ks])=>ks.includes(sessKey(TODAY)));ui.trOpen=new Set(g?[g[0]]:[])}return ui.trOpen}
+/* ---------- Fuld træning: A opvarmning · B styrke · C WOD · D bonus ----------
+   Built from patterns in published CrossFit class programming:
+   - Warm-up = a little cardio, 2 rounds of general drills, drills for the day's lift, then build-up sets.
+   - Strength comes first while fresh (12-20 min): waves, ladders, 5-3-1, sets across, build to heavy, EMOM, clusters, complexes, supersets.
+   - The WOD avoids loading the same pattern heavily again, and is shorter after a heavy strength part.
+   - Bonus work is 2-3 accessory moves that balance the lift (single leg, hamstrings, pulling, core, carries). */
+const FW_LIFTS=[
+ ['bsq','Back squat','squat','Vægtstang',1],['fsq','Front squat','squat','Vægtstang',1],['psq','Pause back squat (2 sek i bunden)','squat','Vægtstang',1],['boxsq','Box squat','squat','Vægtstang',1],
+ ['kbfsq','Dobbelt kettlebell front squat','squat','Kettlebell',0],['gob','Tung goblet squat','squat','Kettlebell',0],['pistol','Pistol squats (pr. ben)','squat','Ingen udstyr',0],
+ ['dl','Dødløft','hinge','Vægtstang',1],['sumo','Sumo-dødløft','hinge','Vægtstang',1],['rdl','Rumænsk dødløft','hinge','Vægtstang',1],
+ ['kbrdl','Kettlebell single-leg RDL (pr. ben)','hinge','Kettlebell',0],['kbsw','Tunge kettlebell swings','hinge','Kettlebell',0],
+ ['sp','Strict press','press_v','Vægtstang',1],['pp','Push press','press_v','Vægtstang',1],['pj','Push jerk','press_v','Vægtstang',1],['sj','Split jerk','press_v','Vægtstang',1],
+ ['kbpr','Kettlebell strict press (pr. arm)','press_v','Kettlebell',0],['hspu','Strict handstand push-ups','press_v','Ingen udstyr',0],
+ ['bp','Bænkpres','press_h','Vægtstang',1],['cgbp','Smal bænkpres','press_h','Vægtstang',1],['ringdip','Strict ring dips','press_h','Ringe',0],
+ ['pc','Power clean','clean','Vægtstang',1],['sqc','Squat clean','clean','Vægtstang',1],['hpc','Hang power clean','clean','Vægtstang',1],['kbcl','Dobbelt kettlebell clean','clean','Kettlebell',0],
+ ['ps','Power snatch','snatch','Vægtstang',1],['ssn','Squat snatch','snatch','Vægtstang',1],['hps','Hang power snatch','snatch','Vægtstang',1],['kbsn','Kettlebell snatch (pr. arm)','snatch','Kettlebell',0],
+ ['wpu','Strict pull-ups med vægt','pull','Pull-up bar',0],['spu','Strict pull-ups','pull','Pull-up bar',0],['pendlay','Pendlay row','pull','Vægtstang',1]];
+const FW_PAT={squat:'Squat',hinge:'Dødløft og hofte',press_v:'Pres over hovedet',press_h:'Bænk og dips',clean:'Clean',snatch:'Snatch',pull:'Træk'};
+/* How often each pattern shows up as the day's lift in the sampled programming */
+const FW_PAT_W={squat:25,hinge:18,press_v:17,press_h:12,clean:12,snatch:8,pull:8};
+/* Which WOD movement patterns repeat the lift's load (engine pattern names) */
+const FW_CLASH={squat:['squat'],hinge:['hinge'],press_v:['push_v'],press_h:['push_h'],clean:['hinge','squat'],snatch:['hinge','push_v'],pull:['pull_v','pull_h']};
+const fwL=id=>FW_LIFTS.find(l=>l[0]===id);
+const fwPick=a=>a[Math.floor(Math.random()*a.length)];
+const FW_ALLP=Object.keys(FW_PAT);
+/* bar: 1 = needs a barbell lift (uses % of 1RM), 0 = any lift, -1 = only lifts without a barbell */
+const FW_SCHEMES=[
+ {id:'wave',name:'Waves',pats:['squat','hinge','press_v','press_h'],bar:1,min:15,heavy:1,lines:()=>['Wave 1: 5 – 3 – 1 @ 70 % – 75 % – 80-85 %','Wave 2: 5 – 3 – 1 @ 75 % – 80 % – 85-90 %','Løft hvert 2:30 min'],note:'Det skal være tungt i sidste løft af hver wave.'},
+ {id:'ladder',name:'Stigende sæt',pats:['squat','hinge','press_v','press_h'],bar:1,min:13,heavy:1,lines:()=>['5 @ 70 % · 4 @ 75 % · 3 @ 80 % · 2 @ 85 % · 1 @ 90 %','Ét sæt hvert 2:30 min'],note:'Positionen skal holde, også i det tunge sæt.'},
+ {id:'531',name:'5-3-1',pats:['squat','hinge','press_v','press_h'],bar:1,min:16,heavy:1,lines:()=>['5 @ 75 % · 3 @ 85 % · 1+ @ 95 %','Sidste sæt: så mange gode gentagelser som muligt','Derefter 2 × 5 @ 70 %','Hvile 2-3 min mellem sæt'],note:'Skriv antal gentagelser i sidste sæt ned, så du kan slå det næste gang.'},
+ {id:'across',name:'Sæt på samme vægt',pats:['squat','hinge','press_v','press_h','pull'],bar:1,min:14,heavy:0,lines:()=>{const v=fwPick([[5,5,'70-75 %'],[4,6,'70 %'],[3,8,'65-70 %'],[5,3,'80-85 %']]);return [`${v[0]} sæt × ${v[1]} @ ${v[2]}`,'Ét sæt hvert 2:00 min','Samme vægt i alle sæt']},note:'Kan du tage flere end målet i sidste sæt, så læg vægt på næste gang.'},
+ {id:'build',name:'Byg op',pats:FW_ALLP,bar:0,min:15,heavy:1,lines:l=>{const n=['clean','snatch'].includes(l[2])?fwPick([1,2,3]):fwPick([5,4,3,2]);return [`15 min: byg op til et tungt sæt af ${n}`,`Ca. 6 sæt × ${n}, lidt tungere hver gang`,'Hvile 2-2:30 min mellem sæt']},note:'Stop når farten eller teknikken falder.'},
+ {id:'emom',name:'EMOM tung',pats:['squat','hinge','press_v','press_h','clean','snatch'],bar:1,min:12,heavy:1,lines:l=>['clean','snatch'].includes(l[2])?['EMOM 12 min: 1 løft hvert minut','Start ca. 65 %, byg mod 85 %']:['E2MOM 12 min (6 sæt): 2 gentagelser','@ 80-85 %'],note:'Ingen grimme løft. Hold vægten, hvis teknikken svigter.'},
+ {id:'cluster',name:'Clusters',pats:['squat','press_v','clean'],bar:1,min:16,heavy:1,lines:()=>['Hvert 2:00 × 8: 1 + 1','5-10 sek pause mellem de to løft (stangen kan stå i stativet)','Byg op til en tung cluster'],note:'Pausen gør, at du kan løfte tungere end normalt.'},
+ {id:'complex',name:'Complex',pats:['clean','snatch'],bar:1,min:13,heavy:1,lines:l=>l[2]==='clean'?['Hvert 2:30 × 5:','1 power clean + 1 front squat + 1 hang power clean + 1 push jerk','Byg op til en tung complex']:['Hvert 2:30 × 5:','1 power snatch + 1 hang squat snatch + 1 overhead squat','Byg op til en tung complex'],note:'Vægten styres af den sværeste del af complexen.'},
+ {id:'superset',name:'Superset',pats:['squat','hinge','press_h','press_v'],bar:1,min:14,heavy:0,lines:l=>[`3 runder: 8 – 6 – 4 ${l[1].toLowerCase()}`,'+ 5 strict pull-ups med 3 sek pause i toppen (eller 10 ring rows)','Start ca. 70 % og byg hver runde','Hvile 2 min efter hver runde'],note:'Træk-øvelsen giver aktiv pause mellem de tunge sæt.'},
+ {id:'heavy',name:'Tunge sæt',pats:FW_ALLP,bar:-1,min:12,heavy:0,lines:()=>['5 sæt × 5-8','Tungt, men stop med 1-2 i tanken','Hvile 90 sek mellem sæt'],note:'Brug en vægt eller variant, hvor de sidste gentagelser er svære.'},
+ {id:'bemom',name:'EMOM',pats:FW_ALLP,bar:-1,min:12,heavy:0,lines:()=>['EMOM 12 min: 4-6 gode gentagelser','Stop før teknikken knækker'],note:'Samme antal hvert minut. Vælg et tal du kan holde alle 12 minutter.'}];
+const FW_SPEC={squat:['30 sek i bunden af en squat','10 lette goblet squats','30 sek front rack-stræk pr. side','5 air squats med 3 sek ned'],
+ hinge:['10 good mornings med elastik','10 RDL med tom stang','10 glute bridges med pause','5 inchworms til planke'],
+ press_v:['10 presses med elastik','10 PVC pass-throughs','5 strict press med tom stang','10 scap push-ups'],
+ press_h:['10 scap push-ups','10 band pull-aparts','10 push-ups med pause i bunden','10 bænkpres med tom stang'],
+ clean:['Tom stang: 5 RDL, 5 muscle cleans, 5 front squats, 5 strict press','10 hip hinges med PVC','5 hang power cleans med tom stang'],
+ snatch:['Burgener warm-up med tom stang','5 overhead squats med tom stang','10 PVC pass-throughs','5 muscle snatches med tom stang'],
+ pull:['10 scap pull-ups','10 ring rows','20 sek dead hang','10 band pull-aparts']};
+const FW_GEN=['10 inchworms','10 cat-cows','10 glute bridges','10 band pull-aparts','10 PVC pass-throughs','10 air squats',"5 world's greatest stretch pr. side",'10 hollow rocks','10 scap pull-ups','10 bootstrappers','10 cossack squats (skiftevis)','5 Samson-stræk pr. side','10 bird dogs (skiftevis)','10 scap push-ups'];
+const FW_CARDIO=[['Row 500 m roligt','Ro-maskine'],['Cykel 3 min roligt','Cykel'],['Ski 400 m roligt','Ski-maskine'],['Løb 400 m roligt','Ingen udstyr'],['2 min sjippetov','Sjippetov'],['3 min jumping jacks og høje knæløft','Ingen udstyr']];
+/* Accessory moves: [name, group, equipment, dose] */
+const FW_ACC=[
+ ['Bulgarsk splitsquat','lunge','Ingen udstyr','3 × 8 pr. ben'],['Reverse lunges','lunge','Ingen udstyr','3 × 10 pr. ben'],['Step-ups','lunge','Kasse','3 × 8 pr. ben'],['Kettlebell front rack-lunges','lunge','Kettlebell','3 × 8 pr. ben'],
+ ['Nordic curls','ham','Ingen udstyr','3 × 5'],['Leg curls med elastik','ham','Ingen udstyr','3 × 15'],['Back extensions','ham','GHD','3 × 12'],['Good mornings','ham','Vægtstang','3 × 10'],['Kettlebell single-leg RDL','ham','Kettlebell','3 × 8 pr. ben'],['Glute bridge på ét ben','ham','Ingen udstyr','3 × 12 pr. ben'],['Reverse nordic curls','ham','Ingen udstyr','3 × 8'],
+ ['Ring rows','pull','Ringe','3 × 12'],['Strict pull-ups','pull','Pull-up bar','3 × 6-8'],['Kettlebell-roning','pull','Kettlebell','3 × 10 pr. arm'],['Rotræk med stang','pull','Vægtstang','3 × 10'],['Band pull-aparts','pull','Ingen udstyr','3 × 20'],
+ ['Push-ups','push','Ingen udstyr','3 × 12-15'],['Ring dips','push','Ringe','3 × 8'],['Pike push-ups','push','Ingen udstyr','3 × 8'],['Kettlebell floor press','push','Kettlebell','3 × 10'],
+ ['Sideplanke','core','Ingen udstyr','3 × 30 sek pr. side'],['Hollow hold','core','Ingen udstyr','3 × 30 sek'],['Dead bugs','core','Ingen udstyr','3 × 10 pr. side'],['Hængende knæløft','core','Pull-up bar','3 × 12'],['GHD sit-ups','core','GHD','3 × 12'],['Copenhagen-planke','core','Kasse','3 × 20 sek pr. side'],['Pallof press med elastik','core','Ingen udstyr','3 × 10 pr. side'],
+ ['Farmer carry','carry','Kettlebell','3 × 40 m'],['Suitcase carry','carry','Kettlebell','3 × 30 m pr. side'],['Slædeskub','carry','Slæde','4 × 20 m'],['Sandsæk-carry','carry','Sandsæk','3 × 40 m']];
+const FW_DSLOTS={squat:[['lunge'],['ham'],['core']],hinge:[['lunge'],['pull'],['core','carry']],press_v:[['pull'],['lunge'],['core']],press_h:[['pull'],['ham','lunge'],['core']],
+ clean:[['ham'],['pull'],['carry','core']],snatch:[['ham'],['pull'],['core','carry']],pull:[['push'],['lunge'],['core']]};
+const FW_TIMES=[45,60,75];
+const FW_A_MIN={45:8,60:10,75:12},FW_D_MIN={45:6,60:8,75:10};
+/* WOD length after the strength part: shorter and sprintier after a heavy lift */
+const FW_C_RANGE={45:{h:[8,12],l:[10,14]},60:{h:[10,15],l:[14,20]},75:{h:[15,20],l:[20,30]}};
+const FW_C_OK=[8,10,12,14,15,16,18,20,24,25,30];
+
+function fwEq(){return cfPrefs().udstyr||[]}
+function fwEqOk(eq){const U=fwEq();return eq==='Ingen udstyr'||!U.length||U.includes(eq)}
+function fwGenB(pat){
+  const pats=FW_ALLP.filter(p=>FW_LIFTS.some(l=>l[2]===p&&fwEqOk(l[3])));
+  if(!pat||!pats.includes(pat)){let tot=pats.reduce((a,p)=>a+FW_PAT_W[p],0),r=Math.random()*tot;pat=pats.find(p=>(r-=FW_PAT_W[p])<0)||pats[0]}
+  // A barbell is the norm at a box: 8 of 10 days pick a barbell lift when one is available
+  const all=FW_LIFTS.filter(x=>x[2]===pat&&fwEqOk(x[3])),bar=all.filter(x=>x[4]);
+  const l=fwPick(bar.length&&Math.random()<.8?bar:all);return fwSchemeFor(l)}
+function fwSchemeFor(l,keepId){
+  const ok=FW_SCHEMES.filter(s=>s.pats.includes(l[2])&&(l[4]?s.bar!==-1:s.bar!==1));
+  // Lifts without a usual max (RDL, rows) only get sets across, build-up or superset
+  if(['rdl','pendlay','boxsq'].includes(l[0])){const f=ok.filter(s=>['across','build','superset'].includes(s.id));ok.length=0;ok.push(...f)}
+  const s=(keepId&&ok.find(x=>x.id===keepId))||fwPick(ok);
+  return {lift:l[0],scheme:s.id,lines:s.lines(l),note:s.note,min:s.min,heavy:s.heavy,pct:s.bar===1}}
+function fwGenA(b,old){const pat=fwL(b.lift)[2],car=FW_CARDIO.filter(c=>fwEqOk(c[1]));
+  const gen=old&&old.gen?old.gen:FW_GEN.slice().sort(()=>Math.random()-.5).slice(0,3);
+  return {cardio:old&&old.cardio&&car.some(c=>c[0]===old.cardio)?old.cardio:fwPick(car)[0],gen,spec:FW_SPEC[pat].slice().sort(()=>Math.random()-.5).slice(0,2),pat}}
+function fwGenC(b,T){const P=cfPrefs(),pats=FW_CLASH[fwL(b.lift)[2]],rg=FW_C_RANGE[T][b.heavy?'h':'l'];
+  const mins=FW_C_OK.filter(m=>m>=rg[0]&&m<=rg[1]);let best=null,bs=1e9;
+  for(let i=0;i<30;i++){const p=CF.byggePas({minutter:fwPick(mins),niveau:P.niveau,udstyr:P.udstyr||[],fokus:'',seed:Math.floor(Math.random()*4294967295)});if(!p)continue;
+    let sc=0;p.movs.forEach(m=>{if(m.pat.some(x=>pats.includes(x)))sc+=m.load>=2?4:m.load>=1?1:0});sc+=Math.random()*.5;
+    if(sc<bs){bs=sc;best=p}}
+  return best?cfSerialize(best):null}
+function fwGenD(b,T){const slots=FW_DSLOTS[fwL(b.lift)[2]].slice(0,T===45?2:3),used=new Set(),out=[];
+  slots.forEach(gs=>{const c=FW_ACC.filter(a=>gs.includes(a[1])&&fwEqOk(a[2])&&!used.has(a[0])&&!(b.scheme==='superset'&&/pull-ups|Ring rows/.test(a[0])));if(c.length){const a=fwPick(c);used.add(a[0]);out.push(a[0])}});return out}
+function fwNew(T){T=T||fwT();const b=fwGenB();return {T,a:fwGenA(b),b,c:fwGenC(b,T),d:fwGenD(b,T)}}
+const fwT=()=>FW_TIMES.includes(state.fwT)?state.fwT:60;
+function fwC(){const w=state.fw;if(!w||!w.c)return null;const k=w.c.seed+'|'+w.c.ids.join(',');if(!ui.fwCache||ui.fwCache.k!==k)ui.fwCache={k,p:cfRebuild(w.c)};return ui.fwCache.p}
+function fwAltsB(){const l=fwL(state.fw.b.lift);return FW_LIFTS.filter(x=>x[2]===l[2]&&x[0]!==l[0]&&fwEqOk(x[3]))}
+function fwAltsD(i){const w=state.fw,a=FW_ACC.find(x=>x[0]===w.d[i]);return a?FW_ACC.filter(x=>x[1]===a[1]&&fwEqOk(x[2])&&!w.d.includes(x[0])):[]}
+function fwAltsC(i){const p=fwC();return CF.alternativer(p.movs,i,null,p.opt).filter(m=>m.id!==p.movs[i].id&&!p.movs.some(x=>x.id===m.id))}
+function fwSecHead(k,title,min){return `<div class="fw-h"><span class="fw-l">${k.toUpperCase()}</span><h3>${title}</h3><span class="muted small">${min}</span><button class="icon-btn fw-roll" data-act="fwroll" data-s="${k}" aria-label="Bland ${title}">🎲</button></div>`}
+function fwAltList(kind,i,alts,label){return `<div class="alts">${alts.length?`<button data-act="fwpick" data-k="${kind}" data-i="${i}" data-v="${esc(label(fwPick(alts)))}" style="background:var(--pill);color:var(--pill-fg)">🎲 Tilfældig erstatning</button>`+alts.slice(0,12).map(a=>`<button data-act="fwpick" data-k="${kind}" data-i="${i}" data-v="${esc(label(a))}">${esc(kind==='c'?CF.navnVis(a):kind==='b'?a[1]:a[0])}</button>`).join(''):'<p class="hint">Ingen erstatninger med dit udstyr.</p>'}</div>`}
+function viewFW(){
+  const w=state.fw,T=fwT(),P=cfPrefs(),all=cfUdstyrAlle(),have=P.udstyr||all,sw=ui.fwSwap;
+  const back=`<div class="habit-head"><button class="icon-btn" data-act="fwback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">Opvarmning · styrke · WOD · bonus</p><h2 class="h2">Fuld træning</h2></div></div>`;
+  const opts=`<section class="card">
+    <div class="field"><span>Tid i alt</span><div class="chips">${FW_TIMES.map(t=>`<button class="${T===t?'on':''}" data-act="fwtime" data-v="${t}">${t} min</button>`).join('')}</div></div>
+    <div class="field"><span>Niveau</span><div class="chips">${['Begynder','Øvet','Avanceret'].map(n=>`<button class="${P.niveau===n?'on':''}" data-act="cfpref" data-k="niveau" data-v="${n}">${n}</button>`).join('')}</div></div>
+    <button class="restbtn" data-act="fwudstyr">${ui.fwEq?'Skjul udstyr':`Udstyr · ${have.length} af ${all.length} valgt`}</button>
+    ${ui.fwEq?`<div class="chips">${all.map(u=>`<button class="${have.includes(u)?'on':''}" data-act="cfeq" data-v="${esc(u)}">${esc(u)}</button>`).join('')}</div><p class="hint">Gælder også CrossFit-pas.</p>`:''}
+    <button class="btn accent" data-act="fwnew">🎲 ${w?'Bland hele træningen':'Byg en træning'}</button></section>`;
+  if(!w)return back+opts+`<p class="hint center">Appen bygger en hel træning som på en CrossFit-box: opvarmning, et tungt løft, en WOD der passer til løftet og lidt bonusarbejde.</p>`;
+  const b=w.b,l=fwL(b.lift),p=fwC(),sc=FW_SCHEMES.find(s=>s.id===b.scheme);
+  const A=`<section class="card fw-sec">${fwSecHead('a','Opvarmning',`ca. ${FW_A_MIN[w.T]} min`)}
+    <div class="fw-row"><span>${esc(w.a.cardio)}</span><button class="fw-sw" data-act="fwa" data-k="cardio" aria-label="Byt">↻</button></div>
+    <p class="fw-sub">2 runder:</p>
+    ${w.a.gen.map((g,i)=>`<div class="fw-row"><span>${esc(g)}</span><button class="fw-sw" data-act="fwa" data-k="gen" data-i="${i}" aria-label="Byt">↻</button></div>`).join('')}
+    ${w.a.spec.map((g,i)=>`<div class="fw-row"><span>${esc(g)}</span><button class="fw-sw" data-act="fwa" data-k="spec" data-i="${i}" aria-label="Byt">↻</button></div>`).join('')}
+    <p class="fw-sub">Derefter:</p>
+    <div class="fw-row"><span>${l[4]?`Opvarmningssæt til ${esc(l[1].toLowerCase())}: tom stang × 10, 5 @ 40 %, 3 @ 50-60 %`:`2 lette sæt ${esc(l[1].toLowerCase())}`}</span></div>
+    ${p?`<div class="fw-row"><span>2-3 lette gentagelser af hver øvelse i WOD'en</span></div>`:''}</section>`;
+  const B=`<section class="card fw-sec">${fwSecHead('b','Styrke',`ca. ${b.min} min`)}
+    <div class="mvrow"><b class="fw-lift">${esc(l[1])}</b><small>${esc(sc?sc.name:'')} · ${esc(FW_PAT[l[2]])}</small>
+      <button class="restbtn swap" data-act="fwswap" data-v="b">${sw==='b'?'Luk':'Byt'}</button>${sw==='b'?fwAltList('b',0,fwAltsB(),a=>a[0]):''}</div>
+    <div class="fw-lines">${b.lines.map(x=>`<p>${esc(x)}</p>`).join('')}</div>
+    <p class="note">${esc(b.note)}</p>${b.pct?'<p class="hint">% af din 1RM. Kender du den ikke, så brug en vægt du kunne løfte ca. 2 gange mere.</p>':''}</section>`;
+  const C=`<section class="card fw-sec">${fwSecHead('c','WOD',p?`${p.minutter} min`:'')}
+    ${p?cfWod(p)+`<p class="note">${esc(p.strategi)}</p><div>${p.movs.map((m,i)=>`<div class="mvrow"><b>${esc(CF.navnVis(m))}</b><small>Skalering: ${esc(m.skal)}</small>
+      <button class="restbtn swap" data-act="fwswap" data-v="c${i}">${sw==='c'+i?'Luk':'Byt'}</button>${sw==='c'+i?fwAltList('c',i,fwAltsC(i),a=>a.id):''}</div>`).join('')}</div>`:'<p class="hint">Ingen WOD passede til dit udstyr. Tryk 🎲 for at prøve igen.</p>'}</section>`;
+  const D=w.d.length?`<section class="card fw-sec">${fwSecHead('d','Bonus',`ca. ${FW_D_MIN[w.T]} min`)}
+    <p class="fw-sub">${w.d.length===2?'2':'3'} runder i roligt tempo. Kun hvis du har tid og lyst.</p>
+    ${w.d.map((n,i)=>{const a=FW_ACC.find(x=>x[0]===n)||[n,'','',''];return `<div class="mvrow"><b>${esc(n)}</b><small>${esc(a[3])}</small>
+      <button class="restbtn swap" data-act="fwswap" data-v="d${i}">${sw==='d'+i?'Luk':'Byt'}</button>${sw==='d'+i?fwAltList('d',i,fwAltsD(i),x=>x[0]):''}</div>`}).join('')}</section>`:'';
+  const L=ui.fwLog?`<section class="card"><h3 class="sec">Log træningen</h3>
+    <label class="field"><span>Score i WOD'en</span><input id="fw-score" data-bind="fwLog.score" value="${esc(ui.fwLog.score)}" placeholder="Fx 12:34 eller 7 runder + 5"></label>
+    <label class="field"><span>Note (valgfri)</span><input id="fw-note" data-bind="fwLog.note" value="${esc(ui.fwLog.note)}" placeholder="Fx vægt i styrke"></label>
+    <button class="btn accent" data-act="fwsave">Gem i log</button></section>`:`<button class="btn primary" data-act="fwlog">Log træningen</button>`;
+  return back+opts+A+B+C+D+L}
+function fwLines(){const w=state.fw,l=fwL(w.b.lift),p=fwC();
+  return ['A) Opvarmning: '+[w.a.cardio,...w.a.gen,...w.a.spec].join(', '),'B) '+l[1]+': '+w.b.lines.join(' / '),'C) '+(p?p.overskrift+': '+p.linjer.join(' / '):''),...(w.d.length?['D) Bonus: '+w.d.join(', ')]:[])]}
+
 const setBtn=()=>'<button class="icon-btn" data-act="settings" aria-label="Plan og data"><svg viewBox="0 0 24 24"><path d="M4 7h9M18 7h2M4 17h4M13 17h7"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="10.5" cy="17" r="2.3"/></svg></button>';
 /* Before a fold-out opens or closes: pin the content where it is now, so only what is below moves */
 function freezeTop(){const m=$('#main'),f=m.firstElementChild;if(f&&document.body.classList.contains('no-top'))ui.freeze={v:ui.view,px:Math.max(0,f.getBoundingClientRect().top-m.getBoundingClientRect().top)}}
@@ -992,6 +1139,7 @@ function viewTrain(){
   return `<div class="tr-top"><button class="btn accent" data-act="senew">+ Opret pas</button><button class="icon-btn" data-act="settings" aria-label="Plan og data"><svg viewBox="0 0 24 24"><path d="M4 7h9M18 7h2M4 17h4M13 17h7"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="10.5" cy="17" r="2.3"/></svg></button></div>
   <div class="tr-list">${trainGroups().map(([g,ks])=>{const kind=SESS[ks[0]].kind,open=trOpen().has(g),today=ks.includes(sessKey(TODAY));
     return `<section class="tr-grp${open?' open':''}"><button class="tr-head k-${kind}" data-act="trgrp" data-g="${esc(g)}" aria-expanded="${open}"><span class="bar"></span><span class="nm">${g}</span>${today?'<span class="tag">I dag</span>':''}<span class="cnt">${ks.length} pas</span><span class="chev">›</span></button>${open?`<div class="tr-items">${ks.map(trainRow).join('')}</div>`:''}</section>`}).join('')}
+  <button class="tr-head k-crossfit" data-act="fwopen"><span class="bar"></span><span class="nm">Fuld træning</span><span class="cnt">A · B · C · D</span><span class="chev">›</span></button>
   <button class="tr-head k-crossfit" data-act="cfopen" data-date="${TODAY}"><span class="bar"></span><span class="nm">CrossFit${cfToday?` · ${esc(cfToday.title||'')}`:''}</span>${sessKey(TODAY)==='CF'?'<span class="tag">I dag</span>':''}<span class="cnt">Byg pas</span><span class="chev">›</span></button></div>`;
 }
 function viewSess(){
@@ -1494,10 +1642,10 @@ function render(top){if(typeof acHide==='function'&&!$('#ac').hidden)acHide();ha
   const v=ui.view;$('.tabs').hidden=v==='onboard';$('.top .icon-btn').hidden=v==='onboard';
   $('#main').innerHTML=(storageOK?'':'<p class="warn">Browseren tillader ikke at gemme her. Åbn siden i Chrome og tilføj den til startskærmen, ellers forsvinder dine logs.</p>')+
     (timer&&v!=='timer'?'<button class="btn primary" data-act="view" data-view="timer">Timeren kører · gå tilbage</button>':'')+
-    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():v==='train'?viewTrain():v==='day'?viewDay():v==='sess'?viewSess():v==='sessedit'?viewSessEdit():v==='expick'?viewPick():viewSettings());
+    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():v==='train'?viewTrain():v==='day'?viewDay():v==='sess'?viewSess():v==='sessedit'?viewSessEdit():v==='expick'?viewPick():v==='fw'?viewFW():viewSettings());
   syncHistory();
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))||((v==='sess'||v==='sessedit'||v==='expick')&&t.dataset.view==='train')));
-  document.body.classList.toggle('no-top',['today','train','log','prog'].includes(v));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))||((v==='sess'||v==='sessedit'||v==='expick'||v==='fw')&&t.dataset.view==='train')));
+  document.body.classList.toggle('no-top',['today','train','log','prog','fw'].includes(v));
   {const m=$('#main');if(ui.freeze&&ui.freeze.v===v){m.style.justifyContent='flex-start';m.style.paddingTop=ui.freeze.px+'px'}else{ui.freeze=null;m.style.justifyContent='';m.style.paddingTop=''}}
   {const st=sessFor(TODAY);$('#hdr-hi').textContent=(state.name?'Hej '+state.name+'! · ':'')+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='onboard'?'Styrke & VO₂ log':v==='train'||v==='sess'?'Hvad har du lyst til i dag?':v==='sessedit'||v==='expick'?'Byg dit eget pas':v==='day'?cap(niceDate(ui.sel)):v==='cf'?'Byg dagens WOD':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
   if(top)window.scrollTo(0,0);
@@ -1576,7 +1724,7 @@ function doRestore(){
   let d;try{d=JSON.parse(ui.impText)}catch(e){d=null}
   if(!d||!Array.isArray(d.logs)){ui.pendingRestore=false;render();return toast('Teksten er ikke en gyldig backup')}
   if(!ui.pendingRestore){ui.pendingRestore=true;return render()}
-  state={sessEdits:d.sessEdits||{},customSess:d.customSess||{},plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:'custom',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,name:d.name,onboarded:true,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,strUdstyr:d.strUdstyr||null,strGen:d.strGen||null,shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);applySess();
+  state={sessEdits:d.sessEdits||{},customSess:d.customSess||{},plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:'custom',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,name:d.name,onboarded:true,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,strUdstyr:d.strUdstyr||null,strGen:d.strGen||null,fw:d.fw||null,fwT:d.fwT||60,shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);applySess();
 }
 function guessUnit(name){
   const prev=logsOf('test').filter(l=>l.name===name);if(prev.length)return prev[prev.length-1].unit;
@@ -1682,6 +1830,28 @@ document.addEventListener('click',e=>{
     case 'cfudstyr':ui.cf.showUdstyr=!ui.cf.showUdstyr;render();break;
     case 'cfeq':{const all=cfUdstyrAlle(),P=cfPrefs();let have=(P.udstyr||all).slice();const u=b.dataset.v;have=have.includes(u)?have.filter(x=>x!==u):have.concat(u);state.cfPrefs={...P,udstyr:have.length===all.length?null:have};save();render();break}
     case 'cfgen':{const wasPas=ui.cf.step==='pas';const p=cfGenerate();ui.cf.step='pas';render(!wasPas);if(!p)toast('Ingen gyldige pas med de valg');break}
+    case 'fwopen':ui.fwSwap=null;ui.fwLog=null;if(!state.fw){state.fw=fwNew();save()}ui.view='fw';render(true);break;
+    case 'fwback':ui.view='train';render(true);break;
+    case 'fwtime':{state.fwT=+b.dataset.v;const w=state.fw;if(w){w.T=state.fwT;w.c=fwGenC(w.b,w.T);w.d=fwGenD(w.b,w.T)}save();render();break}
+    case 'fwnew':state.fw=fwNew();ui.fwSwap=null;save();render();toast('Ny træning');break;
+    case 'fwudstyr':ui.fwEq=!ui.fwEq;render();break;
+    case 'fwroll':{const w=state.fw,k=b.dataset.s;ui.fwSwap=null;
+      if(k==='a')w.a=fwGenA(w.b);else if(k==='b'){w.b=fwGenB();w.a=fwGenA(w.b,w.a)}else if(k==='c'){const c=fwGenC(w.b,w.T);if(c)w.c=c;else toast('Ingen WOD passede til dit udstyr')}else if(k==='d')w.d=fwGenD(w.b,w.T);
+      save();render();break}
+    case 'fwa':{const w=state.fw,k=b.dataset.k,i=+b.dataset.i;
+      if(k==='cardio'){const c=FW_CARDIO.filter(x=>fwEqOk(x[1])&&x[0]!==w.a.cardio);if(c.length)w.a.cardio=fwPick(c)[0]}
+      else{const pool=k==='gen'?FW_GEN:FW_SPEC[fwL(w.b.lift)[2]],used=[...w.a.gen,...w.a.spec],c=pool.filter(x=>!used.includes(x));if(c.length)w.a[k][i]=fwPick(c)}
+      save();render();break}
+    case 'fwswap':{const v=b.dataset.v;ui.fwSwap=ui.fwSwap===v?null:v;render();break}
+    case 'fwpick':{const w=state.fw,k=b.dataset.k,i=+b.dataset.i,v=b.dataset.v;ui.fwSwap=null;
+      if(k==='b'){const l=fwL(v);if(l)w.b=fwSchemeFor(l,w.b.scheme)}
+      else if(k==='c'){const p=fwC(),movs=p.movs.slice();movs[i]=cfMovById(v);const np=CF.formater(p.format,p.domaene,p.minutter,movs,p.opt,CF.prng(p.seed));np.seed=p.seed;np.opt=p.opt;w.c=cfSerialize(np)}
+      else if(k==='d')w.d[i]=v;
+      save();render();toast('Øvelse byttet');break}
+    case 'fwlog':ui.fwLog={score:'',note:''};render();break;
+    case 'fwsave':{const w=state.fw,l=fwL(w.b.lift),r=ui.fwLog;
+      state.logs.push({id:Date.now().toString(36),date:TODAY,type:'crossfit',name:'Fuld træning · '+l[1],score:(r.score||'').trim(),note:(r.note||'').trim(),linjer:fwLines(),dur:w.T*60});
+      ui.fwLog=null;save();render();toast('Træning gemt');break}
     case 'cfswap':{const i=+b.dataset.i;ui.cf.swapI=ui.cf.swapI===i?null:i;render();break}
     case 'cfpick':cfSwap(+b.dataset.i,b.dataset.v);render();toast('Øvelse byttet');break;
     case 'cfsave':{const p=ui.cf.pas;if(!p)break;state.cfDays={...(state.cfDays||{}),[ui.cf.date]:cfSerialize(p)};if(sessKey(ui.cf.date)!=='CF')state.overrides={...(state.overrides||{}),[ui.cf.date]:'CF'};save();render();toast('Pas gemt');break}
