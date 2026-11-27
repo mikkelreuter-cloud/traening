@@ -228,8 +228,8 @@ T('Fuld træning i en plan roterer B-løftet, styrkemål beholder det',async()=>
   const r=await ev(p,()=>{const t={1:'crossfit',2:'hvile',3:'hvile',4:'crossfit',5:'hvile',6:'hvile',0:'hvile'},lifts=g=>{const pv=plBuild({...plStart(),goal:g,weeks:6,types:t});return pv.weeks.flatMap(w=>w.days.filter(d=>d.t==='crossfit').map(d=>fwL(pv.sess[d.key].w.b.lift)))};
     const a=lifts('allround'),s=lifts('styrke');const t5={1:'crossfit',2:'crossfit',3:'hvile',4:'crossfit',5:'crossfit',6:'crossfit',0:'hvile'},pv=plBuild({...plStart(),goal:'allround',weeks:4,types:t5});
     const adj=pv.weeks.some(w=>w.days.some((d,i)=>{const n=w.days[i+1];if(!n||d.t!=='crossfit'||n.t!=='crossfit')return false;return PL_LOWER.includes(fwL(pv.sess[d.key].w.b.lift)[2])&&PL_LOWER.includes(fwL(pv.sess[n.key].w.b.lift)[2])}));
-    return {names:new Set(a.map(l=>l[1])).size,pats:[...new Set(a.map(l=>l[2]))].sort(),strength:new Set(s.map(l=>l[1])).size,adj}});
-  ok(r.names>=8,'mange forskellige løft: '+r.names);ok(['clean','hinge','press_v','snatch','squat'].every(x=>r.pats.includes(x)),'alle hovedmønstre: '+r.pats);eq(r.strength,2,'styrkemål: ét løft pr. dag');eq(r.adj,false,'aldrig to tunge benløft dag efter dag');return p});
+    return {oly:a.filter(l=>l[2]==='clean'||l[2]==='snatch').length,names:new Set(a.map(l=>l[1])).size,pats:[...new Set(a.map(l=>l[2]))].sort(),strength:new Set(s.map(l=>l[1])).size,adj}});
+  ok(r.names>=8,'mange forskellige løft: '+r.names);ok(r.oly>=2,'Olympic-løft med: '+r.oly);ok(['clean','hinge','press_v','snatch','squat'].every(x=>r.pats.includes(x)),'alle hovedmønstre: '+r.pats);eq(r.strength,2,'styrkemål: ét løft pr. dag');eq(r.adj,false,'aldrig to tunge benløft dag efter dag');return p});
 /* ================= Editing the draft ================= */
 const draft=async(p,goal,types)=>ev(p,([goal,types])=>{ui.pl={...plStart(),goal,weeks:4,deload:false,types,start:'next'};ui.pl.preview=plBuild(ui.pl);ui.pl.step='review';ui.view='plan';render(true);
   const d=ui.pl.preview.weeks[0].days.find(x=>x.key!=='R');ui.pl.open=d.date;render();return d.key},[goal,types]);

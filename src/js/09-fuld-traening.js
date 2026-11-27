@@ -17,15 +17,15 @@ function trOpen(){if(!ui.trOpen){const tk=sessKey(TODAY),g=tk==='CF'?['CrossFit'
    - The WOD avoids loading the same pattern heavily again, and is shorter after a heavy strength part.
    - Bonus work is 2-3 accessory moves that balance the lift (single leg, hamstrings, pulling, core, carries). */
 const FW_LIFTS=[
- ['bsq','Back squat','squat','Vægtstang',1],['fsq','Front squat','squat','Vægtstang',1],['psq','Pause back squat (2 sek i bunden)','squat','Vægtstang',1],['boxsq','Box squat','squat','Vægtstang',1],
+ ['bsq','Back squat','squat','Vægtstang',1],['fsq','Front squat','squat','Vægtstang',1],['thr','Thrusters','squat','Vægtstang',1],['psq','Pause back squat (2 sek i bunden)','squat','Vægtstang',1],['boxsq','Box squat','squat','Vægtstang',1],
  ['kbfsq','Dobbelt kettlebell front squat','squat','Kettlebell',0],['gob','Tung goblet squat','squat','Kettlebell',0],['pistol','Pistol squats (pr. ben)','squat','Ingen udstyr',0],
  ['dl','Dødløft','hinge','Vægtstang',1],['sumo','Sumo-dødløft','hinge','Vægtstang',1],['rdl','Rumænsk dødløft','hinge','Vægtstang',1],
  ['kbrdl','Kettlebell single-leg RDL (pr. ben)','hinge','Kettlebell',0],['kbsw','Tunge kettlebell swings','hinge','Kettlebell',0],
  ['sp','Strict press','press_v','Vægtstang',1],['pp','Push press','press_v','Vægtstang',1],['pj','Push jerk','press_v','Vægtstang',1],['sj','Split jerk','press_v','Vægtstang',1],
  ['kbpr','Kettlebell strict press (pr. arm)','press_v','Kettlebell',0],['hspu','Strict handstand push-ups','press_v','Ingen udstyr',0],
  ['bp','Bænkpres','press_h','Vægtstang',1],['cgbp','Smal bænkpres','press_h','Vægtstang',1],['ringdip','Strict ring dips','press_h','Ringe',0],
- ['pc','Power clean','clean','Vægtstang',1],['sqc','Squat clean','clean','Vægtstang',1],['hpc','Hang power clean','clean','Vægtstang',1],['kbcl','Dobbelt kettlebell clean','clean','Kettlebell',0],
- ['ps','Power snatch','snatch','Vægtstang',1],['ssn','Squat snatch','snatch','Vægtstang',1],['hps','Hang power snatch','snatch','Vægtstang',1],['kbsn','Kettlebell snatch (pr. arm)','snatch','Kettlebell',0],
+ ['pc','Power clean','clean','Vægtstang',1],['sqc','Squat clean','clean','Vægtstang',1],['hpc','Hang power clean','clean','Vægtstang',1],['cj','Clean & jerk','clean','Vægtstang',1],['hsqc','Hang squat clean','clean','Vægtstang',1],['pcpj','Power clean + push jerk','clean','Vægtstang',1],['kbcl','Dobbelt kettlebell clean','clean','Kettlebell',0],
+ ['ps','Power snatch','snatch','Vægtstang',1],['ssn','Squat snatch','snatch','Vægtstang',1],['hps','Hang power snatch','snatch','Vægtstang',1],['ohs','Overhead squat','snatch','Vægtstang',1],['snb','Snatch balance','snatch','Vægtstang',1],['kbsn','Kettlebell snatch (pr. arm)','snatch','Kettlebell',0],
  ['wpu','Strict pull-ups med vægt','pull','Pull-up bar',0],['spu','Strict pull-ups','pull','Pull-up bar',0],['pendlay','Pendlay row','pull','Vægtstang',1]];
 const FW_PAT={squat:'Squat',hinge:'Dødløft og hofte',press_v:'Pres over hovedet',press_h:'Bænk og dips',clean:'Clean',snatch:'Snatch',pull:'Træk'};
 /* How often each pattern shows up as the day's lift in the sampled programming */

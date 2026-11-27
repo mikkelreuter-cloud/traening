@@ -97,8 +97,8 @@ function condSess(kind,i,w,slot,date){const k='K'+date.replace(/-/g,''),ph=[['Op
 const PL_DOW=[1,2,3,4,5,6,0];
 const PL_SHORT={1:'Man',2:'Tir',3:'Ons',4:'Tor',5:'Fre',6:'Lør',0:'Søn'};
 const PL_LOWER=['squat','hinge','clean','snatch'];
-/* The order full training days cycle through. Weighted like the sampled programming: squat most, then press and deadlift, Olympic lifts, bench and pulls. */
-const CF_ROT=['squat','press_v','hinge','clean','squat','snatch','press_v','hinge','press_h','squat','clean','pull'];
+/* The order full training days cycle through: squat and the Olympic lifts (clean, snatch, jerks under press) most, then deadlift, bench and pulls. */
+const CF_ROT=['squat','clean','press_v','hinge','snatch','squat','clean','press_v','hinge','snatch','press_h','pull'];
 /* Type of a day in the current weekly plan, so the wizard starts from what the app already knows */
 function plTypeOfKey(k){if(!k||k==='R')return 'hvile';if(k==='S'||(SESS[k]&&SESS[k].kind==='styrke'))return 'styrke';if(k==='CF')return 'crossfit';
   const s=SESS[k];if(!s)return 'hvile';if(s.kind==='interval'||s.kind==='zone2')return 'kondition';if(/^AR/.test(k))return 'restitution';if(s.kind==='mobilitet')return 'mobilitet';return 'hvile'}
@@ -173,8 +173,10 @@ function plBuild(P){
           note:(wi.dl?'Deload-uge: let og kort, så kroppen kan nå at blive stærkere. ':'')+`Hovedløft: ${what}.`+(dose.pct&&!dose.test?' Vægten regnes ud fra dine loggede sæt og følger med, når du bliver stærkere.':'')};
         key=k;label=`${f.main[0]} ${what}`}
       else if(t==='crossfit'){const f=weekly(dow,wi),k='F'+date.replace(/-/g,''),l=fwL(rotate&&cfPat[dow]&&cfLift(cfPat[dow])||f.fwLift),T=FW_TIMES.includes(P.fwT)?P.fwT:fwT();
-        let b;if(P.goal==='allround'&&!wi.dl&&!wi.test&&l[4]){const ids=['across','ladder','wave','531','emom','wave','ladder'],s=FW_SCHEMES.find(x=>x.id===ids[wi.i%ids.length]);b=s&&s.pats.includes(l[2])?{lift:l[0],scheme:s.id,lines:s.lines(l),note:s.note,min:s.min,heavy:s.heavy,pct:true}:null}
-        if(!b){const lines=dose.test?['Byg op til en ny 3RM','Ca. 6-8 sæt, hvile 2:30 mellem de tunge']:wi.dl?['3 × 5 @ 60 %','Let og hurtigt. Fokus på teknik']:[`${dose.s} sæt × ${dose.r}${l[4]?` @ ${dose.pct} %`:` · ${dose.rir} i tanken`}`,'Ét sæt hvert 2:00-2:30 min'];
+        let b;const oly=['clean','snatch'].includes(l[2]);
+        if((oly||l[0]==='thr')&&!wi.dl&&!wi.test&&l[4]){const ids=l[0]==='thr'?['build']:l[2]==='clean'?['emom','complex','build','cluster']:['emom','build','complex'],sc=FW_SCHEMES.find(x=>x.id===ids[Math.max(0,wi.i)%ids.length]);b={lift:l[0],scheme:sc.id,lines:sc.lines(l),note:sc.note,min:sc.min,heavy:sc.heavy,pct:true}}
+        else if(P.goal==='allround'&&!wi.dl&&!wi.test&&l[4]){const ids=['across','ladder','wave','531','emom','wave','ladder'],s=FW_SCHEMES.find(x=>x.id===ids[wi.i%ids.length]);b=s&&s.pats.includes(l[2])?{lift:l[0],scheme:s.id,lines:s.lines(l),note:s.note,min:s.min,heavy:s.heavy,pct:true}:null}
+        if(!b){const lines=dose.test?['Byg op til en ny 3RM','Ca. 6-8 sæt, hvile 2:30 mellem de tunge']:wi.dl?[oly?'3 × 3 @ 60 %':'3 × 5 @ 60 %','Let og hurtigt. Fokus på teknik']:[`${dose.s} sæt × ${dose.r}${l[4]?` @ ${dose.pct} %`:` · ${dose.rir} i tanken`}`,'Ét sæt hvert 2:00-2:30 min'];
           b={lift:l[0],scheme:dose.test?'build':wi.dl?'across':'across',lines,note:wi.dl?'Deload-uge: let, så kroppen kan nå at blive stærkere.':'Samme løft i denne periode, lidt tungere hver uge.',min:dose.test?18:wi.dl?10:14,heavy:dose.pct>=80||dose.test?1:0,pct:!!l[4]&&!dose.test}}
         const w={T,b,a:fwGenA(b),c:fwGenC(b,wi.dl?45:T),d:fwGenD(b,wi.dl?45:T),plan:true};
         const p=w.c?cfRebuild(w.c):null;sess[k]={name:`Fuld træning · ${l[1]}`,kind:'crossfit',fw:true,w,dur:`${T} min`};key=k;label=`${l[1]} + ${p?p.overskrift:'WOD'}`}
