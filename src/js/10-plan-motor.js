@@ -193,7 +193,7 @@ function plBuild(P){
         const order=P.goal==='pace'?{1:['I'],2:['I','L'],3:['I','T','L'],4:['I','E','T','L'],5:['I','E','T','E','L'],6:['E','I','E','T','E','L'],7:['E','I','E','T','E','E','L']}:{1:['L'],2:['E','L'],3:['E','F','L'],4:['E','F','E','L'],5:['E','F','E','T','L'],6:['E','F','E','T','E','L'],7:['E','F','E','T','E','E','L']};
         const rk={kind:order[Math.min(7,nRun)][cardioN-1],bi:Math.max(0,wi.i),nb:Math.max(1,nb),wi:{w:wi.w,dl:wi.dl,test:wi.test,i:wi.i},nRun};const ft=P.vd&&P.vStart==null&&!ftDone&&date>=TODAY;if(ft)ftDone=true;const [k,ss]=runSess({...P,nRun,firstTest:ft},rk.kind,rk.bi,rk.nb,rk.wi,date);ss.rk=rk;sess[k]=ss;key=k;label=ss.name}
       else if(t==='kondition'){cardioN++;const kond=P.goal==='kondition',i=Math.max(0,wi.i);
-        if(wi.dl&&cardioN>1){key='R';label='Hvile (deload)'}
+        if(wi.dl&&cardioN>1){if(P.goal==='vaegt'){key='GA';label='Gåtur (let uge)'}else{key='R';label='Hvile (deload)'}}
         else{const slot=(cardioN-1)%(kond?3:2),kind=wi.dl?'easy':slot===0?'hard':slot===1?'easy':'tempo';
           const vg=P.goal==='vaegt',kd=vg?(wi.dl?'easy':(cardioN-1)%3===1&&i>=2?'hard':'easy'):kind,o=vg?{modes:VG_MODE,easyBase:35,easyMax:70}:{};
           const [k,ss]=condSess(kd,i,wi.w,cardioN-1,date,o);if(vg&&kd==='hard')ss.note='Brug cykel, romaskine eller crosstrainer. Det skåner leddene. Hårdt, men jævnt.';
