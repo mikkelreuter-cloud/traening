@@ -30,9 +30,9 @@ const wait=(p,ms=450)=>p.waitForTimeout(ms);
 T('Ny bruger uden data får introduktionen',async()=>{const p=await open(null);eq(await ev(p,()=>ui.view),'onboard');return p});
 T('Gamle data (uden version) bliver opgraderet',async()=>{const p=await open({program:'blueprint',plan:{1:'A',2:'I4',3:'R',4:'B',5:'Z2',6:'C',0:'Z2L'},logs:[{id:'a',date:'2026-01-05',type:'styrke',sets:[]}]});
   const s=await ev(p,()=>({v:state.v,prog:state.program,mon:state.plan[1],onb:state.onboarded,logs:state.logs.length,name:state.name}));
-  eq(s.v,3,'version');eq(s.prog,'custom');eq(s.mon,'S','Styrke A bliver til S');eq(s.onb,true);eq(s.logs,1,'logs bevaret');eq(s.name,'Mikkel');return p});
+  eq(s.v,4,'version');eq(s.prog,'custom');eq(s.mon,'S','Styrke A bliver til S');eq(s.onb,true);eq(s.logs,1,'logs bevaret');eq(s.name,'Mikkel');return p});
 T('Felter med forkert form får standardværdi, resten bevares',async()=>{const p=await app({planSess:'x',extras:[1,2],logs:[{id:'a',date:'2026-01-01',type:'kondition',dur:60},'junk'],theme:5,vdots:{}});
-  const s=await ev(p,()=>({ps:state.planSess,ex:state.extras,logs:state.logs.length,theme:state.theme,vd:state.vdots}));
+  const s=await ev(p,()=>({ps:state.planSess,ex:state.days,logs:state.logs.length,theme:state.theme,vd:state.vdots}));
   eq(s.ps,{});eq(s.ex,{});eq(s.logs,1,'ugyldige logs fjernes');eq(s.theme,'auto');eq(s.vd,[]);return p});
 T('Ulæselige data overskrives ikke, og fejlskærmen vises',async()=>{const p=await open(null,{raw:'{ødelagt'});await wait(p,200);
   const s=await ev(p,()=>({broken:!!dataBroken,raw:localStorage.getItem('styrke-vo2-log.v1'),kopi:localStorage.getItem('styrke-vo2-log.v1.kopi')}));
@@ -47,15 +47,30 @@ T('En fejl under visning giver fejlskærm med Fortsæt',async()=>{const p=await 
   ok(await ev(p,()=>JSON.parse(localStorage.getItem('styrke-vo2-errors.v1')).length>=1),'fejllog');return p});
 T('Gendan backup bruger samme opgradering',async()=>{const p=await app();
   await ev(p,()=>{ui.impText=JSON.stringify({logs:[{id:'r',date:'2026-02-02',type:'styrke',sets:[]}],plan:{1:'A'},extras:'bad'});ui.pendingRestore=true;doRestore()});
-  const s=await ev(p,()=>({logs:state.logs.length,mon:state.plan[1],ex:state.extras,v:state.v,onb:state.onboarded}));
-  eq(s.logs,1);eq(s.ex,{});eq(s.v,3);eq(s.onb,true);return p});
+  const s=await ev(p,()=>({logs:state.logs.length,mon:state.plan[1],ex:state.days,v:state.v,onb:state.onboarded}));
+  eq(s.logs,1);eq(s.ex,{});eq(s.v,4);eq(s.onb,true);return p});
 
+T('Opgradering til v4: kalenderen er den samme før og efter',async()=>{
+  const w={T:60,b:{lift:'bsq',lines:['5 × 5 @ 75 %']},a:{cardio:'',gen:[],spec:[]},c:null,d:[]},w2={...w,T:45};
+  const p=await app({v:3,plan:{...REST,1:'S'},
+    planSess:{P1:{name:'Squat · uge 1',kind:'styrke',ex:[['Squat',3,5,2]]},F20300102:{name:'Fuld træning · Back squat',kind:'crossfit',fw:true},X1:{name:'Ekstra fuld',kind:'crossfit',fw:true,fwId:'2030-01-06#ab'}},
+    blockDays:{'2030-01-01':'P1','2030-01-02':'F20300102','2030-01-03':'P1','2030-01-05':'P1'},planFw:{'2030-01-02':w,'2030-01-06#ab':w2},
+    overrides:{'2030-01-03':'Z2','2030-01-04':'CF'},cfDays:{'2030-01-04':{title:'WOD X',min:12},'2030-01-09':{title:'forældet'}},
+    skips:{'2030-01-05':true},extras:{'2030-01-06':['MOB','X1']}});
+  const r=await ev(p,()=>({d1:sessKey('2030-01-01'),d2:sessKey('2030-01-02'),w:SESS[sessKey('2030-01-02')].w.T,d3:sessKey('2030-01-03'),d4k:sessKey('2030-01-04'),d4:cfSaved('2030-01-04').title,
+    d5:sessKey('2030-01-05'),x:extrasOn('2030-01-06'),xw:SESS.X1.w.T,old:['overrides','blockDays','extras','skips','cfDays','planFw'].filter(f=>f in state),stale:sessKey('2030-01-09'),v:state.v}));
+  eq(r.d1,'P1','plan');eq(r.d2,'F20300102');eq(r.w,60,'fuld træning ligger i passet');eq(r.d3,'Z2','flyttet dag slår planen');ok(/^C2030/.test(r.d4k),'CrossFit-dag bliver eget pas');eq(r.d4,'WOD X');
+  eq(r.d5,'R','sprunget over');eq(r.x,['MOB','X1']);eq(r.xw,45,'ekstra fuld træning beholder sin træning');eq(r.old,[],'gamle felter er væk');eq(r.v,4);
+  ok(r.stale!=='C20300109','forældet CrossFit uden dag bliver ikke lagt ind');return p});
+T('Kalenderen rydder op: pas uden dag slettes',async()=>{const p=await app();
+  const r=await ev(p,()=>{const d=addD(TODAY,2);schApply({src:'fw',fw:fwNew(),mode:'days',dates:[d],how:'replace'});const k=dayOf(d).m,had=!!state.planSess[k];clearManual(d);pruneSess();return {had,gone:!state.planSess[k]}});
+  ok(r.had);ok(r.gone);return p});
 /* ================= Calendar: which session is on a day ================= */
 T('Fast uge, flyttet dag og oversprunget dag',async()=>{const p=await app();
-  const r=await ev(p,()=>{const d=addD(TODAY,1),dow=pd(d).getDay(),base=sessKey(d);state.overrides={[d]:'Z2'};const ov=sessKey(d);state.skips={[d]:true};const sk=sessKey(d);return {base,exp:state.plan[dow],ov,sk}});
+  const r=await ev(p,()=>{const d=addD(TODAY,1),dow=pd(d).getDay(),base=sessKey(d);setManual(d,'Z2');const ov=sessKey(d);skipDay(d);const sk=sessKey(d);return {base,exp:state.plan[dow],ov,sk}});
   eq(r.base,r.exp,'fast uge');eq(r.ov,'Z2','flyttet dag');eq(r.sk,'R','sprunget over');return p});
 T('Ekstra pas på en dag og om de er gennemført',async()=>{const p=await app({customSess:{U1:{name:'Ben',kind:'styrke',ex:[['Squat',3,5,2]]}}});
-  const r=await ev(p,()=>{applySess();const d=TODAY;state.plan[pd(d).getDay()]='Z2';state.extras={[d]:['U1']};const before=extraDone(d,0);
+  const r=await ev(p,()=>{applySess();const d=TODAY;state.plan[pd(d).getDay()]='Z2';addExtra(d,'U1');const before=extraDone(d,0);
     state.logs.push({id:'k',date:d,type:'kondition',dur:2400});const afterK=extraDone(d,0);state.logs.push({id:'s',date:d,type:'styrke',sets:[]});return {n:extrasOn(d).length,before,afterK,after:extraDone(d,0)}});
   eq(r.n,1);eq(r.before,false);eq(r.afterK,false,'kondition tæller ikke for styrke');eq(r.after,true);return p});
 T('Læg i kalenderen: ugentligt i 3 uger, oveni og erstat',async()=>{const p=await app({plan:{...REST,3:'Z2'}});
@@ -65,11 +80,11 @@ T('Læg i kalenderen: ugentligt i 3 uger, oveni og erstat',async()=>{const p=awa
   eq(r.n,6);eq(r.wedMain,'Z2','oveni beholder dagens pas');eq(r.wedEx,['MOB']);eq(r.friMain,'MOB','hviledag får passet som hovedpas');eq(r.wedAfter,'MOB','erstat');return p});
 T('Stop forløb fjerner forløbet men beholder egne pas og trænede dage',async()=>{const p=await app({plan:REST});
   const r=await ev(p,()=>{ui.pl={...plStart(),goal:'kondition',weeks:4,types:{1:'styrke',2:'kondition',3:'hvile',4:'styrke',5:'hvile',6:'kondition',0:'hvile'},start:'next'};ui.pl.preview=plBuild(ui.pl);plAccept();
-    const fut=Object.keys(state.blockDays).sort()[3];const mine=addD(TODAY,2);schApply({src:'key',key:'MOB',mode:'days',dates:[mine],how:'replace'});
+    const fut=planDates()[3];const mine=addD(TODAY,2);schApply({src:'key',key:'MOB',mode:'days',dates:[mine],how:'replace'});
     const before=sessKey(fut);plStop();return {before,after:sessKey(fut),base:state.plan[pd(fut).getDay()],mine:sessKey(mine),block:state.block}});
   ok(r.before!==r.after||r.before===r.base);eq(r.after,r.base,'tilbage til fast uge');eq(r.mine,'MOB','eget pas bevaret');eq(r.block,null);return p});
 T('Ryd kalenderen giver hviledage og beholder logs',async()=>{const p=await app({logs:[{id:'a',date:'2026-01-01',type:'styrke',sets:[]}]});
-  const r=await ev(p,()=>{state.extras={[addD(TODAY,1)]:['MOB']};wipeCalendar();return {days:[0,1,2,3,4,5,6].map(i=>sessKey(addD(TODAY,i))),logs:state.logs.length,ex:extrasOn(addD(TODAY,1)).length}});
+  const r=await ev(p,()=>{addExtra(addD(TODAY,1),'MOB');wipeCalendar();return {days:[0,1,2,3,4,5,6].map(i=>sessKey(addD(TODAY,i))),logs:state.logs.length,ex:extrasOn(addD(TODAY,1)).length}});
   eq([...new Set(r.days)],['R']);eq(r.logs,1);eq(r.ex,0);return p});
 
 /* ================= Planner ================= */
@@ -107,12 +122,12 @@ T('VDOT og tempoer passer med Daniels\' tabeller',async()=>{const p=await app();
   near(r.v,49.8,.2,'VDOT');near(r.T,256,3,'tærskel 4:16');near(r.I,236,3,'interval 3:56');near(r.R,222,3,'gentagelser 3:42');near(r.hm,5510,60,'halvmaraton ~1:31:50');near(r.self,1200,1,'egen tid');return p});
 T('Løbeplan med testtid: tempoer i passene og stigende form',async()=>{const p=await app({plan:REST});
   const r=await ev(p,()=>{const P={...plStart(),goal:'pace',dist:10,tKm:5,tTxt:'22:30',vStart:vdotOf(5,1350),tSec:1350,pace:265,curPace:280,weeks:8,types:{1:'kondition',2:'hvile',3:'kondition',4:'hvile',5:'hvile',6:'kondition',0:'hvile'},start:'next'};
-    ui.pl=P;P.preview=plBuild(P);plAccept();const S=Object.values(state.blockDays).map(k=>SESS[k]).filter(s=>s&&s.zone==='I');
+    ui.pl=P;P.preview=plBuild(P);plAccept();const S=planDates().map(d=>dayOf(d).p).map(k=>SESS[k]).filter(s=>s&&s.zone==='I');
     return {first:zTxt(S[0].steps[1],S[0]),vb:S.map(s=>s.vb),last:plBuild(P).weeks.slice(-1)[0].test,vd:state.vdots.length}});
   ok(/4:2\d\/km \(intervaltempo\)/.test(r.first),r.first);ok(r.vb.every((v,i)=>i===0||v>=r.vb[i-1]),'formen stiger');eq(r.last,true,'testuge');eq(r.vd,1,'tiden gemt');return p});
 T('Ny tid: hurtigere slår igennem, langsommere kræver godkendelse',async()=>{const p=await app({plan:REST,adapt:{handled:{},since:'2000-01-01',hist:[]}});
   const r=await ev(p,()=>{const P={...plStart(),goal:'pace',dist:10,vStart:vdotOf(5,1350),tSec:1350,tKm:5,pace:265,curPace:280,weeks:8,types:{1:'kondition',2:'hvile',3:'kondition',4:'hvile',5:'hvile',6:'kondition',0:'hvile'},start:'next'};
-    ui.pl=P;P.preview=plBuild(P);plAccept();applySess();const k=Object.values(state.blockDays).find(k=>SESS[k]&&SESS[k].zone==='I'),I=()=>Math.round(sessTPace(SESS[k]));const a=I();
+    ui.pl=P;P.preview=plBuild(P);plAccept();applySess();const k=planDates().map(d=>dayOf(d).p).find(k=>SESS[k]&&SESS[k].zone==='I'),I=()=>Math.round(sessTPace(SESS[k]));const a=I();
     state.logs.push({id:'f',date:TODAY,type:'kondition',race:true,dist:5,dur:1290,fb:2});const b=I();
     state.logs.push({id:'s',date:TODAY,type:'kondition',race:true,dist:5,dur:1500,fb:2});const c=I();const prop=adaptFind().find(x=>x.id.startsWith('vd:'));prop.opts[0].apply();return {a,b,c,d:I()}});
   ok(r.b<r.a,'hurtigere tid giver hurtigere tempo');eq(r.c,r.a,'langsommere tid ændrer intet uden godkendelse');ok(r.d>r.a,'efter godkendelse er tempoet roligere');return p});
@@ -120,16 +135,16 @@ T('Ny tid: hurtigere slår igennem, langsommere kræver godkendelse',async()=>{c
 /* ================= Adapting the plan ================= */
 T('Misset pas: forslag om at flytte, godkend flytter',async()=>{const p=await app({plan:REST});
   const r=await ev(p,()=>{const y=addD(TODAY,-1);state.plan[pd(y).getDay()]='S';[0,1,2,3].forEach(i=>{const d=addD(TODAY,i);if(d!==y)state.plan[pd(d).getDay()]='R'});state.adapt={handled:{},since:addD(TODAY,-5),hist:[]};
-    const want=sessKey(y);const P=adaptFind()[0];const o=P.opts[0];o.apply();state.adapt.handled[P.id]='ok';const t=Object.keys(state.overrides)[0];return {id:P.id,label:o.label,want,moved:state.overrides[t],skipped:!!state.skips[y],again:adaptFind().length}});
+    const want=sessKey(y);const P=adaptFind()[0];const o=P.opts[0];o.apply();state.adapt.handled[P.id]='ok';const t=Object.keys(state.days).find(d=>state.days[d].m);return {id:P.id,label:o.label,want,moved:dayOf(t).m,skipped:isSkipped(y),again:adaptFind().length}});
   ok(r.id.startsWith('m1:'));ok(r.label.startsWith('Flyt'));eq(r.moved,r.want,'samme pas flyttet');eq(r.skipped,true);eq(r.again,0,'forslaget forsvinder');return p});
 T('To missede pas i forløbet: gentag ugen rykker slutdatoen',async()=>{const p=await app({plan:REST});
   const r=await ev(p,()=>{ui.pl={...plStart(),goal:'kondition',weeks:4,types:{1:'styrke',2:'kondition',3:'styrke',4:'kondition',5:'styrke',6:'kondition',0:'kondition'},start:'this'};ui.pl.preview=plBuild(ui.pl);plAccept();
-    const bd={...state.blockDays};[-1,-2,-3].forEach(i=>{const d=addD(TODAY,i);bd[d]=state.blockDays[addD(TODAY,7+i)]||bd[d]});state.blockDays=bd;state.block.start=addD(TODAY,-6);state.adapt={handled:{},since:addD(TODAY,-10),hist:[]};
+    [-1,-2,-3].forEach(i=>{const k=dayOf(addD(TODAY,7+i)).p;if(k)setDay(addD(TODAY,i),{p:k})});state.block.start=addD(TODAY,-6);state.adapt={handled:{},since:addD(TODAY,-10),hist:[]};
     state.logs.push({id:'o',date:addD(TODAY,-6),type:'styrke',sets:[]});applySess();const P=adaptFind().find(x=>x.id.startsWith('mw:'));const end=state.block.end;P.opts[0].apply();applySess();return {end,after:state.block.end,today:sessKey(TODAY)!=='R'||sessKey(addD(TODAY,1))!=='R'}});
   eq(r.after,(()=>{const d=new Date(r.end);d.setDate(d.getDate()+7);return d.toISOString().slice(0,10)})(),'slutter en uge senere');ok(r.today,'denne uge har pas');return p});
 T('Styrke går tungere to gange: sænk 5 %',async()=>{const p=await app({plan:REST,logs:[{id:'1',date:'2026-10-01',type:'styrke',sets:[{ex:'Squat',kg:100,saet:1,reps:3,rir:0,tReps:5,tRir:2}]},{id:'2',date:'2026-10-08',type:'styrke',sets:[{ex:'Squat',kg:100,saet:1,reps:3,rir:1,tReps:5,tRir:2}]}]});
   const r=await ev(p,()=>{ui.pl={...plStart(),goal:'styrke',weeks:4,types:{1:'styrke',2:'hvile',3:'styrke',4:'hvile',5:'styrke',6:'hvile',0:'hvile'},start:'next'};ui.pl.preview=plBuild(ui.pl);plAccept();applySess();
-    const P=adaptFind().find(x=>x.id.startsWith('sd:'));const k=Object.values(state.blockDays).find(k=>SESS[k]&&SESS[k].main==='Squat'&&SESS[k].pct);const a=SESS[k].pct;P.opts[0].apply();applySess();return {a,b:SESS[k].pct}});
+    const P=adaptFind().find(x=>x.id.startsWith('sd:'));const k=planDates().map(d=>dayOf(d).p).find(k=>SESS[k]&&SESS[k].main==='Squat'&&SESS[k].pct);const a=SESS[k].pct;P.opts[0].apply();applySess();return {a,b:SESS[k].pct}});
   eq(r.b,r.a-5);return p});
 T('Syg: forslag om lettere uge, Afvis fjerner forslaget',async()=>{const p=await app({plan:REST,logs:[{id:'s',date:'2026-11-26',type:'styrke',sets:[],fb:4,fbr:'syg'}]});
   const r=await ev(p,()=>{state.logs[0].date=addD(TODAY,-1);ui.pl={...plStart(),goal:'kondition',weeks:4,types:{1:'styrke',2:'kondition',3:'hvile',4:'styrke',5:'kondition',6:'kondition',0:'hvile'},start:'next'};ui.pl.preview=plBuild(ui.pl);plAccept();
@@ -139,14 +154,14 @@ T('Timer stoppet før tid bliver husket',async()=>{const p=await app();
   const r=await ev(p,()=>{startTimer('I4');finishTimer(false);ui.k.min='5';doSave();return state.logs.slice(-1)[0]});
   eq(r.early,true);eq(r.key,'I4');return p});
 
-T('Data gemmes med versionsnummer',async()=>{const p=await open({...BASE,v:undefined});await ev(p,()=>save());eq(await ev(p,()=>JSON.parse(localStorage.getItem('styrke-vo2-log.v1')).v),3);return p});
+T('Data gemmes med versionsnummer',async()=>{const p=await open({...BASE,v:undefined});await ev(p,()=>save());eq(await ev(p,()=>JSON.parse(localStorage.getItem('styrke-vo2-log.v1')).v),4);return p});
 T('Fuld træning oveni en dag får sin egen kopi og kan startes',async()=>{const p=await app({plan:{...REST,[new Date().getDay()]:'Z2'}});
-  const r=await ev(p,()=>{state.fw=fwNew();schApply({src:'fw',fw:state.fw,mode:'days',dates:[TODAY],how:'add'});applySess();const k=extrasOn(TODAY)[0],se=SESS[k];ui.view='today';ui.wsel=undefined;render(true);return {k,id:se.fwId,has:!!state.planFw[se.fwId],main:sessKey(TODAY)}});
+  const r=await ev(p,()=>{state.fw=fwNew();schApply({src:'fw',fw:state.fw,mode:'days',dates:[TODAY],how:'add'});applySess();const k=extrasOn(TODAY)[0],se=SESS[k];ui.view='today';ui.wsel=undefined;render(true);return {k,has:!!(se.w&&se.w.b),main:sessKey(TODAY)}});
   eq(r.main,'Z2');ok(r.has,'kopi gemt');await p.click('.xtra [data-act=xstart]');await wait(p,200);eq(await ev(p,()=>ui.view),'fw');
   ok((await p.textContent('.eyebrow')).length>0);return p});
 T('Feedback efter løb spørger om tempoet',async()=>{const p=await app({plan:REST});
   await ev(p,()=>{const P={...plStart(),goal:'pace',dist:10,vStart:vdotOf(5,1350),tSec:1350,tKm:5,pace:265,curPace:280,weeks:8,types:{1:'kondition',2:'hvile',3:'kondition',4:'hvile',5:'hvile',6:'kondition',0:'hvile'},start:'next'};ui.pl=P;P.preview=plBuild(P);plAccept();applySess();
-    const k=Object.values(state.blockDays).find(k=>SESS[k]&&SESS[k].zone==='I');state.logs.push({id:'r',date:TODAY,type:'kondition',key:k,dur:2400,name:'x'});save();render()});
+    const k=planDates().map(d=>dayOf(d).p).find(k=>SESS[k]&&SESS[k].zone==='I');state.logs.push({id:'r',date:TODAY,type:'kondition',key:k,dur:2400,name:'x'});save();render()});
   ok((await p.textContent('.sheet')).includes('Holdt du pacen'),'spørger om pace');await p.click('[data-act=fb][data-v="3"]');await p.click('[data-act=fbq][data-v="0"]');await wait(p,200);
   const l=await ev(p,()=>state.logs.find(l=>l.id==='r'));eq([l.fb,l.paceOk],[3,0]);ok(!(await p.isVisible('.sheet')));return p});
 T('Klik: løbeplan med testtid i planlæggeren',async()=>{const p=await app();
@@ -181,6 +196,21 @@ T('Klik: start og stop en timer',async()=>{const p=await app();
   await ev(p,()=>startTimer('Z2'));await wait(p,300);eq(await ev(p,()=>ui.view),'timer');
   await p.click('[data-act=tstop]');await p.click('[data-act=tstop]');await wait(p,200);eq(await ev(p,()=>ui.view),'log');return p});
 
+T('Klik: læg CrossFit på en dag, gem, og fjern igen',async()=>{const p=await app({plan:{...REST}});
+  const d=await ev(p,()=>{const d=addD(TODAY,1);ui.sel=d;ui.view='day';render(true);return d});
+  await p.click('[data-act=cfday]');await wait(p,200);const gen=await p.$('[data-act=cfgen]');if(gen){await gen.click();await wait(p,200)}
+  if(!(await ev(p,()=>ui.cf&&ui.cf.pas))){const go=await p.$('[data-act=cfgo]');if(go){await go.click();await wait(p,200)}}
+  await ev(p,()=>{if(!ui.cf.pas){ui.cf.pas=CF.byggePas({minutter:12,niveau:'rx',udstyr:[],antal:0});ui.cf.step='pas'}render()});
+  await p.click('[data-act=cfsave]');await wait(p,200);
+  const r1=await ev(p,d=>({k:sessKey(d),t:cfSaved(d)&&cfSaved(d).title}),d);ok(/^C\d/.test(r1.k),'eget CrossFit-pas på dagen: '+r1.k);ok(r1.t,'titel gemt');
+  await ev(p,d=>{ui.sel=d;ui.view='day';render(true)},d);await p.click('[data-act=cfundo]');await wait(p,200);
+  eq(await ev(p,d=>sessKey(d),d),'R','tilbage til hviledag');return p});
+T('Klik: rediger en planlagt fuld træning, ændringen bliver i passet',async()=>{const p=await app({plan:REST});
+  const k=await ev(p,()=>{ui.pl={...plStart(),goal:'allround',weeks:4,types:{1:'crossfit',2:'crossfit',3:'crossfit',4:'crossfit',5:'crossfit',6:'crossfit',0:'crossfit'},start:'this'};ui.pl.preview=plBuild(ui.pl);plAccept();applySess();ui.view='today';ui.wsel=undefined;render(true);return sessKey(TODAY)});
+  ok(/^F/.test(k),'dagens pas er fuld træning');const before=await ev(p,k=>JSON.stringify(state.planSess[k].w.c),k);
+  await p.click('[data-act=fwday]');await wait(p,200);eq(await ev(p,()=>ui.fwKey),k);await p.click('[data-act=fwnew]');await wait(p,200);
+  const after=await ev(p,k=>JSON.stringify(state.planSess[k].w.c),k);ok(after!==before,'ny WOD gemt i passet');
+  await p.reload();await wait(p,200);eq(await ev(p,k=>JSON.stringify(state.planSess[k].w.c),k),after,'overlever genstart');return p});
 (async()=>{await new Promise(r=>srv.listen(0,r));base='http://localhost:'+srv.address().port;
   const b=await pw.chromium.launch();ctx=await b.newContext({...pw.devices['Pixel 7'],serviceWorkers:'block'});
   const only=process.argv[2];let pass=0,fail=0;const t0=Date.now();

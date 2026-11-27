@@ -1402,11 +1402,11 @@ const chip=(k,label)=>`<span class="chip k-${k}"><i></i>${label}</span>`;
 let storageOK=true;
 try{localStorage.setItem('__t','1');localStorage.removeItem('__t')}catch(e){storageOK=false}
 /* ---------- Saved data. Every field has one default here, and old data is upgraded step by step by its version number. ---------- */
-const SCHEMA=3;
+const SCHEMA=4;
 const FIELDS={logs:()=>[],plan:()=>({...DEFAULT_PLAN}),addons:()=>({}),lastBackup:()=>null,program:()=>'custom',cycleStart:()=>null,hrmax:()=>null,habitStart:()=>null,
-  coldPre:()=>undefined,customHabits:()=>[],skips:()=>({}),sessEdits:()=>({}),customSess:()=>({}),customPlan:()=>null,customAddons:()=>null,customDeload:()=>true,
-  overrides:()=>({}),cfDays:()=>({}),cfPrefs:()=>null,strUdstyr:()=>null,strGen:()=>null,fw:()=>null,seGen:()=>null,theme:()=>'auto',accent:()=>'orange',goals:()=>[],fwT:()=>60,
-  block:()=>null,blockDays:()=>({}),planSess:()=>({}),planFw:()=>({}),extras:()=>({}),adapt:()=>({handled:{},since:TODAY,hist:[]}),vdots:()=>[],shifts:()=>[],
+  coldPre:()=>undefined,customHabits:()=>[],sessEdits:()=>({}),customSess:()=>({}),customPlan:()=>null,customAddons:()=>null,customDeload:()=>true,
+  cfPrefs:()=>null,strUdstyr:()=>null,strGen:()=>null,fw:()=>null,seGen:()=>null,theme:()=>'auto',accent:()=>'orange',goals:()=>[],fwT:()=>60,
+  block:()=>null,days:()=>({}),planSess:()=>({}),adapt:()=>({handled:{},since:TODAY,hist:[]}),vdots:()=>[],shifts:()=>[],
   name:()=>'',onboarded:()=>false,tipSeen:()=>false,tourSeen:()=>false,needCycle:()=>undefined};
 const isObj=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
 /* A field keeps its saved value only if it has the right shape; otherwise it gets its default */
@@ -1427,7 +1427,20 @@ function normalize(d){if(!isObj(d))throw new Error('Gemte data har forkert form'
     ['plan','customPlan'].forEach(f=>{if(st[f])for(const d in st[f])if(['A','B','C'].includes(st[f][d]))st[f][d]='S'});
     st.program='custom';st.onboarded=d.onboarded!==false;st.tipSeen=d.tipSeen!=null?d.tipSeen:d.onboarded!==false;st.tourSeen=d.tourSeen!=null?d.tourSeen:d.onboarded!==false;st.name=d.name!=null?d.name:'Mikkel';
   }
+  if(v<4)upgradeDays(st,d);
   st.program='custom';st.v=SCHEMA;return st}
+/* v4: the calendar used to be spread over eight maps (overrides, blockDays, extras, skips, cfDays, planFw …).
+   Now every date has one entry, and a CrossFit pas or full training lives inside its session. */
+function upgradeDays(st,d){const days={},o=x=>isObj(x)?x:{},put=(dt,k,v)=>{(days[dt]=days[dt]||{})[k]=v};
+  const ps={...st.planSess},cf=o(d.cfDays),fw=o(d.planFw);
+  Object.entries(ps).forEach(([k,x])=>{if(!isObj(x)||!x.fw)return;const id=x.fwId||(k[0]==='F'?k.slice(1,5)+'-'+k.slice(5,7)+'-'+k.slice(7,9):null);if(id&&fw[id])ps[k]={...x,w:fw[id]};delete ps[k].fwId});
+  Object.entries(o(d.blockDays)).forEach(([dt,k])=>put(dt,'p',k));
+  Object.entries(o(d.overrides)).forEach(([dt,k])=>put(dt,'m',k));
+  Object.entries(o(d.extras)).forEach(([dt,l])=>{if(Array.isArray(l)&&l.length)put(dt,'x',l.slice())});
+  Object.entries(o(d.skips)).forEach(([dt,v])=>{if(v)put(dt,'skip',1)});
+  Object.entries(cf).forEach(([dt,c])=>{const e=days[dt]||{},on=e.m==='CF'||!e.m&&e.p==='CF'||!e.m&&!e.p&&st.plan[pd(dt).getDay()]==='CF';if(!on||!isObj(c))return;
+    const k='C'+dt.replace(/-/g,'');ps[k]={name:c.title||'CrossFit',kind:'crossfit',cf:c,min:c.min,dur:(c.min||20)+' min'};put(dt,'m',k)});
+  st.days=days;st.planSess=ps}
 /* If saved data can't be read, nothing is overwritten: a copy is kept and saving stops until you choose what to do */
 let dataBroken=null;
 function load(){let raw=null;try{raw=localStorage.getItem(KEY)}catch(e){}
@@ -1458,12 +1471,31 @@ const mondayOf=s=>weekDates(s)[0];
 function cycleWeek(s){if(!state.cycleStart)return 0;return Math.floor((pd(mondayOf(s))-pd(state.cycleStart))/(7*864e5))}
 const isDeload=s=>false&&(state.program==='blueprint'||(state.program==='custom'&&state.customDeload!==false))&&!!state.cycleStart&&cycleWeek(s)>=0&&cycleWeek(s)%DELOAD_EVERY===DELOAD_EVERY-1;
 /* Skips make a day a rest day. Shifts push every later session one day forward (plan of day d comes from d minus the shifts before it). */
-const isSkipped=s=>!!(state.skips||{})[s];
+/* ---------- Calendar. Each date has one entry: p = from your plan (forløb), m = set by you (moved, scheduled, CrossFit),
+   x = extra sessions, skip = skipped. What's on a day: skipped → rest, else m, else p, else your fixed week.
+   All changes to the calendar go through the functions here. ---------- */
+const addD=(d,n)=>{const t=pd(d);return ds(new Date(t.getFullYear(),t.getMonth(),t.getDate()+n))};
+const dayOf=d=>(state.days||{})[d]||{};
+function setDay(d,patch){const days={...(state.days||{})},o={...(days[d]||{}),...patch};
+  for(const k of Object.keys(o))if(o[k]==null||o[k]===false||Array.isArray(o[k])&&!o[k].length)delete o[k];
+  if(Object.keys(o).length)days[d]=o;else delete days[d];state.days=days}
+const isSkipped=d=>!!dayOf(d).skip;
+const setManual=(d,k)=>setDay(d,{m:k,skip:null});
+const clearManual=d=>setDay(d,{m:null});
+const skipDay=(d,on=true)=>setDay(d,{skip:on?1:null});
+const addExtra=(d,k)=>setDay(d,{x:[...(dayOf(d).x||[]),k]});
+const removeExtra=(d,i)=>{const x=(dayOf(d).x||[]).filter(k=>SESS[k]);x.splice(i,1);setDay(d,{x})};
+const putSess=(k,x)=>{state.planSess={...(state.planSess||{}),[k]:x}};
+const newKey=(p,d)=>p+d.replace(/-/g,'')+Math.random().toString(36).slice(2,6);
+const planDates=()=>Object.keys(state.days||{}).filter(d=>state.days[d].p).sort();
+/* Sessions made for one day that no day points to any more are removed */
+function pruneSess(){const used=new Set(),old=addD(TODAY,-14);Object.values(state.days||{}).forEach(e=>{if(e.p)used.add(e.p);if(e.m)used.add(e.m);(e.x||[]).forEach(k=>used.add(k))});
+  state.logs.forEach(l=>{if(l.key&&l.date>=old)used.add(l.key)});state.planSess=Object.fromEntries(Object.entries(state.planSess||{}).filter(([k])=>used.has(k)))}
 function planDate(s){const n=(state.shifts||[]).filter(x=>x<s).length;if(!n)return s;const d=pd(s);d.setDate(d.getDate()-n);return ds(d)}
 /* 'S' in the plan = a strength day. The app rotates Styrke A, B, C over the strength days of the week, so the whole body gets trained. */
 function baseKey(s){const wd=pd(planDate(s)).getDay(),k=state.plan[wd]||'R';if(k!=='S')return k;
   const sDays=[1,2,3,4,5,6,0].filter(d=>state.plan[d]==='S');return ['A','B','C'][sDays.indexOf(wd)%3]}
-function sessKey(s){if(isSkipped(s))return 'R';const ov=(state.overrides||{})[s];if(ov&&SESS[ov])return ov;const bk=(state.blockDays||{})[s];if(bk&&SESS[bk])return bk;const k=baseKey(s);
+function sessKey(s){const e=dayOf(s);if(e.skip)return 'R';if(e.m&&SESS[e.m])return e.m;if(e.p&&SESS[e.p])return e.p;const k=baseKey(s);
   if(SESS[k]&&SESS[k].kind==='interval'&&isDeload(s)){const wk=weekDates(s);const first=wk.find(d=>!isSkipped(d)&&SESS[baseKey(d)].kind==='interval');if(first!==s)return 'Z2'}
   return k}
 const hr=p=>state.hrmax?Math.round(state.hrmax*p):null;
@@ -1474,7 +1506,7 @@ function hrLine(s){
 }
 const sessFor=s=>SESS[sessKey(s)];
 /* Extra sessions on a day, on top of the day's main session */
-const extrasOn=d=>((state.extras||{})[d]||[]).filter(k=>SESS[k]);
+const extrasOn=d=>(dayOf(d).x||[]).filter(k=>SESS[k]);
 const logKind=k=>k==='styrke'?'styrke':k==='mobilitet'?'mobilitet':k==='crossfit'?'crossfit':'kondition';
 function extraDone(d,i){const L=logsOn(d),ks=extrasOn(d),t=logKind(SESS[ks[i]].kind),main=sessFor(d);
   const need=(main.kind!=='hvile'&&logKind(main.kind)===t?1:0)+ks.slice(0,i).filter(k=>logKind(SESS[k].kind)===t).length+1;
@@ -1485,7 +1517,7 @@ const logsOn=s=>state.logs.filter(l=>l.date===s);
 const byDate=(a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.id<b.id?-1:1);
 const logsOf=t=>state.logs.filter(l=>l.type===t).sort(byDate);
 function isDone(s){const k=sessFor(s).kind,L=logsOn(s);if(k==='hvile')return false;return L.some(l=>l.type===(k==='styrke'?'styrke':k==='mobilitet'?'mobilitet':k==='crossfit'?'crossfit':'kondition'))}
-const addonFor=s=>{if(isSkipped(s)||(state.overrides||{})[s])return null;const k=(state.addons||{})[pd(planDate(s)).getDay()];return k&&SESS[k]?{key:k,s:SESS[k]}:null};
+const addonFor=s=>{if(isSkipped(s)||dayOf(s).m)return null;const k=(state.addons||{})[pd(planDate(s)).getDay()];return k&&SESS[k]?{key:k,s:SESS[k]}:null};
 const addonDone=(d,a)=>logsOn(d).some(l=>l.type==='mobilitet'&&l.name===a.s.name);
 const keyByName=n=>Object.keys(SESS).find(k=>SESS[k].name===n);
 /* Minutes this week toward the Blueprint targets */
@@ -1650,7 +1682,7 @@ function sessionBody(s,date){
     const line=g?`<span class="sug num">${dl?`Deload: ${g.l.kg?fnum(g.l.kg)+' kg':'kropsvægt'} (samme vægt)`:`Forslag: ${esc(g.text)}`}</span><span class="exl num">Sidst ${g.l.kg?fnum(g.l.kg)+' kg':'kropsvægt'} × ${g.l.reps}${rirTxt(g.l.rir)} (${shortDate(g.l.date)})</span>`
       :`<span class="exl">Første gang: vælg en vægt, hvor du kunne have taget ${q} ${q===1?'gentagelse':'gentagelser'} mere i sidste sæt.</span>`;
     return `<li><span class="exn">${esc(n)}</span><span class="exp num">${a}×${b}<small>${q} i tanken</small></span>${line}</li>`}).join('')}</ul>`;
-  if(s.fw){const w=(state.planFw||{})[date||TODAY];if(!w)return '';const l=fwL(w.b.lift),p=w.c?cfRebuild(w.c):null;return `<div class="wod"><h3>B) ${esc(l[1])}</h3>${w.b.lines.map(x=>`<p>${esc(withKg(l[1],x))}</p>`).join('')}${p?`<h3 style="margin-top:10px">C) ${esc(p.overskrift)}</h3>${p.linjer.map(x=>`<p>${esc(x)}</p>`).join('')}`:''}</div>`}
+  if(s.fw){const w=s.w;if(!w)return '';const l=fwL(w.b.lift),p=w.c?cfRebuild(w.c):null;return `<div class="wod"><h3>B) ${esc(l[1])}</h3>${w.b.lines.map(x=>`<p>${esc(withKg(l[1],x))}</p>`).join('')}${p?`<h3 style="margin-top:10px">C) ${esc(p.overskrift)}</h3>${p.linjer.map(x=>`<p>${esc(x)}</p>`).join('')}`:''}</div>`}
   if(s.kind==='crossfit'&&s.cf){const p=cfRebuild(s.cf);return p?cfWod(p):''}
   if(s.kind==='crossfit'&&s.custom&&s.steps)return `<ol class="steps">${s.steps.map(x=>`<li>${esc(x)}</li>`).join('')}</ol>`;
   if(s.kind==='crossfit'){const p=cfRebuild(cfSaved(date||TODAY));return p?cfWod(p):'<p class="note">Intet pas endnu. Vælg format og tid, så bygger appen et pas efter reglerne.</p>'}
@@ -1692,7 +1724,7 @@ function cfGenerate(seed){const o=cfOpt();o.seed=seed==null?Math.floor(Math.rand
 function cfRebuild(sv){if(!sv)return null;const fmt=CF.formatFor(sv.fmtId),movs=sv.ids.map(cfMovById).filter(Boolean);if(!fmt||!movs.length)return null;
   const p=CF.formater(fmt,CF.domaeneFor(sv.min),sv.min,movs,sv.opt,CF.prng(sv.seed));p.seed=sv.seed;p.opt=sv.opt;return p}
 const cfSerialize=p=>({fmtId:p.format.id,min:p.minutter,seed:p.seed,opt:p.opt,ids:p.movs.map(m=>m.id),title:p.overskrift});
-const cfSaved=d=>(state.cfDays||{})[d]||null;
+const cfSaved=d=>{const x=SESS[sessKey(d)];return x&&x.cf||null};
 function cfSwap(i,newId){const p=ui.cf.pas,movs=p.movs.slice();movs[i]=cfMovById(newId);
   const np=CF.formater(p.format,p.domaene,p.minutter,movs,p.opt,CF.prng(p.seed));np.seed=p.seed;np.opt=p.opt;ui.cf.pas=np;ui.cf.swapI=null}
 function cfAlts(i){const p=ui.cf.pas;return CF.alternativer(p.movs,i,null,p.opt).filter(m=>m.id!==p.movs[i].id&&!p.movs.some(x=>x.id===m.id))}
@@ -1755,7 +1787,7 @@ function weekCell(d,act){
 /* Details for a tapped day in the week strip on I dag */
 function weekDetail(d,extra){const s=sessFor(d),done=isDone(d),cf=s.kind==='crossfit'?cfSaved(d):null;
   const sum=s.kind==='styrke'&&s.ex?s.ex.map(e=>`${e[0].replace(/ \(.*\)$/,'')} · ${e[1]}×${e[2]}${s.pct&&s.main===e[0]&&kgFor(e[0],s.pct)?' @ '+fnum(kgFor(e[0],s.pct))+' kg':''}`):
-    s.fw?(()=>{const w=(state.planFw||{})[d];if(!w)return [];const l=fwL(w.b.lift),p=w.c?cfRebuild(w.c):null;return ['B) '+l[1]+' · '+withKg(l[1],w.b.lines[0]),...(p?['C) '+p.overskrift]:[]),...(w.d.length?['D) '+w.d.join(', ')]:[])]})():s.kind==='crossfit'?(cf?[cf.title||'Pas klar']:['Pas bygges på dagen']):(s.steps||[]).slice(0,4).map(t=>zTxt(t,s));
+    s.fw?(()=>{const w=s.w;if(!w)return [];const l=fwL(w.b.lift),p=w.c?cfRebuild(w.c):null;return ['B) '+l[1]+' · '+withKg(l[1],w.b.lines[0]),...(p?['C) '+p.overskrift]:[]),...(w.d.length?['D) '+w.d.join(', ')]:[])]})():s.kind==='crossfit'?(cf?[cf.title||'Pas klar']:['Pas bygges på dagen']):(s.steps||[]).slice(0,4).map(t=>zTxt(t,s));
   const status=done?'✓ Gennemført':s.kind==='hvile'?(isSkipped(d)?'Sprunget over':'Hviledag'):d<TODAY?'Ikke logget':d===TODAY?'I dag':'Planlagt';
   return `<div class="wdet">
     <div class="row-between"><span class="muted small">${cap(niceDate(d))}</span>${chip(s.kind,s.label||KIND_LABEL[s.kind])}</div>
@@ -1766,7 +1798,7 @@ function weekDetail(d,extra){const s=sessFor(d),done=isDone(d),cf=s.kind==='cros
     ${(d!==TODAY||extra===undefined)&&s.kind!=='hvile'?`<button class="restbtn" data-act="calday" data-date="${d}">Se træning ›</button>`:''}
     ${extrasOn(d).map((k,i)=>{const x=SESS[k],dn=extraDone(d,i);return `<div class="xtra k-${x.kind}"><div class="row-between"><span class="muted small">Også ${d===TODAY?'i dag':'denne dag'}</span>${chip(x.kind,x.label||KIND_LABEL[x.kind])}</div>
       <h3 class="wdet-n">${esc(x.name)}${x.dur?`<span class="muted small"> · ${esc(x.dur)}</span>`:''}</h3><p class="small ${dn?'ok':'muted'}">${dn?'✓ Gennemført':d<TODAY?'Ikke logget':'Planlagt'}</p>
-      <div class="btns3" style="grid-template-columns:${d===TODAY&&!dn?'2fr ':''}1fr 1fr">${d===TODAY&&!dn?`<button class="btn accent" data-act="xstart" data-key="${k}">Start</button>`:''}<button class="btn ghost" data-act="xsee" data-key="${k}">Se</button><button class="btn ghost" data-act="xdel" data-date="${d}" data-i="${i}">Fjern</button></div></div>`}).join('')}</div>`}
+      <div class="btns3" style="grid-template-columns:${d===TODAY&&!dn?'2fr ':''}1fr 1fr">${d===TODAY&&!dn?`<button class="btn accent" data-act="xstart" data-key="${k}" data-date="${d}">Start</button>`:''}<button class="btn ghost" data-act="xsee" data-key="${k}" data-date="${d}">Se</button><button class="btn ghost" data-act="xdel" data-date="${d}" data-i="${i}">Fjern</button></div></div>`}).join('')}</div>`}
 function viewToday(){
   const s=sessFor(TODAY),done=isDone(TODAY),wk=weekDates(TODAY);
   const planned=wk.filter(d=>sessFor(d).kind!=='hvile'),doneN=planned.filter(isDone).length;
@@ -1873,7 +1905,7 @@ function dayCard(sel){
     ${extrasOn(sel).map((k,i)=>`<div class="xtra k-${SESS[k].kind}"><div class="row-between"><b>${esc(SESS[k].name)}</b>${chip(SESS[k].kind,SESS[k].label||KIND_LABEL[SESS[k].kind])}</div>${sessionBody(SESS[k])}<button class="restbtn" data-act="xdel" data-date="${sel}" data-i="${i}">Fjern fra dagen</button></div>`).join('')}
     ${L.length?`<h3 class="sec">Logget</h3><div>${L.map(logItem).join('')}</div>`:''}
     ${se.fw?`<button class="btn accent" data-act="fwday" data-date="${sel}">Åbn træningen</button>`:''}${se.kind==='crossfit'&&!se.fw?`<button class="btn accent" data-act="cfopen" data-date="${sel}">${cfSaved(sel)?'Se og rediger pas':'Byg CrossFit-pas'}</button>`:''}
-    ${se.kind!=='crossfit'?`<button class="btn ghost" data-act="cfday" data-date="${sel}">Læg CrossFit ind på dagen</button>`:(state.overrides||{})[sel]==='CF'?`<button class="restbtn" data-act="cfundo" data-date="${sel}">Fjern CrossFit · tilbage til ${esc(SESS[baseKey(sel)].name)}</button>`:''}
+    ${se.kind!=='crossfit'?`<button class="btn ghost" data-act="cfday" data-date="${sel}">Læg CrossFit ind på dagen</button>`:(dayOf(sel).m==='CF'||/^C\d/.test(dayOf(sel).m||''))?`<button class="restbtn" data-act="cfundo" data-date="${sel}">Fjern CrossFit · tilbage til ${esc(SESS[baseKey(sel)].name)}</button>`:''}
     ${se.kind!=='crossfit'?`<button class="btn primary" data-act="logday" data-date="${sel}">Log denne dag</button>`:''}
   </section>`;
 }
@@ -1951,7 +1983,7 @@ const FW_A_MIN={45:8,60:10,75:12},FW_D_MIN={45:6,60:8,75:10};
 const FW_C_RANGE={45:{h:[8,12],l:[10,14]},60:{h:[10,15],l:[14,20]},75:{h:[15,20],l:[20,30]}};
 const FW_C_OK=[8,10,12,14,15,16,18,20,24,25,30];
 
-const fwW=()=>ui.fwDate?(state.planFw||{})[ui.fwDate]:state.fw;
+const fwW=()=>ui.fwKey?((state.planSess||{})[ui.fwKey]||{}).w:state.fw;
 function fwEq(){return cfPrefs().udstyr||[]}
 function fwEqOk(eq){const U=fwEq();return eq==='Ingen udstyr'||!U.length||U.includes(eq)}
 function fwGenB(pat){
@@ -1987,9 +2019,9 @@ function fwSecHead(k,title,min){return `<div class="fw-h"><span class="fw-l">${k
 function fwAltList(kind,i,alts,label){return `<div class="alts">${alts.length?`<button data-act="fwpick" data-k="${kind}" data-i="${i}" data-v="${esc(label(fwPick(alts)))}" style="background:var(--pill);color:var(--pill-fg)">🎲 Tilfældig erstatning</button>`+alts.slice(0,12).map(a=>`<button data-act="fwpick" data-k="${kind}" data-i="${i}" data-v="${esc(label(a))}">${esc(kind==='c'?CF.navnVis(a):kind==='b'?a[1]:a[0])}</button>`).join(''):'<p class="hint">Ingen erstatninger med dit udstyr.</p>'}</div>`}
 function viewFW(){
   const w=fwW(),T=fwT(),P=cfPrefs(),all=cfUdstyrAlle(),have=P.udstyr||all,sw=ui.fwSwap;
-  const back=`<div class="habit-head"><button class="icon-btn" data-act="fwback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">${ui.fwDate?cap(niceDate(ui.fwDate.slice(0,10)))+(ui.fwDate.length>10?'':' · fra din plan'):'Opvarmning · styrke · WOD · bonus'}</p><h2 class="h2">Fuld træning</h2></div></div>`;
+  const back=`<div class="habit-head"><button class="icon-btn" data-act="fwback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">${ui.fwKey?cap(niceDate(ui.fwDate))+(dayOf(ui.fwDate).p===ui.fwKey?' · fra din plan':''):'Opvarmning · styrke · WOD · bonus'}</p><h2 class="h2">Fuld træning</h2></div></div>`;
   const opts=`<section class="card">
-    ${ui.fwDate?`<p class="hint">Styrkedelen følger din plan. Bland og byt resten som du vil.</p>`:`<div class="field"><span>Tid i alt</span><div class="chips">${FW_TIMES.map(t=>`<button class="${T===t?'on':''}" data-act="fwtime" data-v="${t}">${t} min</button>`).join('')}</div></div>`}
+    ${ui.fwKey?`<p class="hint">Styrkedelen følger din plan. Bland og byt resten som du vil.</p>`:`<div class="field"><span>Tid i alt</span><div class="chips">${FW_TIMES.map(t=>`<button class="${T===t?'on':''}" data-act="fwtime" data-v="${t}">${t} min</button>`).join('')}</div></div>`}
     <div class="field"><span>Niveau</span><div class="chips">${['Begynder','Øvet','Avanceret'].map(n=>`<button class="${P.niveau===n?'on':''}" data-act="cfpref" data-k="niveau" data-v="${n}">${n}</button>`).join('')}</div></div>
     <button class="restbtn" data-act="fwudstyr">${ui.fwEq?'Skjul udstyr':`Udstyr · ${have.length} af ${all.length} valgt`}</button>
     ${ui.fwEq?`<div class="chips">${all.map(u=>`<button class="${have.includes(u)?'on':''}" data-act="cfeq" data-v="${esc(u)}">${esc(u)}</button>`).join('')}</div><p class="hint">Gælder også CrossFit-pas.</p>`:''}
@@ -2020,15 +2052,15 @@ function viewFW(){
     <label class="field"><span>Score i WOD'en</span><input id="fw-score" data-bind="fwLog.score" value="${esc(ui.fwLog.score)}" placeholder="Fx 12:34 eller 7 runder + 5"></label>
     <label class="field"><span>Note (valgfri)</span><input id="fw-note" data-bind="fwLog.note" value="${esc(ui.fwLog.note)}" placeholder="Fx vægt i styrke"></label>
     <button class="btn accent" data-act="fwsave">Gem i log</button></section>`:`<button class="btn primary" data-act="fwlog">Log træningen</button>`;
-  return back+opts+A+B+C+D+(ui.fwDate?'':`<button class="btn ghost" data-act="schopen" data-src="fw">📅 Læg i kalenderen</button>`)+L}
-function fwPlanName(w){if(ui.fwDate.length>10)return;const k='F'+ui.fwDate.replace(/-/g,'');if(state.planSess&&state.planSess[k]){state.planSess[k].name='Fuld træning · '+fwL(w.b.lift)[1];applySess()}}
+  return back+opts+A+B+C+D+(ui.fwKey?'':`<button class="btn ghost" data-act="schopen" data-src="fw">📅 Læg i kalenderen</button>`)+L}
+function fwPlanName(w){const k=ui.fwKey;if(k&&state.planSess&&state.planSess[k]){state.planSess[k].name='Fuld træning · '+fwL(w.b.lift)[1];applySess()}}
 function fwLines(){const w=fwW(),l=fwL(w.b.lift),p=fwC();
   return ['A) Opvarmning: '+[w.a.cardio,...w.a.gen,...w.a.spec].join(', '),'B) '+l[1]+': '+w.b.lines.join(' / '),'C) '+(p?p.overskrift+': '+p.linjer.join(' / '):''),...(w.d.length?['D) Bonus: '+w.d.join(', ')]:[])]}
 
 /* ---------- Planlæg forløb: 1-8 uger ----------
    Wizard: training days → what each day is → weeks + goal → review → accept.
-   The plan is stored as one session key per date (state.blockDays). It wins over the weekly plan,
-   but a manual change on a single day (override or skip) still wins over the plan. */
+   The plan puts a session key on each date (days[date].p). It wins over the weekly plan,
+   but a manual change on a single day (m or skip) still wins over the plan. */
 const PL_TYPES={styrke:['Styrke','styrke'],crossfit:['Fuld træning','crossfit'],kondition:['Kondition','interval'],restitution:['Aktiv restitution','mobilitet'],mobilitet:['Mobilitet','mobilitet'],hvile:['Hvile','hvile']};
 const PL_ICON={styrke:'<path d="M6.5 8v8M17.5 8v8M3.5 10v4M20.5 10v4M6.5 12h11"/>',crossfit:'<path d="M12 3c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2.5-5 .5 1.5 1.5 2 2.5 2 0-2.5-1-4.5 0-7z"/>',
   kondition:'<path d="M3 12h4l2.5-6 4 12L16 12h5"/>',restitution:'<path d="M5 19c0-8 6-13 14-14-1 8-6 14-14 14zM5 19l7-7"/>',mobilitet:'<circle cx="12" cy="5" r="2"/><path d="M12 8v5l-4 6M12 13l4 6M6 10h12"/>',hvile:'<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>'};
@@ -2173,7 +2205,7 @@ function plBuild(P){
   const weekly=(d,wi)=>{const f=fixed[d],wv=waveOf(wi),mo=mainOpts(f.pat),main=P.goal==='styrke'?f.main:mo[wv%mo.length];
     const used=new Set([main[0],...f.sec.map(x=>x[0]),...f.lastAcc]);const acc=plAccFor(f.pat,P.goal==='muskler'?3:2,used);
     f.lastAcc=new Set(acc.map(x=>x[0]));const fo=f.fwOpts.length?f.fwOpts:[f.fwLift];return {...f,main,acc,fwLift:P.goal==='styrke'?f.fwLift:fo[wv%fo.length]}};
-  const days={},sess={},fws={},weeks=[];let arN=0,mobN=0,ftDone=false;
+  const days={},sess={},weeks=[];let arN=0,mobN=0,ftDone=false;
   if(isRun(P.goal)&&(P.vStart!=null||P.noTest)){P.vd=true;const nbw=info.filter(x=>x.i>=0).length;
     P.vGain=P.goal==='pace'&&P.vStart!=null?Math.max(0,Math.min(vdotOf(P.dist,P.pace*P.dist)-P.vStart,vdGain(nbw))):vdGain(nbw)*.5}
   info.forEach(wi=>{const wk={...wi,days:[]};const dose=plDose(P,wi);let cardioN=0;
@@ -2190,8 +2222,8 @@ function plBuild(P){
         let b;if(P.goal==='allround'&&!wi.dl&&!wi.test&&l[4]){const ids=['across','ladder','wave','531','emom','wave','ladder'],s=FW_SCHEMES.find(x=>x.id===ids[wi.i%ids.length]);b=s&&s.pats.includes(l[2])?{lift:l[0],scheme:s.id,lines:s.lines(l),note:s.note,min:s.min,heavy:s.heavy,pct:true}:null}
         if(!b){const lines=dose.test?['Byg op til en ny 3RM','Ca. 6-8 sæt, hvile 2:30 mellem de tunge']:wi.dl?['3 × 5 @ 60 %','Let og hurtigt. Fokus på teknik']:[`${dose.s} sæt × ${dose.r}${l[4]?` @ ${dose.pct} %`:` · ${dose.rir} i tanken`}`,'Ét sæt hvert 2:00-2:30 min'];
           b={lift:l[0],scheme:dose.test?'build':wi.dl?'across':'across',lines,note:wi.dl?'Deload-uge: let, så kroppen kan nå at blive stærkere.':'Samme løft i denne periode, lidt tungere hver uge.',min:dose.test?18:wi.dl?10:14,heavy:dose.pct>=80||dose.test?1:0,pct:!!l[4]&&!dose.test}}
-        const w={T,b,a:fwGenA(b),c:fwGenC(b,wi.dl?45:T),d:fwGenD(b,wi.dl?45:T),plan:true};fws[date]=w;
-        const p=w.c?cfRebuild(w.c):null;sess[k]={name:`Fuld træning · ${l[1]}`,kind:'crossfit',fw:true,dur:`${T} min`};key=k;label=`${l[1]} + ${p?p.overskrift:'WOD'}`}
+        const w={T,b,a:fwGenA(b),c:fwGenC(b,wi.dl?45:T),d:fwGenD(b,wi.dl?45:T),plan:true};
+        const p=w.c?cfRebuild(w.c):null;sess[k]={name:`Fuld træning · ${l[1]}`,kind:'crossfit',fw:true,w,dur:`${T} min`};key=k;label=`${l[1]} + ${p?p.overskrift:'WOD'}`}
       else if(t==='kondition'&&isRun(P.goal)){cardioN++;const nRun=PL_DOW.filter(d=>P.types[d]==='kondition').length,nb=info.filter(x=>x.i>=0).length;
         const order=P.goal==='pace'?{1:['I'],2:['I','L'],3:['I','T','L'],4:['I','E','T','L'],5:['I','E','T','E','L'],6:['E','I','E','T','E','L'],7:['E','I','E','T','E','E','L']}:{1:['L'],2:['E','L'],3:['E','F','L'],4:['E','F','E','L'],5:['E','F','E','T','L'],6:['E','F','E','T','E','L'],7:['E','F','E','T','E','E','L']};
         const rk={kind:order[Math.min(7,nRun)][cardioN-1],bi:Math.max(0,wi.i),nb:Math.max(1,nb),wi:{w:wi.w,dl:wi.dl,test:wi.test,i:wi.i},nRun};const ft=P.vd&&P.vStart==null&&!ftDone&&date>=TODAY;if(ft)ftDone=true;const [k,ss]=runSess({...P,nRun,firstTest:ft},rk.kind,rk.bi,rk.nb,rk.wi,date);ss.rk=rk;sess[k]=ss;key=k;label=ss.name}
@@ -2203,32 +2235,26 @@ function plBuild(P){
       else if(t==='mobilitet'){key=(mobN++%2)?'BAL':'MOB';label=SESS[key].name}
       if(date>=TODAY)days[date]=key;wk.days.push({date,dow,t,key,label,past:date<TODAY})});
     weeks.push(wk)});
-  return {start,weeks,days,sess,fws,P:{...P,preview:null}}}
+  return {start,weeks,days,sess,P:{...P,preview:null}}}
 function plAccept(){const pv=ui.pl.preview;if(!pv)return;
-  const keepPast=Object.fromEntries(Object.entries(state.blockDays||{}).filter(([d])=>d<TODAY));
-  const ov={...(state.overrides||{})},sk={...(state.skips||{})};Object.keys(pv.days).forEach(d=>{delete ov[d];delete sk[d]});
-  const ps={},pf={};Object.entries(state.planSess||{}).forEach(([k,v])=>{const d=k.slice(1);if(d<TODAY.replace(/-/g,''))ps[k]=v});
-  Object.entries(state.planFw||{}).forEach(([d,v])=>{if(d<TODAY)pf[d]=v});
-  state.blockDays={...keepPast,...pv.days};state.planSess={...ps,...pv.sess};state.planFw={...pf,...pv.fws};state.overrides=ov;state.skips=sk;
+  planDates().forEach(d=>{if(d>=TODAY)setDay(d,{p:null})});
+  Object.entries(pv.days).forEach(([d,k])=>setDay(d,{p:k,m:null,skip:null}));
+  state.planSess={...(state.planSess||{}),...pv.sess};
   const end=pv.weeks[pv.weeks.length-1].days[6].date;const {preview:_p,pick:_k,...P0}=pv.P;if(P0.vStart!=null&&P0.tSec){const vs=(state.vdots||[]).filter(x=>!(x.date===TODAY&&x.src==='plan'));vs.push({date:TODAY,v:P0.vStart,km:P0.tKm,sec:P0.tSec,src:'plan'});state.vdots=vs}state.block={P:JSON.parse(JSON.stringify(P0)),made:TODAY,start:pv.start,end,weeks:pv.P.weeks,goal:pv.P.goal,goalName:plGoalName(pv.P),deloads:pv.weeks.filter(w=>w.dl).map(w=>w.w)};
   applySess();save()}
-/* Stopping removes everything the plan put in the calendar. Only days you actually trained keep their session, so the history still makes sense. */
 /* Empty the calendar: no plan, no fixed week, no one-off sessions. Days you trained keep their session. */
 function wipeCalendar(){const done=new Set((state.logs||[]).map(l=>l.date)),keep=d=>d<TODAY&&done.has(d);
-  plStop();['overrides','skips','cfDays','extras'].forEach(f=>{state[f]=Object.fromEntries(Object.entries(state[f]||{}).filter(([d])=>keep(d)))});
+  plStop();Object.keys(state.days||{}).forEach(d=>{if(!keep(d))setDay(d,{m:null,x:null,skip:null})});pruneSess();
   const rest={};PL_DOW.forEach(d=>rest[d]='R');state.plan={...rest};state.addons={};if(state.customPlan)state.customPlan={...rest};if(state.customAddons)state.customAddons={};
   applySess();save()}
-function plStop(){const done=new Set((state.logs||[]).map(l=>l.date)),bd={},ps={},pf={};
-  Object.entries(state.blockDays||{}).forEach(([d,k])=>{if(d<TODAY&&done.has(d))bd[d]=k});
-  const dk=k=>k.slice(1,5)+'-'+k.slice(5,7)+'-'+k.slice(7,9);
-  const ov=state.overrides||{},mine=(d,k)=>ov[d]===k;
-  Object.entries(state.planSess||{}).forEach(([k,v])=>{const d=dk(k);if(d<TODAY&&done.has(d)||mine(d,k))ps[k]=v});Object.entries(state.planFw||{}).forEach(([d,v])=>{if(d<TODAY&&done.has(d)||mine(d,'F'+d.replace(/-/g,'')))pf[d]=v});
-  state.blockDays=bd;state.planSess=ps;state.planFw=pf;state.block=null;applySess();save()}
+/* Stopping removes everything the plan put in the calendar. Only days you actually trained keep their session, so the history still makes sense. */
+function plStop(){const done=new Set((state.logs||[]).map(l=>l.date));
+  planDates().forEach(d=>{if(!(d<TODAY&&done.has(d)))setDay(d,{p:null})});state.block=null;pruneSess();applySess();save()}
 const plActive=()=>state.block&&state.block.end>=TODAY?state.block:null;
 function plWeekNo(){const b=plActive();if(!b)return 0;return Math.floor((pd(mondayOf(TODAY))-pd(b.start))/(7*864e5))+1}
 /* Full content of one day in the plan review */
 function plDetail(x,pv){if(x.key==='R')return '';
-  if(x.t==='crossfit'){const w=pv.fws[x.date];if(!w)return '';const l=fwL(w.b.lift),p=w.c?cfRebuild(w.c):null;
+  if(x.t==='crossfit'){const w=(pv.sess[x.key]||{}).w;if(!w)return '';const l=fwL(w.b.lift),p=w.c?cfRebuild(w.c):null;
     return `<div class="pl-det"><p class="fw-sub">A) Opvarmning</p><p>${esc([w.a.cardio,...w.a.gen,...w.a.spec].join(' · '))}</p>
       <p class="fw-sub">B) ${esc(l[1])}</p>${w.b.lines.map(t=>`<p><b>${esc(t)}</b></p>`).join('')}
       ${p?`<p class="fw-sub">C) WOD</p>${cfWod(p)}`:''}
@@ -2386,18 +2412,11 @@ function viewSched(){const c=ui.sched;if(!c){ui.view='train';return viewTrain()}
     <div class="seg" style="margin:0">${[['add','Læg oveni'],['replace','Erstat']].map(([k,l])=>`<button class="${c.how===k?'on':''}" data-act="schhow" data-v="${k}">${l}</button>`).join('')}</div>
     <p class="hint">${c.how==='add'?'Begge pas ligger på dagen.':'Det, der lå der, bliver erstattet.'}</p></section>`:''}
   <button class="btn accent" data-act="schgo"${dates.length?'':' disabled'}>${dates.length?`Læg ind på ${dates.length} ${dates.length===1?'dag':'dage'}`:'Vælg dage'}</button>`}
-function schApply(c){const dates=schDates(c),ov={...(state.overrides||{})},sk={...(state.skips||{})},ex={...(state.extras||{})};
-  dates.forEach(d=>{const add=c.how==='add'&&sessKey(d)!=='R';
-    if(add){const id=d.replace(/-/g,'')+Math.random().toString(36).slice(2,6);let k=c.key;
-      if(c.src==='cf'){k='X'+id;state.planSess={...(state.planSess||{}),[k]:{name:schName(c),kind:'crossfit',cf:JSON.parse(JSON.stringify(c.cf)),steps:[c.cf.title||'WOD',...(c.cf.linjer||[])],min:c.cf.min,dur:(c.cf.min||20)+' min'}}}
-      else if(c.src==='fw'){k='X'+id;const fid=d+'#'+id;state.planFw={...(state.planFw||{}),[fid]:JSON.parse(JSON.stringify(c.fw))};state.planSess={...(state.planSess||{}),[k]:{name:schName(c),kind:'crossfit',fw:true,fwId:fid,dur:c.fw.T+' min'}}}
-      ex[d]=[...(ex[d]||[]),k];return}
-    delete sk[d];
-    if(c.src==='key')ov[d]=c.key;
-    else if(c.src==='cf'){state.cfDays={...(state.cfDays||{}),[d]:JSON.parse(JSON.stringify(c.cf))};ov[d]='CF'}
-    else{const k='F'+d.replace(/-/g,'');state.planFw={...(state.planFw||{}),[d]:JSON.parse(JSON.stringify(c.fw))};
-      state.planSess={...(state.planSess||{}),[k]:{name:schName(c),kind:'crossfit',fw:true,dur:c.fw.T+' min'}};ov[d]=k}});
-  state.overrides=ov;state.skips=sk;state.extras=ex;applySess();save();return dates.length}
+function schApply(c){const dates=schDates(c),cp=x=>JSON.parse(JSON.stringify(x));
+  const sessFor_=d=>c.src==='key'?c.key:c.src==='cf'?(k=>(putSess(k,{name:schName(c),kind:'crossfit',cf:cp(c.cf),min:c.cf.min,dur:(c.cf.min||20)+' min'}),k))(newKey('C',d))
+    :(k=>(putSess(k,{name:schName(c),kind:'crossfit',fw:true,w:cp(c.fw),dur:c.fw.T+' min'}),k))(newKey('F',d));
+  dates.forEach(d=>{const k=sessFor_(d);if(c.how==='add'&&sessKey(d)!=='R')addExtra(d,k);else setManual(d,k)});
+  applySess();save();return dates.length}
 /* ---------- Feedback after each session ---------- */
 const TRAIN_T=['styrke','kondition','crossfit','mobilitet'];
 let fbKnown=null;
@@ -2413,11 +2432,10 @@ function fbSheet(){const id=ui.fbHard,l=id?state.logs.find(x=>x.id===id):fbPendi
 
 /* ---------- Adapting the plan. The app notices when training drifts from the plan or results change,
    suggests a concrete change, and applies it only after you approve. ---------- */
-const addD=(d,n)=>{const t=pd(d);return ds(new Date(t.getFullYear(),t.getMonth(),t.getDate()+n))};
 const adS=()=>state.adapt||(state.adapt={handled:{},since:TODAY,hist:[]});
 const trainedOn=d=>logsOn(d).some(l=>TRAIN_T.includes(l.type));
 const plannedOn=d=>{const k=sessKey(d);return k!=='R'&&SESS[k]&&SESS[k].kind!=='hvile'};
-function missed(from,to){const st=adS().since,b=state.block,out=[];for(let d=from;d<to;d=addD(d,1)){if(d<st||(b&&d<b.start&&state.blockDays[d]))continue;if(plannedOn(d)&&!trainedOn(d))out.push(d)}return out}
+function missed(from,to){const st=adS().since,b=state.block,out=[];for(let d=from;d<to;d=addD(d,1)){if(d<st||(b&&d<b.start&&dayOf(d).p))continue;if(plannedOn(d)&&!trainedOn(d))out.push(d)}return out}
 const dlab=d=>`${PL_SHORT[pd(d).getDay()]} ${shortDate(d)}`;
 const kgOrPct=(n,p)=>{const k=kgFor(n,p);return k?fnum(k)+' kg':p+' %'};
 /* Make plan sessions in a date range lighter. Only the plan's own sessions change; your fixed week stays as it is. */
@@ -2434,31 +2452,24 @@ function lighten(from,days,drop,dry){const lines=[],ps={...(state.planSess||{})}
       if(!dry)ps[k]={...x,km,name:`Langtur ${fmtKm(km)} km`,steps:[`${fmtKm(km)} km roligt`,...(x.steps||[]).slice(1)]}}}
   if(!dry){state.planSess=ps}return lines}
 /* Push the rest of the plan one week. This week is filled with a repeat of last week (or an easy restart week). */
-function shiftPlan(fill,dry){const b=state.block,bd=state.blockDays||{},fut=Object.keys(bd).filter(d=>d>=TODAY).sort(),end=addD(b.end,7),cw=Math.floor((pd(TODAY)-pd(b.start))/(7*864e5));
+function shiftPlan(fill,dry){const b=state.block,bd=Object.fromEntries(planDates().map(d=>[d,dayOf(d).p])),fut=Object.keys(bd).filter(d=>d>=TODAY).sort(),end=addD(b.end,7),cw=Math.floor((pd(TODAY)-pd(b.start))/(7*864e5));
   const lines=[`Resten af forløbet rykker en uge. Det slutter ${shortDate(end)} i stedet for ${shortDate(b.end)}.`];
   const week=[...Array(7)].map((_,i)=>addD(TODAY,i)),srcD=d=>fill==='repeat'&&bd[addD(d,-7)]?addD(d,-7):d,src=d=>bd[srcD(d)];
   lines.push(fill==='repeat'?'Denne uge gentager du sidste uges pas: '+week.filter(d=>src(d)&&SESS[src(d)]&&SESS[src(d)].kind!=='hvile').map(d=>`${PL_SHORT[pd(d).getDay()]} ${SESS[src(d)].name}`).join(', '):'Denne uge bliver en rolig genstartsuge med korte, lette pas.');
   if(dry)return lines;
-  const nb={},pf={},ps={...(state.planSess||{})};Object.entries(bd).forEach(([d,k])=>{if(d<TODAY)nb[d]=k});
-  Object.entries(state.planFw||{}).forEach(([d,v])=>{if(d<TODAY||!bd[d])pf[d]=v});
-  fut.forEach(d=>{const t=addD(d,7);nb[t]=bd[d];if(state.planFw[d])pf[t]=state.planFw[d]});
-  week.forEach(d=>{const sd=srcD(d),k=bd[sd];if(!k)return;const x=ps[k],id=k[0]+d.replace(/-/g,'')+Math.random().toString(36).slice(2,5);
-    if(!x){nb[d]=k;return}let c=JSON.parse(JSON.stringify(x));
+  fut.forEach(d=>setDay(d,{p:null}));fut.forEach(d=>setDay(addD(d,7),{p:bd[d]}));
+  week.forEach(d=>{const k=bd[srcD(d)];if(!k)return;const x=(state.planSess||{})[k];if(!x){setDay(d,{p:k});return}let c=JSON.parse(JSON.stringify(x));
     if(fill==='easy'){if(c.kind==='styrke'&&c.ex){c.ex=c.ex.map(e=>[e[0],2,e[2],Math.max(3,e[3])]);c.pct=c.pct?Math.max(55,c.pct-15):null;c.name=c.name.replace(/ · uge \d+$/,'')+' · let';c.note='Genstartsuge: let og kort.'}
       else if(c.kind==='interval'||c.kind==='zone2'){c={name:'Genstart · roligt 30 min',kind:'zone2',steps:['30 min roligt løb, cykel eller ro','Du skal kunne tale i hele sætninger'],min:30,dur:'30 min',phases:[['Roligt tempo',1800,'easy']]}}}
-    ps[id]=c;nb[d]=id;if(state.planFw[sd])pf[d]=state.planFw[sd]});
-  state.blockDays=nb;state.planFw=pf;state.planSess=ps;
+    const id=newKey(k[0],d);putSess(id,c);setDay(d,{p:id})});
   state.block={...b,end,weeks:b.weeks+1,deloads:fill==='easy'?[cw,...b.deloads.map(x=>x>=cw?x+1:x)]:b.deloads.map(x=>x>=cw?x+1:x)};return lines}
 /* Move a missed session to another day */
 function moveSess(d,t,dry){const k=sessKey(d),x=SESS[k];if(dry)return [`${x.name} flyttes fra ${dlab(d)} til ${dlab(t)}.`];
-  const ov={...(state.overrides||{})},sk={...(state.skips||{})};
-  if(x.fw&&state.planFw[d]){const nk='F'+t.replace(/-/g,'');state.planFw={...state.planFw,[t]:state.planFw[d]};state.planSess={...state.planSess,[nk]:{...(state.planSess[k]||x)}};ov[t]=nk}
-  else if(k==='CF'&&state.cfDays[d]){state.cfDays={...state.cfDays,[t]:state.cfDays[d]};ov[t]='CF'}else ov[t]=k;
-  sk[d]=true;state.overrides=ov;state.skips=sk;return []}
-function dropSess(ds_,dry){if(dry)return ds_.map(d=>`${dlab(d)} · ${SESS[sessKey(d)].name} droppes.`);const sk={...(state.skips||{})};ds_.forEach(d=>sk[d]=true);state.skips=sk;return []}
+  setManual(t,k);skipDay(d);return []}
+function dropSess(ds_,dry){if(dry)return ds_.map(d=>`${dlab(d)} · ${SESS[sessKey(d)].name} droppes.`);ds_.forEach(d=>skipDay(d));return []}
 /* Run plans: rebuild the remaining runs from the plan answers with a new goal pace or shorter long runs */
 function rebuildRuns(ch,dry){const b=state.block;if(!b||!b.P)return [];const P={...b.P,...ch},ps={...state.planSess},lines=[];
-  Object.entries(state.blockDays||{}).forEach(([d,k])=>{const x=ps[k];if(d<TODAY||!x||!x.rk)return;const [,n]=runSess({...P,nRun:x.rk.nRun},x.rk.kind,x.rk.bi,x.rk.nb,x.rk.wi,d);n.rk=x.rk;
+  planDates().forEach(d=>{const k=dayOf(d).p,x=ps[k];if(d<TODAY||!x||!x.rk)return;const [,n]=runSess({...P,nRun:x.rk.nRun},x.rk.kind,x.rk.bi,x.rk.nb,x.rk.wi,d);n.rk=x.rk;
     if(n.name!==x.name&&lines.length<4)lines.push(`${dlab(d)} · ${x.name} → ${n.name}`);ps[k]=n});
   if(ch.pace)lines.unshift(`Mål-pace: ${fmtPace(b.P.pace)} → ${fmtPace(P.pace)} /km`);
   if(!dry){state.planSess=ps;state.block={...b,P,goalName:plGoalName(P)}}return lines}
@@ -3248,7 +3259,7 @@ document.addEventListener('click',e=>{
     case 'logday':openLog(b.dataset.date);break;
     case 'calday':case 'sel':{ui.dayBack=ui.view==='day'?ui.dayBack:ui.view;ui.sel=b.dataset.date;const d=pd(ui.sel);ui.calY=d.getFullYear();ui.calM=d.getMonth();ui.view='day';render(true);break}
     case 'dayback':ui.view=ui.dayBack||'today';render(true);break;
-    case 'xstart':{const se=SESS[b.dataset.key];if(se&&se.fwId){ui.fwDate=se.fwId;ui.fwSwap=null;ui.fwLog=null;ui.view='fw';render(true);break}}
+    case 'xstart':{const se=SESS[b.dataset.key];if(se&&se.fw){ui.fwKey=b.dataset.key;ui.fwDate=b.dataset.date||TODAY;ui.fwSwap=null;ui.fwLog=null;ui.view='fw';render(true);break}}
     // falls through: other extra sessions start like any session
     case 'trstart':{const k=b.dataset.key,se=SESS[k];
       if(se.kind==='styrke'){ui.logDate=TODAY;ui.logType='styrke';const d=loadDraft();if(d&&d.sess===k){ui.sess=k;ui.rows=d.rows;ui.wStart=d.wStart||null}else{ui.sess=k;initRows(k)}ui.dirty=false;ui.view='log';render(true)}
@@ -3328,8 +3339,8 @@ document.addEventListener('click',e=>{
       if(n.kind==='timer'){c.startMin=num(n.start);c.stepMin=num(n.step)||0;c.maxMin=num(n.max);if(!(c.startMin>0)){toast('Skriv et startmål i minutter');break}if(!(c.maxMin>=c.startMin))c.maxMin=c.startMin}
       state.customHabits=(state.customHabits||[]).concat(c);save();ui.habit=c.id;ui.manVal='';ui.manDate=TODAY;ui.view='habit';render(true);toast('Vane tilføjet');break}
     case 'cfopen':cfOpen(b.dataset.date||TODAY);break;
-    case 'cfday':{const d=b.dataset.date;state.overrides={...(state.overrides||{}),[d]:'CF'};save();cfOpen(d);break}
-    case 'cfundo':{const d=b.dataset.date,o={...(state.overrides||{})};delete o[d];state.overrides=o;const cd={...(state.cfDays||{})};delete cd[d];state.cfDays=cd;save();render();toast('CrossFit fjernet');break}
+    case 'cfday':{const d=b.dataset.date;setManual(d,'CF');save();cfOpen(d);break}
+    case 'cfundo':{const d=b.dataset.date;clearManual(d);pruneSess();applySess();save();render();toast('CrossFit fjernet');break}
     case 'cfback':if(ui.cf&&ui.cf.step==='pas'&&!cfSaved(ui.cf.date)){ui.cf.step='menu';render(true)}else{if(ui.cf&&ui.cf.date!==TODAY){ui.sel=ui.cf.date;ui.view='day'}else ui.view=ui.dayBack==='train'?'train':'today';render(true)}break;
     case 'cfmenu':ui.cf.step='menu';render(true);break;
     case 'cffmt':ui.cf.fmt=b.dataset.v||null;render();break;
@@ -3369,14 +3380,14 @@ document.addEventListener('click',e=>{
     case 'plbuild':{const was=ui.pl.step==='review';ui.pl.preview=plBuild(ui.pl);if(was){render(true);break}slideAnim(1,()=>{ui.pl.step='review';render(true)});break}
     case 'placcept':{const st=ui.pl.preview.start;plAccept();ui.pl=null;ui.mOpen=null;ui.view='month';render(true);toast('Planen er lagt ind');break}
     case 'plstop':plStop();render();toast('Forløbet er stoppet og fjernet fra kalenderen');break;
-    case 'fwopen':ui.fwDate=null;ui.fwSwap=null;ui.fwLog=null;if(!state.fw){state.fw=fwNew();save()}ui.view='fw';render(true);break;
-    case 'fwday':ui.fwDate=b.dataset.date;ui.fwSwap=null;ui.fwLog=null;ui.view='fw';render(true);break;
-    case 'fwback':ui.view=ui.fwDate?'today':'train';if(ui.fwDate&&ui.fwDate.length>10)ui.fwDate=null;render(true);break;
+    case 'fwopen':ui.fwDate=null;ui.fwKey=null;ui.fwSwap=null;ui.fwLog=null;if(!state.fw){state.fw=fwNew();save()}ui.view='fw';render(true);break;
+    case 'fwday':ui.fwDate=b.dataset.date;ui.fwKey=sessKey(b.dataset.date);ui.fwSwap=null;ui.fwLog=null;ui.view='fw';render(true);break;
+    case 'fwback':ui.view=ui.fwKey?'today':'train';ui.fwKey=null;ui.fwDate=null;render(true);break;
     case 'fwtime':{state.fwT=+b.dataset.v;const w=fwW();if(w){w.T=state.fwT;w.c=fwGenC(w.b,w.T);w.d=fwGenD(w.b,w.T)}save();render();break}
-    case 'fwnew':{ui.fwSwap=null;if(ui.fwDate){const w=fwW();state.planFw={...(state.planFw||{}),[ui.fwDate]:w?{...w,a:fwGenA(w.b),c:fwGenC(w.b,w.T),d:fwGenD(w.b,w.T)}:fwNew()}}else state.fw=fwNew();save();render();toast('Ny træning');break}
+    case 'fwnew':{ui.fwSwap=null;if(ui.fwKey){const w=fwW();putSess(ui.fwKey,{...state.planSess[ui.fwKey],w:w?{...w,a:fwGenA(w.b),c:fwGenC(w.b,w.T),d:fwGenD(w.b,w.T)}:fwNew()});applySess()}else state.fw=fwNew();save();render();toast('Ny træning');break}
     case 'fwudstyr':ui.fwEq=!ui.fwEq;render();break;
     case 'fwroll':{const w=fwW(),k=b.dataset.s;ui.fwSwap=null;
-      if(k==='a')w.a=fwGenA(w.b);else if(k==='b'){if(ui.fwDate){const al=fwAltsB();if(al.length){w.b={...w.b,lift:fwPick(al)[0]};fwPlanName(w)}}else{w.b=fwGenB();w.a=fwGenA(w.b,w.a)}}else if(k==='c'){const c=fwGenC(w.b,w.T);if(c)w.c=c;else toast('Ingen WOD passede til dit udstyr')}else if(k==='d')w.d=fwGenD(w.b,w.T);
+      if(k==='a')w.a=fwGenA(w.b);else if(k==='b'){if(ui.fwKey){const al=fwAltsB();if(al.length){w.b={...w.b,lift:fwPick(al)[0]};fwPlanName(w)}}else{w.b=fwGenB();w.a=fwGenA(w.b,w.a)}}else if(k==='c'){const c=fwGenC(w.b,w.T);if(c)w.c=c;else toast('Ingen WOD passede til dit udstyr')}else if(k==='d')w.d=fwGenD(w.b,w.T);
       save();render();break}
     case 'fwa':{const w=fwW(),k=b.dataset.k,i=+b.dataset.i;
       if(k==='cardio'){const c=FW_CARDIO.filter(x=>fwEqOk(x[1])&&x[0]!==w.a.cardio);if(c.length)w.a.cardio=fwPick(c)[0]}
@@ -3384,17 +3395,18 @@ document.addEventListener('click',e=>{
       save();render();break}
     case 'fwswap':{const v=b.dataset.v;ui.fwSwap=ui.fwSwap===v?null:v;render();break}
     case 'fwpick':{const w=fwW(),k=b.dataset.k,i=+b.dataset.i,v=b.dataset.v;ui.fwSwap=null;
-      if(k==='b'){const l=fwL(v);if(l){if(ui.fwDate){w.b={...w.b,lift:l[0]};fwPlanName(w)}else w.b=fwSchemeFor(l,w.b.scheme)}}
+      if(k==='b'){const l=fwL(v);if(l){if(ui.fwKey){w.b={...w.b,lift:l[0]};fwPlanName(w)}else w.b=fwSchemeFor(l,w.b.scheme)}}
       else if(k==='c'){const p=fwC(),movs=p.movs.slice();movs[i]=cfMovById(v);const np=CF.formater(p.format,p.domaene,p.minutter,movs,p.opt,CF.prng(p.seed));np.seed=p.seed;np.opt=p.opt;w.c=cfSerialize(np)}
       else if(k==='d')w.d[i]=v;
       save();render();toast('Øvelse byttet');break}
     case 'fwlog':ui.fwLog={score:'',note:''};render();break;
     case 'fwsave':{const w=fwW(),l=fwL(w.b.lift),r=ui.fwLog;
-      state.logs.push({id:Date.now().toString(36),date:(ui.fwDate||TODAY).slice(0,10),type:'crossfit',name:'Fuld træning · '+l[1],score:(r.score||'').trim(),note:(r.note||'').trim(),linjer:fwLines(),dur:w.T*60});
+      state.logs.push({id:Date.now().toString(36),date:ui.fwDate||TODAY,type:'crossfit',name:'Fuld træning · '+l[1],score:(r.score||'').trim(),note:(r.note||'').trim(),linjer:fwLines(),dur:w.T*60});
       ui.fwLog=null;save();render();toast('Træning gemt');break}
     case 'cfswap':{const i=+b.dataset.i;ui.cf.swapI=ui.cf.swapI===i?null:i;render();break}
     case 'cfpick':cfSwap(+b.dataset.i,b.dataset.v);render();toast('Øvelse byttet');break;
-    case 'cfsave':{const p=ui.cf.pas;if(!p)break;state.cfDays={...(state.cfDays||{}),[ui.cf.date]:cfSerialize(p)};if(sessKey(ui.cf.date)!=='CF')state.overrides={...(state.overrides||{}),[ui.cf.date]:'CF'};save();render();toast('Pas gemt');break}
+    case 'cfsave':{const p=ui.cf.pas;if(!p)break;const d=ui.cf.date,cur=dayOf(d).m,k=cur&&cur[0]==='C'&&(state.planSess||{})[cur]?cur:newKey('C',d);
+      putSess(k,{name:p.overskrift,kind:'crossfit',cf:cfSerialize(p),min:p.minutter,dur:p.minutter+' min'});setManual(d,k);applySess();save();render();toast('Pas gemt');break}
     case 'cflog':{const p=ui.cf.pas,r=ui.cf.res;if(!r.score.trim()){toast('Skriv din score');break}
       state.logs.push({id:Date.now().toString(36),date:ui.cf.date,type:'crossfit',name:p.overskrift,score:r.score.trim(),rpe:num(r.rpe),note:r.note.trim(),seed:p.seed,ids:p.movs.map(m=>m.id),linjer:p.linjer,dur:p.minutter*60});
       save();render();toast('Resultat gemt');break}
@@ -3403,9 +3415,9 @@ document.addEventListener('click',e=>{
     case 'todaytog':freezeTop();ui.todayOpen=!ui.todayOpen;render();break;
     case 'skipask':freezeTop();ui.skipAsk=true;render();break;
     case 'skipcancel':freezeTop();ui.skipAsk=false;render();break;
-    case 'skipday':state.skips={...(state.skips||{}),[TODAY]:true};ui.skipAsk=false;save();render();toast('Dagens pas er sprunget over');break;
-    case 'shiftday':{const name=sessFor(TODAY).name;state.skips={...(state.skips||{}),[TODAY]:true};state.shifts=(state.shifts||[]).concat(TODAY);ui.skipAsk=false;save();render();toast(name+' er rykket til i morgen');break}
-    case 'unskip':{const sk={...(state.skips||{})};delete sk[TODAY];state.skips=sk;state.shifts=(state.shifts||[]).filter(x=>x!==TODAY);save();render();toast('Fortrudt');break}
+    case 'skipday':skipDay(TODAY);ui.skipAsk=false;save();render();toast('Dagens pas er sprunget over');break;
+    case 'shiftday':{const name=sessFor(TODAY).name;skipDay(TODAY);state.shifts=(state.shifts||[]).concat(TODAY);ui.skipAsk=false;save();render();toast(name+' er rykket til i morgen');break}
+    case 'unskip':{skipDay(TODAY,false);state.shifts=(state.shifts||[]).filter(x=>x!==TODAY);save();render();toast('Fortrudt');break}
     case 'coldpre':state.coldPre=+b.dataset.v;save();render();break;
     case 'manlog':{const h=findHabit(ui.habit),raw=String(ui.manVal||'').trim(),date=ui.manDate||TODAY;
       if(h.check){if(habitDone(h.id,date)){toast('Allerede logget den dag');break}state.logs.push({id:Date.now().toString(36),date,type:h.id,manual:true});save();render();toast('Logget');break}
@@ -3432,7 +3444,7 @@ document.addEventListener('click',e=>{
     case 'obgoal':{const g=b.dataset.v,o=ui.ob;o.goals=o.goals.includes(g)?o.goals.filter(x=>x!==g):o.goals.concat(g);render();break}
     case 'obnext':{const o=ui.ob;if(o.step===2){const sug=obSuggest(OB_SPREAD[o.n],o.goals);o.plan=sug.plan;o.addons=sug.addons}o.step++;render(true);break}
     case 'obback':ui.ob.step--;render(true);break;
-    case 'obdone':{replaceNext=true;const o=ui.ob;state.plan={...o.plan};state.addons={...o.addons};state.program='custom';state.name=o.name.trim();state.onboarded=true;state.shifts=[];state.skips={};state.overrides=state.overrides||{};
+    case 'obdone':{replaceNext=true;const o=ui.ob;state.plan={...o.plan};state.addons={...o.addons};state.program='custom';state.name=o.name.trim();state.onboarded=true;state.shifts=[];state.days=Object.fromEntries(Object.entries(state.days||{}).map(([d,e])=>[d,{...e,skip:undefined}]).filter(([,e])=>e.p||e.m||e.x));
       state.cycleStart=mondayOf(TODAY);syncCustom();save();ui.ob=null;ui.view='today';render(true);if(!state.tourSeen)showTour();else toast('Din uge er klar');break}
     case 'customfrom':{const bp=b.dataset.p==='blueprint';state.plan=bp?{...BP_PLAN}:{...DEFAULT_PLAN};state.addons=bp?{...BP_ADDONS}:{};syncCustom();save();render();toast('Kopieret. Ret dagene til.');break}
     case 'program':if(b.dataset.p==='custom'){if(state.program!=='custom'){state.plan=state.customPlan?{...state.customPlan}:{...state.plan};state.addons=state.customAddons?{...state.customAddons}:{...(state.addons||{})};state.program='custom';if(!state.cycleStart)state.cycleStart=mondayOf(TODAY);syncCustom();save()}render();toast('Egen plan valgt');break}
@@ -3453,8 +3465,8 @@ document.addEventListener('click',e=>{
     case 'adno':{const c=ui.adCur;if(!c)break;adS().handled[c.id]='no';ui.adOpt=0;save();render();break}
     case 'adalt':ui.adOpt=(ui.adOpt||0)+1;{const P=adaptFind();if(P[0]&&ui.adOpt>=P[0].opts.length)ui.adOpt=0}render();break;
     case 'schhow':ui.sched.how=b.dataset.v;render();break;
-    case 'xsee':{const se=SESS[b.dataset.key];if(se&&se.fwId){ui.fwDate=se.fwId;ui.fwSwap=null;ui.fwLog=null;ui.view='fw';render(true);break}ui.trKey=b.dataset.key;ui.view='sess';render(true);break}
-    case 'xdel':{freezeTop();const d=b.dataset.date,i=+b.dataset.i,ex={...(state.extras||{})},l=(ex[d]||[]).filter(k=>SESS[k]);l.splice(i,1);if(l.length)ex[d]=l;else delete ex[d];state.extras=ex;save();render();toast('Fjernet fra dagen');break}
+    case 'xsee':{const se=SESS[b.dataset.key];if(se&&se.fw){ui.fwKey=b.dataset.key;ui.fwDate=b.dataset.date;ui.fwSwap=null;ui.fwLog=null;ui.view='fw';render(true);break}ui.trKey=b.dataset.key;ui.view='sess';render(true);break}
+    case 'xdel':{freezeTop();removeExtra(b.dataset.date,+b.dataset.i);pruneSess();applySess();save();render();toast('Fjernet fra dagen');break}
     case 'schmode':ui.sched.mode=b.dataset.v;render();break;
     case 'schday':{const c=ui.sched,d=b.dataset.d,i=c.dates.indexOf(d);if(i>=0)c.dates.splice(i,1);else c.dates.push(d);render();break}
     case 'schmon':{const c=ui.sched,[y,m]=c.month.split('-').map(Number),n=new Date(y,m-1+(+b.dataset.v),1);c.month=ds(n).slice(0,7);render();break}
