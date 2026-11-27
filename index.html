@@ -521,6 +521,12 @@ b,strong{font-weight:600}
 .pl-prog{display:flex;gap:4px;margin:-4px 0 14px}.pl-prog i{flex:1;height:3px;border-radius:2px;background:var(--line)}.pl-prog i.on{background:var(--accent)}
 .stepper{justify-content:center}
 .chips button.dim{opacity:.45}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:14px;background:var(--card);margin-bottom:12px}
+.seg button{border:0;background:none;color:var(--muted);padding:10px;border-radius:10px;font:inherit;font-weight:600}.seg button.on{background:var(--pill);color:var(--pill-fg)}
+.sc-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px}.sc-h{text-align:center;font-size:12px;color:var(--muted);padding-bottom:4px}
+.sc-d{position:relative;aspect-ratio:1;border:0;border-radius:12px;background:none;color:var(--text);font:inherit;font-variant-numeric:tabular-nums}
+.sc-d:disabled{opacity:.3}.sc-d.today{box-shadow:inset 0 0 0 1.5px var(--line)}.sc-d.on{background:var(--accent);color:#fff}
+.sc-d i{position:absolute;left:50%;bottom:5px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--k,var(--muted))}.sc-d.on i{background:#fff}
 </style>
 </head>
 <body>
@@ -970,6 +976,7 @@ function viewCF(){
       <button class="restbtn swap" data-act="cfswap" data-i="${i}">${c.swapI===i?'Luk':'Byt'}</button>
       ${c.swapI===i?`<div class="alts">${(()=>{const A=cfAlts(i);return A.length?`<button data-act="cfpick" data-i="${i}" data-v="${A[Math.floor(Math.random()*A.length)].id}" style="background:var(--pill);color:var(--pill-fg)">🎲 Tilfældig erstatning</button>`+A.slice(0,14).map(a=>`<button data-act="cfpick" data-i="${i}" data-v="${a.id}">${esc(CF.navnVis(a))}</button>`).join(''):'<p class="hint">Ingen lovlige erstatninger med dine valg.</p>'})()}</div>`:''}</div>`).join('')}
   </div></section>
+  <button class="btn ghost" data-act="schopen" data-src="cf">📅 Læg i kalenderen</button>
   <button class="btn ${isSaved?'ghost':'accent'}" data-act="cfsave">${isSaved?'✓ Gemt til '+(c.date===TODAY?'i dag':niceDate(c.date)):'Gem til '+(c.date===TODAY?'i dag':niceDate(c.date))}</button>
   ${isSaved&&c.date<=TODAY?`<section class="card"><h3 class="sec">${logged?'✓ Resultat logget':'Log resultat'}</h3>
     ${logged?`<p class="note">${esc(logged.score||'')}${logged.rpe?' · hårdhed '+logged.rpe:''}</p>`:`
@@ -1251,7 +1258,7 @@ function viewFW(){
     <label class="field"><span>Score i WOD'en</span><input id="fw-score" data-bind="fwLog.score" value="${esc(ui.fwLog.score)}" placeholder="Fx 12:34 eller 7 runder + 5"></label>
     <label class="field"><span>Note (valgfri)</span><input id="fw-note" data-bind="fwLog.note" value="${esc(ui.fwLog.note)}" placeholder="Fx vægt i styrke"></label>
     <button class="btn accent" data-act="fwsave">Gem i log</button></section>`:`<button class="btn primary" data-act="fwlog">Log træningen</button>`;
-  return back+opts+A+B+C+D+L}
+  return back+opts+A+B+C+D+(ui.fwDate?'':`<button class="btn ghost" data-act="schopen" data-src="fw">📅 Læg i kalenderen</button>`)+L}
 function fwPlanName(w){const k='F'+ui.fwDate.replace(/-/g,'');if(state.planSess&&state.planSess[k]){state.planSess[k].name='Fuld træning · '+fwL(w.b.lift)[1];applySess()}}
 function fwLines(){const w=fwW(),l=fwL(w.b.lift),p=fwC();
   return ['A) Opvarmning: '+[w.a.cardio,...w.a.gen,...w.a.spec].join(', '),'B) '+l[1]+': '+w.b.lines.join(' / '),'C) '+(p?p.overskrift+': '+p.linjer.join(' / '):''),...(w.d.length?['D) Bonus: '+w.d.join(', ')]:[])]}
@@ -1420,7 +1427,8 @@ function wipeCalendar(){const done=new Set((state.logs||[]).map(l=>l.date)),keep
 function plStop(){const done=new Set((state.logs||[]).map(l=>l.date)),bd={},ps={},pf={};
   Object.entries(state.blockDays||{}).forEach(([d,k])=>{if(d<TODAY&&done.has(d))bd[d]=k});
   const dk=k=>k.slice(1,5)+'-'+k.slice(5,7)+'-'+k.slice(7,9);
-  Object.entries(state.planSess||{}).forEach(([k,v])=>{const d=dk(k);if(d<TODAY&&done.has(d))ps[k]=v});Object.entries(state.planFw||{}).forEach(([d,v])=>{if(d<TODAY&&done.has(d))pf[d]=v});
+  const ov=state.overrides||{},mine=(d,k)=>ov[d]===k;
+  Object.entries(state.planSess||{}).forEach(([k,v])=>{const d=dk(k);if(d<TODAY&&done.has(d)||mine(d,k))ps[k]=v});Object.entries(state.planFw||{}).forEach(([d,v])=>{if(d<TODAY&&done.has(d)||mine(d,'F'+d.replace(/-/g,'')))pf[d]=v});
   state.blockDays=bd;state.planSess=ps;state.planFw=pf;state.block=null;applySess();save()}
 const plActive=()=>state.block&&state.block.end>=TODAY?state.block:null;
 function plWeekNo(){const b=plActive();if(!b)return 0;return Math.floor((pd(mondayOf(TODAY))-pd(b.start))/(7*864e5))+1}
@@ -1545,13 +1553,42 @@ function viewTrain(){
     const n=ks.length+(g==='CrossFit'?2:0);
     return `<section class="tr-grp${open?' open':''}"><button class="tr-head k-${kind}" data-act="trgrp" data-g="${esc(g)}" aria-expanded="${open}"><span class="bar"></span><span class="nm">${g}</span>${today?'<span class="tag">I dag</span>':''}<span class="cnt">${n} pas</span><span class="chev">›</span></button>${open?`<div class="tr-items">${extra}${ks.map(trainRow).join('')}</div>`:''}</section>`}).join('')}</div>`;
 }
+/* ---------- Put a built session on days in the calendar: single days or the same weekday for x weeks ---------- */
+function schName(c){return c.src==='key'?(SESS[c.key]||{}).name||'Pas':c.src==='cf'?(c.cf.title||'CrossFit'):'Fuld træning · '+fwL(c.fw.b.lift)[1]}
+function schDates(c){if(c.mode==='days')return c.dates.slice().sort();
+  const m0=pd(mondayOf(TODAY)),off=c.start==='next'?7:0,out=[];
+  for(let w=0;w<c.weeks;w++)c.dows.forEach(dw=>{const j=(dw+6)%7,d=ds(new Date(m0.getFullYear(),m0.getMonth(),m0.getDate()+off+w*7+j));if(d>=TODAY)out.push(d)});return out.sort()}
+function viewSched(){const c=ui.sched;if(!c){ui.view='train';return viewTrain()}
+  const dates=schDates(c),busy=dates.filter(d=>sessKey(d)!=='R').length;
+  let body;
+  if(c.mode==='days'){const [y,m]=c.month.split('-').map(Number),first=new Date(y,m-1,1),lead=(first.getDay()+6)%7,nd=new Date(y,m,0).getDate(),thisM=TODAY.slice(0,7);
+    const cells=[...Array(lead).fill('<span></span>'),...Array.from({length:nd},(_,i)=>{const d=ds(new Date(y,m-1,i+1)),past=d<TODAY,on=c.dates.includes(d),k=past?'R':sessKey(d),kind=k!=='R'&&SESS[k]?SESS[k].kind:'';
+      return `<button class="sc-d${on?' on':''}${d===TODAY?' today':''}" data-act="schday" data-d="${d}"${past?' disabled':''}>${i+1}${kind?`<i class="k-${kind}"></i>`:''}</button>`})];
+    body=`<section class="card"><div class="row-between"><button class="icon-btn" data-act="schmon" data-v="-1"${c.month<=thisM?' disabled':''} aria-label="Forrige måned">‹</button><b>${cap(MONTHS[m-1])} ${y}</b><button class="icon-btn" data-act="schmon" data-v="1" aria-label="Næste måned">›</button></div>
+      <div class="sc-grid">${['M','T','O','T','F','L','S'].map(x=>`<span class="sc-h">${x}</span>`).join('')}${cells.join('')}</div><p class="hint">Tryk på de dage, pas skal ligge. Prik = der ligger allerede træning.</p></section>`}
+  else body=`<section class="card"><div class="field"><span>Hvilke dage</span><div class="chips">${PL_DOW.map(d=>`<button class="${c.dows.includes(d)?'on':''}" data-act="schdow" data-v="${d}">${PL_SHORT[d]}</button>`).join('')}</div></div>
+    <div class="field"><span>Hvor mange uger</span><div class="chips">${[1,2,3,4,6,8,10,12].map(n=>`<button class="${c.weeks===n?'on':''}" data-act="schwk" data-v="${n}">${n}</button>`).join('')}</div></div>
+    <div class="field"><span>Start</span><div class="chips">${[['this','Denne uge'],['next','Næste uge']].map(([k,l])=>`<button class="${c.start===k?'on':''}" data-act="schst" data-v="${k}">${l}</button>`).join('')}</div></div></section>`;
+  return `<div class="habit-head"><button class="icon-btn" data-act="schback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">Læg i kalenderen</p><h2 class="h2">${esc(schName(c))}</h2></div></div>
+  <div class="seg">${[['days','Enkelte dage'],['weekly','Hver uge']].map(([k,l])=>`<button class="${c.mode===k?'on':''}" data-act="schmode" data-v="${k}">${l}</button>`).join('')}</div>
+  ${body}
+  ${dates.length?`<p class="hint center">${dates.length} ${dates.length===1?'dag':'dage'}${dates.length>1?` · ${niceDate(dates[0])} til ${niceDate(dates[dates.length-1])}`:` · ${niceDate(dates[0])}`}${busy?`<br>${dates.length===1?'Der ligger allerede træning, som':`${busy} af dem har allerede træning, som`} bliver erstattet.`:''}</p>`:''}
+  <button class="btn accent" data-act="schgo"${dates.length?'':' disabled'}>${dates.length?`Læg ind på ${dates.length} ${dates.length===1?'dag':'dage'}`:'Vælg dage'}</button>`}
+function schApply(c){const dates=schDates(c),ov={...(state.overrides||{})},sk={...(state.skips||{})};
+  dates.forEach(d=>{delete sk[d];
+    if(c.src==='key')ov[d]=c.key;
+    else if(c.src==='cf'){state.cfDays={...(state.cfDays||{}),[d]:JSON.parse(JSON.stringify(c.cf))};ov[d]='CF'}
+    else{const k='F'+d.replace(/-/g,'');state.planFw={...(state.planFw||{}),[d]:JSON.parse(JSON.stringify(c.fw))};
+      state.planSess={...(state.planSess||{}),[k]:{name:schName(c),kind:'crossfit',fw:true,dur:c.fw.T+' min'}};ov[d]=k}});
+  state.overrides=ov;state.skips=sk;applySess();save();return dates.length}
 function viewSess(){
   const k=ui.trKey,se=SESS[k];if(!se){ui.view='train';return viewTrain()}
   return `<div class="habit-head"><button class="icon-btn" data-act="view" data-view="train" aria-label="Tilbage" data-back>‹</button><h2 class="h2">${esc(se.name)}</h2></div>
   <section class="card k-${se.kind}"><div class="row-between">${chip(se.kind,se.label||KIND_LABEL[se.kind])}${se.dur?`<span class="muted small">${esc(se.dur)}</span>`:''}</div>
     ${sessionBody(se)}${se.note?`<p class="note">${esc(se.note)}</p>`:''}
     <button class="btn accent" data-act="trstart" data-key="${k}">${se.kind==='mobilitet'?`Færdig · ${se.min||10} min`:'Start'}</button>
-    <button class="btn ghost" data-act="seedit" data-key="${k}">Rediger pas</button></section>`;
+    <button class="btn ghost" data-act="seedit" data-key="${k}">Rediger pas</button>
+    <button class="btn ghost" data-act="schopen" data-src="key" data-key="${k}">📅 Læg i kalenderen</button></section>`;
 }
 const SE_KINDS=[['styrke','Styrke','Øvelser med sæt og vægt'],['crossfit','CrossFit','En WOD med format og tid'],['interval','Hård kondition','Fx intervaller'],['zone2','Rolig kondition','Fx en rolig tur'],['mobilitet','Mobilitet','Smidighed og udstrækning'],['restitution','Aktiv restitution','Let bevægelse dagen efter']];
 /* ---------- Random sessions for the other kinds ---------- */
@@ -2095,7 +2132,7 @@ addEventListener('popstate',e=>{const st=e.state;if(!st||!st.view)return;navDept
   if(st.view==='onboard'&&state.onboarded){history.back();return}
   const plSl=ui.view==='plan'&&st.view==='plan'&&ui.pl&&st.plStep&&st.plStep!==ui.pl.step,plOrd=x=>x==='review'?99:plSteps(ui.pl).indexOf(x);
   const go=()=>{navFromPop=true;ui.view=st.view;if(st.sel)ui.sel=st.sel;if(st.trKey)ui.trKey=st.trKey;if(ui.cf&&st.cfStep)ui.cf.step=st.cfStep;if(ui.ob&&st.obStep)ui.ob.step=st.obStep;if(ui.pl&&st.plStep)ui.pl.step=st.plStep;if(st.view==='plan'&&!ui.pl)st.view=ui.view='month';
-  if((st.view==='sessedit'||st.view==='expick')&&!ui.se)ui.view='train';if(st.view==='expick'&&!ui.pick)ui.view='sessedit';
+  if((st.view==='sessedit'||st.view==='expick')&&!ui.se)ui.view='train';if(st.view==='expick'&&!ui.pick)ui.view='sessedit';if(st.view==='sched'&&!ui.sched)ui.view='train';
   render(true);if(ui.view==='sessedit'&&ui.seScroll){scrollTo(0,ui.seScroll);ui.seScroll=0}};
   if(plSl)slideAnim(plOrd(st.plStep)<plOrd(ui.pl.step)?-1:1,go);else go()});
 function render(top){if(typeof acHide==='function'&&!$('#ac').hidden)acHide();habitCss();
@@ -2103,12 +2140,12 @@ function render(top){if(typeof acHide==='function'&&!$('#ac').hidden)acHide();ha
   const v=ui.view;$('.tabs').hidden=v==='onboard';$('.top .icon-btn').hidden=v==='onboard';
   $('#main').innerHTML=(storageOK?'':'<p class="warn">Browseren tillader ikke at gemme her. Åbn siden i Chrome og tilføj den til startskærmen, ellers forsvinder dine logs.</p>')+
     (timer&&v!=='timer'?'<button class="btn primary" data-act="view" data-view="timer">Timeren kører · gå tilbage</button>':'')+
-    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():v==='train'?viewTrain():v==='day'?viewDay():v==='sess'?viewSess():v==='sessedit'?viewSessEdit():v==='expick'?viewPick():v==='fw'?viewFW():v==='month'?viewMonth():v==='plan'?viewPlan():viewSettings());
+    (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():v==='train'?viewTrain():v==='sched'?viewSched():v==='day'?viewDay():v==='sess'?viewSess():v==='sessedit'?viewSessEdit():v==='expick'?viewPick():v==='fw'?viewFW():v==='month'?viewMonth():v==='plan'?viewPlan():viewSettings());
   syncHistory();
   requestAnimationFrame(moveTabInd);
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||(v==='log'&&t.dataset.view===(ui.logFrom==='prog'?'prog':ui.logFrom==='train'?'train':'today'))||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))||(((v==='sess'||v==='sessedit'||v==='expick'||(v==='fw'&&!ui.fwDate))&&t.dataset.view==='train')||((v==='plan')&&t.dataset.view==='month'))));
   {const g=TAB_ORDER.includes(v);$('#gear').hidden=!g;document.body.classList.toggle('has-gear',g)}
-  document.body.classList.toggle('no-top',['today','train','log','prog','fw','plan','month','settings','sess','sessedit','expick','day','cf','onboard'].includes(v));
+  document.body.classList.toggle('no-top',['today','train','log','prog','fw','plan','month','settings','sess','sessedit','expick','day','cf','onboard','sched'].includes(v));
   {const m=$('#main');if(ui.freeze&&ui.freeze.v===v){m.style.justifyContent='flex-start';m.style.paddingTop=ui.freeze.px+'px'}else{ui.freeze=null;m.style.justifyContent='';m.style.paddingTop=''}}
   {const st=sessFor(TODAY);$('#hdr-hi').textContent=(state.name?'Hej '+state.name+'! · ':'')+cap(niceDate(TODAY));$('#hdr-date').textContent=v==='today'?(st.kind==='hvile'?'Hviledag i dag. Restitution er også træning.':`Klar til ${st.name}?`):v==='timer'||v==='habit'?'Hold fokus':v==='habitnew'?'Byg en ny vane':v==='onboard'?'Styrke & VO₂ log':v==='train'||v==='sess'?'Hvad har du lyst til i dag?':v==='sessedit'||v==='expick'?'Byg dit eget pas':v==='day'?cap(niceDate(ui.sel)):v==='cf'?'Byg dagens WOD':v==='habits'?'Små vaner, stor effekt':'Styrke & VO₂ log'}
   if(top)window.scrollTo(0,0);
@@ -2405,6 +2442,17 @@ document.addEventListener('click',e=>{
     case 'mobdone':{const k=b.dataset.key,d=b.dataset.date||TODAY,S=SESS[k];state.logs.push({id:Date.now().toString(36),date:d,type:'mobilitet',name:S.name,dur:S.min*60});save();render();toast('Gemt');break}
     case 'copy':doCopy();break;
     case 'restore':doRestore();break;
+    case 'schopen':{const src=b.dataset.src,c={src,mode:'days',dates:[],month:TODAY.slice(0,7),dows:[pd(TODAY).getDay()],weeks:4,start:'this',from:ui.view};
+      if(src==='key')c.key=b.dataset.key;else if(src==='cf'){if(!ui.cf||!ui.cf.pas)break;c.cf=cfSerialize(ui.cf.pas)}else{const w=fwW();if(!w)break;c.fw=w}
+      ui.sched=c;ui.view='sched';render(true);break}
+    case 'schback':ui.view=ui.sched?ui.sched.from:'train';render(true);break;
+    case 'schmode':ui.sched.mode=b.dataset.v;render();break;
+    case 'schday':{const c=ui.sched,d=b.dataset.d,i=c.dates.indexOf(d);if(i>=0)c.dates.splice(i,1);else c.dates.push(d);render();break}
+    case 'schmon':{const c=ui.sched,[y,m]=c.month.split('-').map(Number),n=new Date(y,m-1+(+b.dataset.v),1);c.month=ds(n).slice(0,7);render();break}
+    case 'schdow':{const c=ui.sched,v=+b.dataset.v,i=c.dows.indexOf(v);if(i>=0)c.dows.splice(i,1);else c.dows.push(v);render();break}
+    case 'schwk':ui.sched.weeks=+b.dataset.v;render();break;
+    case 'schst':ui.sched.start=b.dataset.v;render();break;
+    case 'schgo':{const n=schApply(ui.sched);toast(`Lagt ind på ${n} ${n===1?'dag':'dage'}`);const back=ui.sched.from;ui.sched=null;if(navDepth>0)history.back();else{ui.view=back;render(true)}break}
     case 'wipecal':if(ui.pendingCal){wipeCalendar();ui.pendingCal=false;toast('Kalenderen er ryddet')}else ui.pendingCal=true;render();break;
     case 'wipe':if(ui.pendingWipe){state.logs=[];save();ui.pendingWipe=false;toast('Alle logs slettet')}else ui.pendingWipe=true;render();break;
   }
