@@ -284,7 +284,7 @@ document.addEventListener('click',e=>{
       P.lastSwap=null;render();toast(`Skiftet på ${n} ${n===1?'dag':'dage'}`);break}
     case 'plexdel':{freezeTop();const pv=ui.pl.preview,k=b.dataset.key,s=pv.sess[k],ex=s.ex.filter((_,j)=>j!==+b.dataset.i);pv.sess[k]={...s,ex};ui.pl.swap=null;render();break}
     case 'plcondalt':{freezeTop();const pv=ui.pl.preview,k=b.dataset.key,s=pv.sess[k],c={...s.ck,alt:(s.ck.alt||0)+1};
-      const [,n]=condSess(c.kind,c.i,c.w+c.alt,c.slot,b.dataset.date);n.ck=c;pv.sess[k]=n;plRelabel(pv,k);render();break}
+      const [,n]=condSess(c.kind,c.i,c.w+c.alt,c.slot,b.dataset.date,c.o||{});n.ck=c;pv.sess[k]=n;plRelabel(pv,k);render();break}
     case 'bkshare':shareBackup();break;
     case 'bksnooze':state.bkSnooze=addD(TODAY,3);save();render();break;
     case 'snaprestore':{const t=+b.dataset.t;if(ui.pendingSnap!==t){ui.pendingSnap=t;render();break}const x=(ui.snaps||[]).find(s=>s.t===t);ui.pendingSnap=null;

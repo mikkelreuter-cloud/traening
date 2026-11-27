@@ -240,6 +240,14 @@ T('Uden plan spørger I dag, om man vil oprette en, og Ja åbner planlæggeren',
   await p.click('#notif [data-act=planasklater]');await wait(p,600);ok(!(await p.$('#notif')),'Ikke nu skjuler');eq(await ev(p,()=>state.planAsk===addD(TODAY,14)),true);
   await ev(p,()=>{state.planAsk=null;render()});await p.waitForSelector('#notif.show',{timeout:3500});await p.click('#notif [data-act=plopen]');await wait(p,300);eq(await ev(p,()=>[ui.view,ui.pl.step]),['plan','goal']);
   await ev(p,()=>{ui.pl={...plStart(),goal:'kondition',weeks:4,start:'next'};ui.pl.preview=plBuild(ui.pl);plAccept();ui.view='today';render(true)});await wait(p,2300);ok(!(await p.$('#notif')),'væk når en plan kører');return p});
+T('Ned i vægt: styrke, rolig skånsom kondition der vokser, og gåture',async()=>{const p=await app({plan:REST});
+  const r=await ev(p,()=>{const P={...plStart(),goal:'vaegt',nDays:4};plDraft(P);const pv=plBuild({...P,weeks:8,deload:false});
+    const mins=pv.weeks.map(w=>w.days.reduce((a,d)=>{const s=pv.sess[d.key]||SESS[d.key];return a+(s&&(['interval','zone2'].includes(s.kind)||d.key==='GA')?s.min||0:0)+(s&&s.finisher||0)},0));
+    const K=pv.weeks.flatMap(w=>w.days).map(d=>pv.sess[d.key]).filter(s=>s&&s.kind==='zone2');
+    return {types:PL_DOW.map(d=>P.types[d]),mins,lowImpact:K.every(s=>VG_MODE.some(m=>s.name.includes(m))),hard1:pv.weeks[0].days.some(d=>(pv.sess[d.key]||{}).kind==='interval'),hardLater:pv.weeks.slice(2).some(w=>w.days.some(d=>(pv.sess[d.key]||{}).kind==='interval'))}});
+  eq(r.types.filter(t=>t==='styrke').length,2,'2 styrkepas');ok(r.types.includes('restitution'),'gåture');eq(r.types[6],'hvile','søndag hvile');
+  ok(r.mins[r.mins.length-1]>r.mins[0],'minutterne stiger: '+r.mins);ok(r.mins[r.mins.length-1]>=200,'mindst 200 min til sidst: '+r.mins);ok(r.lowImpact,'skånsom kondition');
+  eq(r.hard1,false,'ingen intervaller i uge 1');eq(r.hardLater,true,'intervaller fra uge 3');return p});
 /* ================= Editing the draft ================= */
 const draft=async(p,goal,types)=>ev(p,([goal,types])=>{ui.pl={...plStart(),goal,weeks:4,deload:false,types,start:'next'};ui.pl.preview=plBuild(ui.pl);ui.pl.step='review';ui.view='plan';render(true);
   const d=ui.pl.preview.weeks[0].days.find(x=>x.key!=='R');ui.pl.open=d.date;render();return d.key},[goal,types]);

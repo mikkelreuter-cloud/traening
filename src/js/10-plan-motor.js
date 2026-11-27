@@ -7,7 +7,7 @@ const PL_TYPES={styrke:['Styrke','styrke'],crossfit:['Fuld træning','crossfit']
 const PL_ICON={styrke:'<path d="M6.5 8v8M17.5 8v8M3.5 10v4M20.5 10v4M6.5 12h11"/>',crossfit:'<path d="M12 3c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2.5-5 .5 1.5 1.5 2 2.5 2 0-2.5-1-4.5 0-7z"/>',
   kondition:'<path d="M3 12h4l2.5-6 4 12L16 12h5"/>',restitution:'<path d="M5 19c0-8 6-13 14-14-1 8-6 14-14 14zM5 19l7-7"/>',mobilitet:'<circle cx="12" cy="5" r="2"/><path d="M12 8v5l-4 6M12 13l4 6M6 10h12"/>',hvile:'<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>'};
 const plIcon=t=>`<span class="pl-ic k-${PL_TYPES[t][1]}"><svg viewBox="0 0 24 24">${PL_ICON[t]}</svg></span>`;
-const PL_GOALS={styrke:['Blive stærkere','Tungere løft, færre gentagelser. Sidste uge er en test.'],kondition:['Bedre kondition','Flere og længere intervaller. Styrke holdes ved lige.'],allround:['CrossFit','Varierede styrkeskemaer og WOD\'er. God arbejdskapacitet.'],hybrid:['Allround','Styrke, løb, CrossFit og mobilitet blandet. Bred form til hverdag og tjeneste.'],muskler:['Mere muskelmasse','Flere gentagelser og mere bonusarbejde.'],
+const PL_GOALS={styrke:['Blive stærkere','Tungere løft, færre gentagelser. Sidste uge er en test.'],kondition:['Bedre kondition','Flere og længere intervaller. Styrke holdes ved lige.'],allround:['CrossFit','Varierede styrkeskemaer og WOD\'er. God arbejdskapacitet.'],vaegt:['Ned i vægt','Styrke og masser af rolig bevægelse. Skånsomt for leddene.'],hybrid:['Allround','Styrke, løb, CrossFit og mobilitet blandet. Bred form til hverdag og tjeneste.'],muskler:['Mere muskelmasse','Flere gentagelser og mere bonusarbejde.'],
   distance:['Løb længere','Byg op til en distance. Sidste uge løber du den.'],pace:['Løb hurtigere','Hurtigere pace på en distance. Sidste uge er en test.']};
 /* ---------- Running goals ----------
    Plan length from common running plans: 5-10 km 6-12 weeks, half marathon 10-16, marathon 14-20 (16-18 most common).
@@ -74,6 +74,12 @@ function runSess(P,kind,bi,nb,wi,date){let tpace=null,kmv=null,zone=null,rtest=f
 /* Conditioning that changes from week to week. Hard days rotate between interval formats, easy days between machines,
    threshold days between tempo formats. Volume still grows through the block. */
 const CD_MODE=['Løb','Cykel','Romaskine','Skierg','March med oppakning'];
+/* Weight loss (research summary):
+   - 150 min/week of moderate activity gives little weight loss on its own; 225-420 min/week gives clearly more, and 200-300 min/week helps keep it off (ACSM 2009).
+   - Aerobic training burns the most; strength training keeps muscle. Combined works best for weight and fat (network meta-analysis 2013).
+   - Intervals give about the same fat loss as steady cardio in less time (Wewege 2017), but steady, low-impact work is easier on the joints at a higher body weight.
+   So: 2-3 strength sessions, steady low-impact cardio that grows week by week, one short interval session from week 3, and walks on the other days. */
+const VG_MODE=['Rask gang','Cykel','Romaskine','Crosstrainer','Svømning'];
 const CD_HARD=[
   i=>{const n=4+(i>=2);return [`${n}×4 min`,[`${n} × 4 min hårdt`,'3 min roligt mellem'],Array(n).fill([240,180])]},
   i=>{const n=5+(i>=2);return [`${n}×3 min`,[`${n} × 3 min hårdt`,'2 min roligt mellem'],Array(n).fill([180,120])]},
@@ -82,7 +88,7 @@ const CD_HARD=[
   i=>{const n=6+2*(i>=2);return [`${n}×2 min`,[`${n} × 2 min hårdt`,'1 min roligt mellem'],Array(n).fill([120,60])]},
   i=>{const n=8+2*(i>=2);return [`${n}×1 min`,[`${n} × 1 min meget hårdt`,'1 min roligt mellem'],Array(n).fill([60,60])]}];
 const CD_TEMPO=[i=>[3,8+2*(i>=2),2],i=>[2,12+3*(i>=2),3],i=>[4,6+2*(i>=2),2],i=>[1,20+5*(i>=2),0]];
-function condSess(kind,i,w,slot,date){const k='K'+date.replace(/-/g,''),ph=[['Opvarmning',600,'easy']],mode=CD_MODE[(w+slot*2)%CD_MODE.length];let name,steps,note;
+function condSess(kind,i,w,slot,date,o={}){const k='K'+date.replace(/-/g,''),ph=[['Opvarmning',600,'easy']],MODES=o.modes||CD_MODE,mode=MODES[(w+slot*2)%MODES.length];let name,steps,note;
   if(kind==='hard'){const [nm,st,rep]=CD_HARD[(w+slot)%CD_HARD.length](i);name='Intervaller '+nm;steps=['10 min roligt for at varme op',...st,'5 min roligt til sidst'];
     if(typeof rep==='string'){const n=+rep.split(':')[1];for(let a=1;a<=n;a++){for(let r=1;r<=10;r++){ph.push([`Serie ${a} · ${r}/10 · hårdt`,30,'work']);if(r<10)ph.push([`Serie ${a} · ${r}/10 · let`,15,'rest'])}if(a<n)ph.push(['Seriepause',180,'rest'])}}
     else rep.forEach(([wk,rs],j)=>{ph.push([`Interval ${j+1} af ${rep.length} · hårdt`,wk,'work']);if(j<rep.length-1)ph.push(['Aktiv pause',rs,'rest'])});
@@ -90,7 +96,7 @@ function condSess(kind,i,w,slot,date){const k='K'+date.replace(/-/g,''),ph=[['Op
   else if(kind==='tempo'){const [n,m,r]=CD_TEMPO[(w+slot)%CD_TEMPO.length](i);name=n>1?`Tærskel ${n}×${m} min`:`Tærskel ${m} min`;
     steps=['10 min roligt for at varme op',n>1?`${n} × ${m} min i et tempo, hvor du kun kan sige få ord`:`${m} min sammenhængende i et tempo, hvor du kun kan sige få ord`,...(n>1?[`${r} min roligt mellem`]:[]),'5 min roligt til sidst'];
     for(let a=1;a<=n;a++){ph.push([n>1?`Tærskel ${a} af ${n}`:'Tærskel',m*60,'work']);if(a<n)ph.push(['Pause',r*60,'rest'])}note=`Forslag: ${mode.toLowerCase()}.`}
-  else{const m=Math.min(75,40+i*5);name=`Zone 2 · ${mode} ${m} min`;steps=[`${m} min ${mode.toLowerCase()} i roligt tempo`,'60–70 % af maks puls','Du skal kunne tale i hele sætninger'];
+  else{const m=o.easyBase!=null?Math.min(o.easyMax||60,o.easyBase+i*5):Math.min(75,40+i*5);name=`Zone 2 · ${mode} ${m} min`;steps=[`${m} min ${mode.toLowerCase()} i roligt tempo`,'60–70 % af maks puls','Du skal kunne tale i hele sætninger'];
     return [k,{name,kind:'zone2',steps,min:m,dur:m+' min',phases:[['Zone 2 · roligt tempo',m*60,'easy']],note:'Skift gerne maskine. Det giver samme effekt og skåner benene.'}]}
   ph.push(['Nedvarmning',300,'easy']);const min=Math.round(ph.reduce((a,p)=>a+p[1],0)/60);
   return [k,{name,kind:'interval',steps,min,dur:'ca. '+min+' min',phases:ph,note}]}
@@ -110,6 +116,7 @@ const PL_PROG={styrke:[[5,5,70],[5,4,75],[5,3,80],[4,3,85],[5,2,85],[4,2,88],[3,
   muskler:[[4,10,60],[4,8,67],[4,8,70],[4,6,75],[5,6,75],[4,5,78],[4,5,80]],
   kondition:[[3,5,70],[3,5,72],[3,4,75],[3,4,77],[3,3,80],[3,3,82],[3,3,83]],
   allround:[[5,5,70],[5,4,75],[5,3,80],[4,3,85],[5,2,85],[4,2,87],[3,2,90]],
+  vaegt:[[3,12,60],[3,12,62],[3,10,65],[3,10,67],[4,10,67],[4,8,70],[4,8,72]],
   hybrid:[[4,5,70],[4,5,72],[4,4,75],[4,4,77],[4,3,80],[4,3,82],[4,3,84]]};
 /* Goal keys are stored in saved plans: 'allround' is the CrossFit goal, 'hybrid' is Allround (everything mixed). */
 const plHasTest=P=>(P.goal==='styrke'||isRun(P.goal))&&P.weeks>=3;
@@ -171,8 +178,8 @@ function plBuild(P){
         const accSets=wi.dl?2:P.goal==='muskler'?4:3;
         const ex=[mainRow,...f.sec.map(x=>[x[0],wi.dl?2:3,8,2]),...f.acc.map(x=>[x[0],accSets,P.goal==='muskler'?Math.max(x[5],10):x[5],x[6]])];
         const what=dose.test?'Test: byg op til en ny 3RM':`${dose.s} × ${dose.r}${dose.pct?` @ ${dose.pct} %`:` · ${dose.rir} i tanken`}`;
-        sess[k]={name:`${f.main[0]} · uge ${wi.w+1}`,kind:'styrke',dur:'ca. '+Math.round((ex.reduce((a,x)=>a+x[1],0))*2.2+8)+' min',ex,main:f.main[0],pct:dose.test?null:dose.pct||null,
-          note:(wi.dl?'Deload-uge: let og kort, så kroppen kan nå at blive stærkere. ':'')+`Hovedløft: ${what}.`+(dose.pct&&!dose.test?' Vægten regnes ud fra dine loggede sæt og følger med, når du bliver stærkere.':'')};
+        sess[k]={name:`${f.main[0]} · uge ${wi.w+1}`,kind:'styrke',dur:'ca. '+Math.round((ex.reduce((a,x)=>a+x[1],0))*2.2+8)+' min',ex,main:f.main[0],pct:dose.test?null:dose.pct||null,...(P.goal==='vaegt'?{finisher:15}:{}),
+          note:(P.goal==='vaegt'?'Afslut med 15 min rolig cykel, romaskine eller gang. ':'')+(wi.dl?'Deload-uge: let og kort, så kroppen kan nå at blive stærkere. ':'')+`Hovedløft: ${what}.`+(dose.pct&&!dose.test?' Vægten regnes ud fra dine loggede sæt og følger med, når du bliver stærkere.':'')};
         key=k;label=`${f.main[0]} ${what}`}
       else if(t==='crossfit'){const f=weekly(dow,wi),k='F'+date.replace(/-/g,''),l=fwL(rotate&&cfPat[dow]&&cfLift(cfPat[dow])||f.fwLift),T=FW_TIMES.includes(P.fwT)?P.fwT:fwT();
         let b;const oly=['clean','snatch'].includes(l[2]);
@@ -188,8 +195,10 @@ function plBuild(P){
       else if(t==='kondition'){cardioN++;const kond=P.goal==='kondition',i=Math.max(0,wi.i);
         if(wi.dl&&cardioN>1){key='R';label='Hvile (deload)'}
         else{const slot=(cardioN-1)%(kond?3:2),kind=wi.dl?'easy':slot===0?'hard':slot===1?'easy':'tempo';
-          const [k,ss]=condSess(kind,i,wi.w,cardioN-1,date);ss.ck={kind,i,w:wi.w,slot:cardioN-1,alt:0};sess[k]=ss;key=k;label=ss.name}}
-      else if(t==='restitution'){key='AR'+(1+(arN++%5));label=SESS[key].name}
+          const vg=P.goal==='vaegt',kd=vg?(wi.dl?'easy':(cardioN-1)%3===1&&i>=2?'hard':'easy'):kind,o=vg?{modes:VG_MODE,easyBase:35,easyMax:70}:{};
+          const [k,ss]=condSess(kd,i,wi.w,cardioN-1,date,o);if(vg&&kd==='hard')ss.note='Brug cykel, romaskine eller crosstrainer. Det skåner leddene. Hårdt, men jævnt.';
+          ss.ck={kind:kd,i,w:wi.w,slot:cardioN-1,alt:0,o};sess[k]=ss;key=k;label=ss.name}}
+      else if(t==='restitution'){key=P.goal==='vaegt'?'GA':'AR'+(1+(arN++%5));label=SESS[key].name}
       else if(t==='mobilitet'){key=(mobN++%2)?'BAL':'MOB';label=SESS[key].name}
       if(date>=TODAY)days[date]=key;wk.days.push({date,dow,t,key,label,past:date<TODAY})});
     weeks.push(wk)});

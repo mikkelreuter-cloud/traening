@@ -18,11 +18,13 @@ function plSteps(P){const run=isRun(P.goal);return ['goal',...(run?['dist','test
 /* A suggested week for the goal and number of training days. Days are spread so hard days rarely stack; Sunday becomes active recovery. */
 const PL_SLOTS={2:[0,3],3:[0,2,4],4:[0,1,3,5],5:[0,1,3,4,5],6:[0,1,2,3,4,5]};
 const PL_MIX={styrke:{2:'SS',3:'SKS',4:'SKSS',5:'SKSKS',6:'SKSKSK'},kondition:{2:'KS',3:'KSK',4:'KSKK',5:'KSKSK',6:'KSKKSK'},
-  allround:{2:'CC',3:'CCC',4:'CKCC',5:'CCKCC',6:'CCKCCK'},hybrid:{2:'SK',3:'SKC',4:'SKCK',5:'SKCKS',6:'SKCKSM'},muskler:{2:'SS',3:'SSS',4:'SSSS',5:'SSKSS',6:'SSSKSS'},
+  allround:{2:'CC',3:'CCC',4:'CKCC',5:'CCKCC',6:'CCKCCK'},vaegt:{2:'SK',3:'SKK',4:'SKSK',5:'SKSKK',6:'SKKSKK'},hybrid:{2:'SK',3:'SKC',4:'SKCK',5:'SKCKS',6:'SKCKSM'},muskler:{2:'SS',3:'SSS',4:'SSSS',5:'SSKSS',6:'SSSKSS'},
   distance:{2:'KK',3:'KSK',4:'KSKK',5:'KSKSK',6:'KKSKSK'},pace:{2:'KK',3:'KSK',4:'KSKK',5:'KSKSK',6:'KKSKSK'}};
 function plDraft(P){const n=P.nDays,mix=(PL_MIX[P.goal]||PL_MIX.styrke)[n],m={S:'styrke',K:'kondition',C:'crossfit',M:'mobilitet'},t={};
   PL_DOW.forEach(d=>t[d]='hvile');PL_SLOTS[n].forEach((i,k)=>t[PL_DOW[i]]=m[mix[k]]);if(n>=3&&t[0]==='hvile')t[0]='restitution';
   // Allround also gets a mobility day on a free day (not right before the weekend's recovery day)
+  // Weight loss: walks on the free days, Sunday stays a rest day
+  if(P.goal==='vaegt'){PL_DOW.forEach(d=>{if(d!==0&&t[d]==='hvile')t[d]='restitution'});if(t[0]==='restitution')t[0]='hvile'}
   if(P.goal==='hybrid'&&!PL_DOW.some(d=>t[d]==='mobilitet')){const f=PL_DOW.find(d=>t[d]==='hvile');if(f!==undefined)t[f]='mobilitet'}
   P.types=t;P.draftSig=P.goal+'|'+n}
 /* Running test in the wizard: VDOT, paces and a realistic goal */
@@ -35,6 +37,9 @@ function plReal(P){const v=P.vStart;if(v==null)return null;const D=P.dist,now=vd
   if(need<=0)return {cls:'ok',t:'Du kan allerede løbe det tempo',d:`Din tid nu svarer til ${fmtTime(now)} på ${RUN_D[D].toLowerCase()}. Sæt målet højere.`,btn:`<button class="btn ghost" data-act="plrealpace" data-v="${realPace}">Brug ${fmtPace(realPace)}/km</button>`};
   if(need<=vdGain(rw))return {cls:'ok',t:'Realistisk mål',d:`Din tid nu svarer til ${fmtTime(now)}. Målet kræver ca. ${Math.max(1,wk)} ugers træning.`};
   return {cls:'warn',t:'Ambitiøst mål',d:`Din tid nu svarer til ${fmtTime(now)} (${fmtPace(now/D)}/km). Målet kræver ca. ${wk} ugers træning. Et realistisk mål på ${rw} uger er ${fmtPace(realPace)}/km.`,btn:`<button class="btn ghost" data-act="plrealpace" data-v="${realPace}">Brug ${fmtPace(realPace)}/km</button>`}}
+/* Active minutes a week (conditioning + walks), first and last full week. The research points at 150 min as the floor and 200-300 for real weight loss. */
+function plMinutes(pv){const wk=w=>w.days.reduce((a,d)=>{const s=pv.sess[d.key]||SESS[d.key];return a+(s&&['interval','zone2'].includes(s.kind)||d.key==='GA'?(s.min||0):0)+(s&&s.finisher||0)},0);
+  const W=pv.weeks.filter(w=>!w.dl),a=wk(W[0]||pv.weeks[0]),b=wk(W[W.length-1]||pv.weeks[0]);return `Aktive minutter om ugen: ${a} i starten, ${b} til sidst.`}
 function plDlOpts(P){return [2,3,4,5,6]}
 function plWk(P){if(isRun(P.goal)){const r=runWeeks(P);if(!r[0].includes(P.weeks))P.weeks=r[1];return r}if(P.weeks>8)P.weeks=8;return [[1,2,3,4,5,6,7,8],0]}
 function viewPlan(){const P=ui.pl;if(!P){ui.view='month';return viewMonth()}
@@ -83,7 +88,7 @@ function viewPlan(){const P=ui.pl;if(!P){ui.view='month';return viewMonth()}
     ${P.pick!=null?`<div class="sheet-bg" data-act="plclose"><div class="sheet" role="dialog" aria-label="${PL_SHORT[P.pick]}"><p class="sheet-t">${cap(DAYS[P.pick])}</p><div class="sheet-grid">${Object.keys(PL_TYPES).map(t=>`<button class="sheet-b k-${PL_TYPES[t][1]}${P.types[P.pick]===t?' on':''}" data-act="plset" data-v="${t}">${plIcon(t)}<span>${PL_TYPES[t][0]}</span></button>`).join('')}</div></div></div>`:''}`}
   }
   const pv=P.preview;
-  return head('Din plan',`${pv.P.weeks} ${pv.P.weeks===1?'uge':'uger'} · ${esc(plGoalName(pv.P))}. Se den igennem, og acceptér når den ser rigtig ud.`)+
+  return head('Din plan',`${pv.P.weeks} ${pv.P.weeks===1?'uge':'uger'} · ${esc(plGoalName(pv.P))}. ${pv.P.goal==='vaegt'?plMinutes(pv)+' ':''}Se den igennem, og acceptér når den ser rigtig ud.`)+
     pv.weeks.map(w=>`<section class="card pl-week"><div class="row-between"><h3 class="sec">Uge ${w.w+1} · ${shortDate(w.days[0].date)}–${shortDate(w.days[6].date)}</h3>${w.dl?'<span class="tag-dl">Deload</span>':w.test?'<span class="tag-dl">Test</span>':''}</div>
       ${w.days.map(x=>{const op=P.open===x.date;return `<button class="pl-r${x.past?' past':''}${op?' open':''}" data-act="plopenday" data-date="${x.date}"${x.past?' disabled':''}><span class="pl-d">${PL_SHORT[x.dow]}</span>${chip(PL_TYPES[x.t][1],PL_TYPES[x.t][0])}<span class="pl-l">${esc(x.past?'Allerede gået':x.label)}</span>${x.past||x.key==='R'?'':'<span class="chev">›</span>'}</button>${op?plDetail(x,pv):''}`}).join('')}</section>`).join('')+
     `<button class="btn accent" data-act="placcept">Acceptér plan</button><div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn ghost" data-act="plprev">Ret ugen</button><button class="btn ghost" data-act="plbuild">🎲 Byg igen</button></div>`}
