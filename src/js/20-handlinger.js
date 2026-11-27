@@ -166,6 +166,7 @@ document.addEventListener('click',e=>{
     case 'cfeq':{const all=cfUdstyrAlle(),P=cfPrefs();let have=(P.udstyr||all).slice();const u=b.dataset.v;have=have.includes(u)?have.filter(x=>x!==u):have.concat(u);state.cfPrefs={...P,udstyr:have.length===all.length?null:have};save();render();break}
     case 'cfgen':{const wasPas=ui.cf.step==='pas';const p=cfGenerate();ui.cf.step='pas';render(!wasPas);if(!p)toast('Ingen gyldige pas med de valg');break}
     case 'plopen':ui.pl=plStart();ui.view='plan';render(true);break;
+    case 'planasklater':state.planAsk=addD(TODAY,14);save();render();break;
     case 'plback':{const P=ui.pl;if(P&&P.step==='review'){slideAnim(-1,()=>{P.step='week';render(true)});break}const st=P?plSteps(P):[],k=P?st.indexOf(P.step):-1;if(k>0&&navDepth===0){slideAnim(-1,()=>{P.step=st[k-1];render(true)})}else{ui.view='month';render(true)}break}
     case 'plopenday':{freezeTop();const d=b.dataset.date;ui.pl.open=ui.pl.open===d?null:d;render();break}
     case 'plpick':ui.pl.pick=+b.dataset.d;render();break;

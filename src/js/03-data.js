@@ -4,7 +4,7 @@ let storageOK=true;
 try{localStorage.setItem('__t','1');localStorage.removeItem('__t')}catch(e){storageOK=false}
 /* ---------- Saved data. Every field has one default here, and old data is upgraded step by step by its version number. ---------- */
 const SCHEMA=4;
-const FIELDS={logs:()=>[],plan:()=>({...DEFAULT_PLAN}),addons:()=>({}),lastBackup:()=>null,bkSnooze:()=>null,program:()=>'custom',cycleStart:()=>null,hrmax:()=>null,habitStart:()=>null,
+const FIELDS={logs:()=>[],plan:()=>({...DEFAULT_PLAN}),addons:()=>({}),lastBackup:()=>null,bkSnooze:()=>null,planAsk:()=>null,program:()=>'custom',cycleStart:()=>null,hrmax:()=>null,habitStart:()=>null,
   coldPre:()=>undefined,customHabits:()=>[],sessEdits:()=>({}),customSess:()=>({}),customPlan:()=>null,customAddons:()=>null,customDeload:()=>true,
   cfPrefs:()=>null,strUdstyr:()=>null,strGen:()=>null,fw:()=>null,seGen:()=>null,theme:()=>'auto',accent:()=>'orange',goals:()=>[],fwT:()=>60,
   block:()=>null,days:()=>({}),planSess:()=>({}),adapt:()=>({handled:{},since:TODAY,hist:[]}),vdots:()=>[],shifts:()=>[],

@@ -577,7 +577,7 @@ b,strong{font-weight:600}
 <div class="tour" id="tour" hidden></div>
 <div class="ac" id="ac" hidden></div>
 
-<script src="sw.js?v=26d97ac8"></script>
+<script src="sw.js?v=38b7611c"></script>
 <script>
 /* Grundlag: datoer, programmer, sessionsbibliotek (SESS) og vaner. */
 const KEY='styrke-vo2-log.v1';
@@ -704,7 +704,7 @@ let storageOK=true;
 try{localStorage.setItem('__t','1');localStorage.removeItem('__t')}catch(e){storageOK=false}
 /* ---------- Saved data. Every field has one default here, and old data is upgraded step by step by its version number. ---------- */
 const SCHEMA=4;
-const FIELDS={logs:()=>[],plan:()=>({...DEFAULT_PLAN}),addons:()=>({}),lastBackup:()=>null,bkSnooze:()=>null,program:()=>'custom',cycleStart:()=>null,hrmax:()=>null,habitStart:()=>null,
+const FIELDS={logs:()=>[],plan:()=>({...DEFAULT_PLAN}),addons:()=>({}),lastBackup:()=>null,bkSnooze:()=>null,planAsk:()=>null,program:()=>'custom',cycleStart:()=>null,hrmax:()=>null,habitStart:()=>null,
   coldPre:()=>undefined,customHabits:()=>[],sessEdits:()=>({}),customSess:()=>({}),customPlan:()=>null,customAddons:()=>null,customDeload:()=>true,
   cfPrefs:()=>null,strUdstyr:()=>null,strGen:()=>null,fw:()=>null,seGen:()=>null,theme:()=>'auto',accent:()=>'orange',goals:()=>[],fwT:()=>60,
   block:()=>null,days:()=>({}),planSess:()=>({}),adapt:()=>({handled:{},since:TODAY,hist:[]}),vdots:()=>[],shifts:()=>[],
@@ -1153,7 +1153,11 @@ function viewToday(){
   const bkCard=backupDue&&!(state.bkSnooze&&state.bkSnooze>TODAY)?`<section class="card bk-card"><div class="row-between"><h3 class="sec">Tag en backup</h3><span class="muted small">${state.lastBackup?'Sidst '+shortDate(state.lastBackup):'Aldrig'}</span></div>
     <p class="muted small">Dine ${state.logs.length} logs ligger kun på telefonen. Gem en kopi i Drive eller på mail. Det tager 2 sekunder.</p>
     <div class="btns3" style="grid-template-columns:2fr 1fr"><button class="btn accent" data-act="bkshare">Gem backup</button><button class="btn ghost" data-act="bksnooze">Senere</button></div></section>`:'';
-  return `${adaptCard()}${bkCard}
+  // No plan running: offer to make one. "Ikke nu" hides the question for 14 days.
+  const planCard=!plActive()&&!(state.planAsk&&state.planAsk>TODAY)?`<section class="card plan-ask"><h3 class="sec">Vil du oprette en træningsplan?</h3>
+    <p class="muted small">Svar på et par spørgsmål, så lægger appen en plan for de næste uger mod dit mål.</p>
+    <div class="btns3" style="grid-template-columns:2fr 1fr"><button class="btn accent" data-act="plopen">Ja</button><button class="btn ghost" data-act="planasklater">Ikke nu</button></div></section>`:'';
+  return `${adaptCard()}${planCard}${bkCard}
   ${isDeload(TODAY)?`<p class="slim-note">↓ Deload-uge · halvt så mange sæt, samme vægt</p>`:plActive()&&plWeekNo()>0&&state.block.deloads.includes(plWeekNo()-1)?`<p class="slim-note">↓ Deload-uge i dit forløb · lettere pas, så kroppen kan nå at blive stærkere</p>`:''}
   <section class="card">
     <div class="row-between"><h3 class="sec">Denne uge</h3><span class="muted small num">${doneN} af ${planned.length} pas</span></div>
@@ -2742,6 +2746,7 @@ document.addEventListener('click',e=>{
     case 'cfeq':{const all=cfUdstyrAlle(),P=cfPrefs();let have=(P.udstyr||all).slice();const u=b.dataset.v;have=have.includes(u)?have.filter(x=>x!==u):have.concat(u);state.cfPrefs={...P,udstyr:have.length===all.length?null:have};save();render();break}
     case 'cfgen':{const wasPas=ui.cf.step==='pas';const p=cfGenerate();ui.cf.step='pas';render(!wasPas);if(!p)toast('Ingen gyldige pas med de valg');break}
     case 'plopen':ui.pl=plStart();ui.view='plan';render(true);break;
+    case 'planasklater':state.planAsk=addD(TODAY,14);save();render();break;
     case 'plback':{const P=ui.pl;if(P&&P.step==='review'){slideAnim(-1,()=>{P.step='week';render(true)});break}const st=P?plSteps(P):[],k=P?st.indexOf(P.step):-1;if(k>0&&navDepth===0){slideAnim(-1,()=>{P.step=st[k-1];render(true)})}else{ui.view='month';render(true)}break}
     case 'plopenday':{freezeTop();const d=b.dataset.date;ui.pl.open=ui.pl.open===d?null:d;render();break}
     case 'plpick':ui.pl.pick=+b.dataset.d;render();break;
