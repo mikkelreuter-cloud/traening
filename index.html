@@ -533,6 +533,11 @@ b,strong{font-weight:600}
 .fb-g button{border:0;border-radius:14px;padding:14px 8px;background:var(--surface-2,var(--line));color:var(--text);font:inherit;font-weight:600}.fb-g button.on{background:var(--pill);color:var(--pill-fg)}
 .ad-card{box-shadow:inset 0 0 0 1.5px var(--accent)}.ad-t{font-size:20px;margin:2px 0 4px}.ad-o{margin:10px 0 4px;padding:12px;border-radius:14px;background:var(--surface-2,rgba(127,127,127,.08))}
 .ad-o ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px;font-size:14px}
+.vd-box{display:flex;gap:16px;align-items:center;padding:12px;border-radius:14px;background:var(--surface-2,rgba(127,127,127,.08))}.vd-box>div{display:grid;text-align:center}.vd-box>div b{font-size:28px}
+.vd-box ul{list-style:none;margin:0;padding:0;display:grid;gap:2px;font-size:14px}.vd-real{display:grid;gap:4px;margin-top:12px;padding:12px;border-radius:14px;background:var(--surface-2,rgba(127,127,127,.08))}
+.vd-real.warn b{color:var(--warn,#e8a33d)}.vd-real span{font-size:14px;color:var(--muted)}.vd-z{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;margin-top:10px}
+.vd-z>div{display:grid;padding:10px;border-radius:12px;background:var(--surface-2,rgba(127,127,127,.08))}.vd-z span{font-size:12px;color:var(--muted)}.vd-f{display:grid;gap:10px;margin-top:12px}
+.restbtn.on{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -693,7 +698,7 @@ function load(){
     if(st.program==='blueprint'&&st.plan[2]==='I4'&&st.plan[0]==='Z2L')st.plan[2]='I5';
     /* v9: move 30/15 to Friday and Styrke C to Saturday, so intervals never follow a heavy leg day */
     if(st.program==='blueprint'&&st.plan[5]==='C'&&st.plan[6]==='I30B'){st.plan[5]='I30B';st.plan[6]='C';if(st.addons[5]==='MOB'){delete st.addons[5];st.addons[6]='MOB'}}
-    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.sessEdits=d.sessEdits||{};st.customSess=d.customSess||{};st.customPlan=d.customPlan||null;st.customAddons=d.customAddons||null;st.customDeload=d.customDeload;st.overrides=d.overrides||{};st.cfDays=d.cfDays||{};st.cfPrefs=d.cfPrefs||null;st.strUdstyr=d.strUdstyr||null;st.strGen=d.strGen||null;st.fw=d.fw||null;st.seGen=d.seGen||null;st.theme=d.theme||'auto';st.accent=d.accent||'orange';st.goals=d.goals||[];st.fwT=d.fwT||60;st.block=d.block||null;st.blockDays=d.blockDays||{};st.planSess=d.planSess||{};st.planFw=d.planFw||{};st.extras=d.extras||{};st.adapt=d.adapt||{handled:{},since:TODAY,hist:[]};st.shifts=Array.isArray(d.shifts)?d.shifts:[];
+    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.sessEdits=d.sessEdits||{};st.customSess=d.customSess||{};st.customPlan=d.customPlan||null;st.customAddons=d.customAddons||null;st.customDeload=d.customDeload;st.overrides=d.overrides||{};st.cfDays=d.cfDays||{};st.cfPrefs=d.cfPrefs||null;st.strUdstyr=d.strUdstyr||null;st.strGen=d.strGen||null;st.fw=d.fw||null;st.seGen=d.seGen||null;st.theme=d.theme||'auto';st.accent=d.accent||'orange';st.goals=d.goals||[];st.fwT=d.fwT||60;st.block=d.block||null;st.blockDays=d.blockDays||{};st.planSess=d.planSess||{};st.planFw=d.planFw||{};st.extras=d.extras||{};st.adapt=d.adapt||{handled:{},since:TODAY,hist:[]};st.vdots=d.vdots||[];st.shifts=Array.isArray(d.shifts)?d.shifts:[];
     if(!st.program){const untouched=Object.keys(DEFAULT_PLAN).every(k=>st.plan[k]===DEFAULT_PLAN[k]);if(untouched)st.plan={...BP_PLAN};st.addons={...BP_ADDONS}}
     /* v20: one program only — your own week. Existing data counts as already set up. */
     if(st.program!=='custom'&&!d.customPlan)st.customDeload=d.customDeload??true;
@@ -922,7 +927,7 @@ function sessionBody(s,date){
   if(s.kind==='crossfit'&&s.cf){const p=cfRebuild(s.cf);return p?cfWod(p):''}
   if(s.kind==='crossfit'&&s.custom&&s.steps)return `<ol class="steps">${s.steps.map(x=>`<li>${esc(x)}</li>`).join('')}</ol>`;
   if(s.kind==='crossfit'){const p=cfRebuild(cfSaved(date||TODAY));return p?cfWod(p):'<p class="note">Intet pas endnu. Vælg format og tid, så bygger appen et pas efter reglerne.</p>'}
-  return `<ol class="steps">${s.steps.map(t=>`<li>${esc(t)}</li>`).join('')}</ol>${s.kind==='interval'||s.kind==='zone2'?hrLine(s)+kondTip(s):''}`;
+  return `<ol class="steps">${s.steps.map(t=>`<li>${esc(zTxt(t,s))}</li>`).join('')}</ol>${s.kind==='interval'||s.kind==='zone2'?hrLine(s)+kondTip(s):''}`;
 }
 function kondTip(s){
   const L=logsOf('kondition').filter(l=>l.name===s.name),l=L[L.length-1];if(!l)return '';
@@ -1023,7 +1028,7 @@ function weekCell(d,act){
 /* Details for a tapped day in the week strip on I dag */
 function weekDetail(d,extra){const s=sessFor(d),done=isDone(d),cf=s.kind==='crossfit'?cfSaved(d):null;
   const sum=s.kind==='styrke'&&s.ex?s.ex.map(e=>`${e[0].replace(/ \(.*\)$/,'')} · ${e[1]}×${e[2]}${s.pct&&s.main===e[0]&&kgFor(e[0],s.pct)?' @ '+fnum(kgFor(e[0],s.pct))+' kg':''}`):
-    s.fw?(()=>{const w=(state.planFw||{})[d];if(!w)return [];const l=fwL(w.b.lift),p=w.c?cfRebuild(w.c):null;return ['B) '+l[1]+' · '+withKg(l[1],w.b.lines[0]),...(p?['C) '+p.overskrift]:[]),...(w.d.length?['D) '+w.d.join(', ')]:[])]})():s.kind==='crossfit'?(cf?[cf.title||'Pas klar']:['Pas bygges på dagen']):(s.steps||[]).slice(0,4);
+    s.fw?(()=>{const w=(state.planFw||{})[d];if(!w)return [];const l=fwL(w.b.lift),p=w.c?cfRebuild(w.c):null;return ['B) '+l[1]+' · '+withKg(l[1],w.b.lines[0]),...(p?['C) '+p.overskrift]:[]),...(w.d.length?['D) '+w.d.join(', ')]:[])]})():s.kind==='crossfit'?(cf?[cf.title||'Pas klar']:['Pas bygges på dagen']):(s.steps||[]).slice(0,4).map(t=>zTxt(t,s));
   const status=done?'✓ Gennemført':s.kind==='hvile'?(isSkipped(d)?'Sprunget over':'Hviledag'):d<TODAY?'Ikke logget':d===TODAY?'I dag':'Planlagt';
   return `<div class="wdet">
     <div class="row-between"><span class="muted small">${cap(niceDate(d))}</span>${chip(s.kind,s.label||KIND_LABEL[s.kind])}</div>
@@ -1312,21 +1317,51 @@ const RUN_PEAK={5:7,10:13,21.1:19,42.2:32};
 const isRun=g=>g==='distance'||g==='pace';
 const fmtPace=sec=>{sec=Math.round(sec);return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')};
 const fmtKm=k=>String(Math.round(k*10)/10).replace('.',',');
+/* ---------- Running fitness (VDOT, Jack Daniels & Gilbert). One real time gives your training paces and a realistic forecast.
+   vo2: oxygen cost of running at v m/min. pm: share of VO2max you can hold for t minutes. ---------- */
+const VD={vo2:v=>-4.6+0.182258*v+0.000104*v*v,pm:t=>0.8+0.1894393*Math.exp(-0.012778*t)+0.2989558*Math.exp(-0.1932605*t)};
+const vdotOf=(km,sec)=>VD.vo2(km*1000/(sec/60))/VD.pm(sec/60);
+const vdPace=(V,p)=>60000/((-0.182258+Math.sqrt(0.182258**2+4*0.000104*(4.6+V*p)))/(2*0.000104));
+function vdPredict(V,km){let lo=60,hi=36000;for(let i=0;i<50;i++){const m=(lo+hi)/2;vdotOf(km,m)>V?lo=m:hi=m}return (lo+hi)/2}
+/* share of VDOT for each training zone (checked against Daniels' tables) */
+const ZONES={E:['Rolig',.74,.64],M:['Maraton',.81],T:['Tærskel',.88],I:['Interval',.975],R:['Gentagelser',1.05]};
+const zPace=(V,z)=>vdPace(V,ZONES[z][1]);
+const VD_GAIN=.4; // realistic VDOT points per week of structured training, capped
+const vdGain=w=>Math.min(6,Math.max(1,w*VD_GAIN));
+/* Every time you have run on the clock: times entered in the app, and runs logged as a test or race */
+function vdHist(){const h=(state.vdots||[]).map(x=>({...x}));
+  state.logs.forEach(l=>{if(l.type==='kondition'&&l.race&&l.dist>=1.5&&l.dur)h.push({date:l.date,v:vdotOf(l.dist,l.dur),km:l.dist,sec:l.dur,src:'log',id:l.id})});
+  return h.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0)}
+const curVdot=()=>{const h=vdHist();return h.length?h[h.length-1]:null};
+/* VDOT used for a plan session: the planned progression from your starting time, or a newer, better time if you have one */
+function effV(se){const c=curVdot(),b=state.block,P=b&&b.P;if(!se||se.vb===undefined||!P)return c?c.v:null;
+  const after=vdHist().filter(x=>x.date>=(b.made&&b.made<b.start?b.made:b.start)&&x.src!=='plan'),base=b.vBase!=null?b.vBase:P.vStart!=null?P.vStart:after.length?after[0].v:null;if(base==null)return null;
+  const planned=base+(se.vb||0)+(b.vAdj||0),real=after.length&&!(P.vStart==null&&after.length===1)?after[after.length-1].v+(b.vAdj||0):null;
+  return real!=null?Math.max(planned,real):planned}
+const ZDESC={E:'i et tempo, hvor du kan tale i hele sætninger',M:'i jævnt maratontempo',T:'i tærskeltempo, hvor du kun kan sige få ord',I:'i intervaltempo: hårdt, men jævnt',R:'hurtigt og afslappet'};
+function zTxt(t,se){return String(t).replace(/\{([EMTIRG])\}/g,(m,z)=>{const V=effV(se);
+  if(z==='G'){const P=state.block&&state.block.P;return P&&P.pace?fmtPace(P.pace)+'/km':'dit mål-tempo'}
+  if(!V)return ZDESC[z];if(z==='E')return `(${fmtPace(zPace(V,'E'))}–${fmtPace(vdPace(V,ZONES.E[2]))}/km)`;return `i ${fmtPace(zPace(V,z))}/km (${ZONES[z][0].toLowerCase()}tempo)`})}
+const sessTPace=se=>{if(!se)return null;if(se.zone){const V=effV(se);return V?zPace(V,se.zone):null}return se.tpace||null};
 function plGoalName(P){if(P.goal==='distance')return `Løb ${RUN_D[P.dist]==='5 km'||RUN_D[P.dist]==='10 km'?RUN_D[P.dist]:RUN_D[P.dist].toLowerCase()}`;
   if(P.goal==='pace')return `${RUN_D[P.dist]} i ${fmtPace(P.pace)}/km`;return PL_GOALS[P.goal][0]}
 function runWeeks(P){const r=RUN_WEEKS[P.goal][P.dist]||RUN_WEEKS[P.goal][5];return r}
 /* One run session. kind: I intervals, T tempo, F fartlek, E easy, L long. bi = build week index (0..nb-1), nb = number of build weeks */
-function runSess(P,kind,bi,nb,wi,date){let tpace=null,kmv=null;const g=P.pace,f=nb>1?bi/(nb-1):1,lerp=(a,b)=>a+(b-a)*f,D=P.dist,pc=P.goal==='pace';
-  const easy=pc?`i ca. ${fmtPace(g+75)}/km`:'så du kan tale i hele sætninger',k='K'+date.replace(/-/g,'');
+function runSess(P,kind,bi,nb,wi,date){let tpace=null,kmv=null,zone=null,rtest=false;const g=P.pace,f=nb>1?bi/(nb-1):1,lerp=(a,b)=>a+(b-a)*f,D=P.dist,pc=P.goal==='pace',vd=!!P.vd;
+  const easy=vd?'{E}':pc?`i ca. ${fmtPace(g+75)}/km`:'så du kan tale i hele sætninger',k='K'+date.replace(/-/g,'');
   let name,steps,min,kd='zone2';
-  if(wi.test){if(kind==='L'||kind==='I'&&P.nRun===1){name=pc?`Test: ${RUN_D[D]} på tid`:`Løb ${RUN_D[D].toLowerCase()}`;if(pc)tpace=g;steps=['10 min roligt for at varme op',pc?`${RUN_D[D]} så hurtigt du kan. Mål: ${fmtPace(g)}/km`:`${fmtKm(D)} km i dit eget tempo. Start roligt`,'10 min roligt til sidst'];min=Math.round(D*(pc?g:400)/60)+20;kd='interval'}
+  if(P.firstTest&&!wi.dl){const tk=pc?5:P.cur>=5?5:3;rtest=true;kd='interval';name=`Test: ${tk} km på tid`;
+    steps=['10 min roligt + 4 korte stigningsløb',`${tk} km så hurtigt du kan holde jævnt hele vejen`,'10 min roligt til sidst','Log tiden og distancen, og markér "Løb på tid". Så regner appen dine tempoer ud.'];min=Math.round(tk*6)+25;
+    return [k,{name,kind:kd,steps,min,dur:min+' min',rtest,vb:0,note:'Din tid her bliver udgangspunktet for alle tempoer i planen.'}]}
+  if(wi.test){if(kind==='L'||kind==='I'&&P.nRun===1){rtest=pc;name=pc?`Test: ${RUN_D[D]} på tid`:`Løb ${RUN_D[D].toLowerCase()}`;if(pc)tpace=g;steps=['10 min roligt for at varme op',pc?`${RUN_D[D]} så hurtigt du kan. Mål: ${vd?'{G}':fmtPace(g)+'/km'}`:`${fmtKm(D)} km i dit eget tempo. Start roligt`,'10 min roligt til sidst'];min=Math.round(D*(pc?g:400)/60)+20;kd='interval'}
     else{name='Let løb før testen';steps=['20 min roligt '+easy,'4 × 20 sek stigningsløb'];min=25}}
   else if(wi.dl){name='Let løb (deload)';steps=[`${kind==='L'?35:25} min roligt ${easy}`];min=kind==='L'?35:25}
   else if(kind==='I'){const sets={5:['6 × 400 m','8 × 400 m','5 × 800 m','6 × 800 m','4 × 1 km','5 × 1 km'],10:['5 × 1 km','6 × 1 km','4 × 1,6 km','5 × 1,6 km','3 × 2 km','4 × 2 km'],21.1:['4 × 2 km','5 × 2 km','3 × 3 km','4 × 3 km','3 × 4 km','2 × 5 km']}[D]||['5 × 1 km'];
     const set=sets[Math.min(sets.length-1,Math.round(f*(sets.length-1)))],ip=lerp(P.curPace,g)-(D<=5?10:D<=10?5:0);
-    tpace=Math.round(ip);name='Intervaller '+set;steps=['10 min roligt + 4 korte stigningsløb',`${set} i ${fmtPace(ip)}/km`,D<=5?'90 sek rolig jog mellem':'2 min rolig jog mellem','10 min roligt til sidst'];min=45;kd='interval'}
+    const repKm=(m=>m?parseFloat(m[1].replace(',','.'))/(m[2]==='m'?1000:1):1)(/× ([\d,]+) (m|km)/.exec(set));if(vd)zone=repKm<=1.2?'I':'T';else tpace=Math.round(ip);
+    name='Intervaller '+set;steps=['10 min roligt + 4 korte stigningsløb',vd?`${set} {${zone}}`:`${set} i ${fmtPace(ip)}/km`,D<=5?'90 sek rolig jog mellem':'2 min rolig jog mellem','10 min roligt til sidst'];min=45;kd='interval'}
   else if(kind==='T'){const m=Math.round(lerp(15,30)/5)*5,tp=pc?g+(D<=5?18:D<=10?8:-8):0;
-    if(pc)tpace=Math.round(tp);name=`Tempoløb ${m} min`;steps=['10 min roligt',pc?`${m} min i ${fmtPace(tp)}/km`:`${m} min i et tempo, hvor du kun kan sige få ord`,'10 min roligt til sidst'];min=m+20;kd='interval'}
+    if(vd)zone='T';else if(pc)tpace=Math.round(tp);name=`Tempoløb ${m} min`;steps=['10 min roligt',vd?`${m} min {T}`:pc?`${m} min i ${fmtPace(tp)}/km`:`${m} min i et tempo, hvor du kun kan sige få ord`,'10 min roligt til sidst'];min=m+20;kd='interval'}
   else if(kind==='F'&&wi.w%2===1){const n=Math.round(lerp(6,10));
     name=`Bakkeløb ${n} × 45 sek`;steps=['10 min roligt hen til en bakke',`${n} × 45 sek hurtigt op ad bakken`,'Gå eller jog roligt ned igen som pause','10 min roligt til sidst'];min=25+n*2;kd='interval'}
   else if(kind==='F'){const n=Math.round(lerp(6,10)),sec=bi>=nb/2?2:1;
@@ -1334,7 +1369,7 @@ function runSess(P,kind,bi,nb,wi,date){let tpace=null,kmv=null;const g=P.pace,f=
   else if(kind==='L'){let km;if(pc){const a={5:8,10:12,21.1:16}[D]||10,b={5:12,10:16,21.1:22}[D]||14;km=lerp(a,b)}else{const a=Math.max(2,P.cur),b=Math.max(RUN_PEAK[D],P.cur);km=lerp(a,b)}
     km=Math.round(km*(P.lf||1)*2)/2;kmv=km;name=`Langtur ${fmtKm(km)} km`;steps=[`${fmtKm(km)} km roligt ${easy}`,'Gå gerne et par minutter, hvis du skal'];min=Math.round(km*(pc?g+75:390)/60)}
   else{const m=Math.round(lerp(25,45)/5)*5,st=wi.w%2===1;name=`Roligt løb ${m} min${st?' + stigningsløb':''}`;steps=[`${m} min roligt ${easy}`,...(st?['Til sidst 6 × 20 sek stigningsløb: byg op til hurtigt, gå tilbage']:[])];min=m+(st?5:0)}
-  return [k,{name,kind:kd,steps,min,dur:min+' min',tpace,km:kmv,note:pc?`Mål-pace: ${fmtPace(g)}/km på ${RUN_D[D].toLowerCase()}.`:''}]}
+  return [k,{name,kind:kd,steps,min,dur:min+' min',tpace,zone,rtest,km:kmv,vb:vd?(P.vGain||0)*f:undefined,note:pc?`Mål-pace: ${fmtPace(g)}/km på ${RUN_D[D].toLowerCase()}.`:''}]}
 /* Conditioning that changes from week to week. Hard days rotate between interval formats, easy days between machines,
    threshold days between tempo formats. Volume still grows through the block. */
 const CD_MODE=['Løb','Cykel','Romaskine','Skierg','March med oppakning'];
@@ -1366,7 +1401,7 @@ function plTypeOfKey(k){if(!k||k==='R')return 'hvile';if(k==='S'||(SESS[k]&&SESS
   const s=SESS[k];if(!s)return 'hvile';if(s.kind==='interval'||s.kind==='zone2')return 'kondition';if(/^AR/.test(k))return 'restitution';if(s.kind==='mobilitet')return 'mobilitet';return 'hvile'}
 function plStart(){const t={};PL_DOW.forEach(d=>t[d]=plTypeOfKey(state.plan[d]));
   const days=PL_DOW.filter(d=>['styrke','crossfit','kondition'].includes(t[d]));
-  return {step:'goal',nDays:Math.min(6,Math.max(2,days.length||4)),draftSig:null,types:t,weeks:4,goal:'styrke',dist:5,cur:3,pace:300,curPace:330,deload:true,dlEvery:4,start:'next',preview:null,pick:null}}
+  return {step:'goal',nDays:Math.min(6,Math.max(2,days.length||4)),draftSig:null,types:t,weeks:4,goal:'styrke',dist:5,cur:3,pace:300,curPace:330,tKm:5,tTxt:'',noTest:false,vStart:null,deload:true,dlEvery:4,start:'next',preview:null,pick:null}}
 /* Sets × reps @ % for week i (0-based) of the block. Deload weeks are lighter; a strength block ends with a test. */
 const PL_PROG={styrke:[[5,5,70],[5,4,75],[5,3,80],[4,3,85],[5,2,85],[4,2,88],[3,2,90]],
   muskler:[[4,10,60],[4,8,67],[4,8,70],[4,6,75],[5,6,75],[4,5,78],[4,5,80]],
@@ -1411,7 +1446,9 @@ function plBuild(P){
   const weekly=(d,wi)=>{const f=fixed[d],wv=waveOf(wi),mo=mainOpts(f.pat),main=P.goal==='styrke'?f.main:mo[wv%mo.length];
     const used=new Set([main[0],...f.sec.map(x=>x[0]),...f.lastAcc]);const acc=plAccFor(f.pat,P.goal==='muskler'?3:2,used);
     f.lastAcc=new Set(acc.map(x=>x[0]));const fo=f.fwOpts.length?f.fwOpts:[f.fwLift];return {...f,main,acc,fwLift:P.goal==='styrke'?f.fwLift:fo[wv%fo.length]}};
-  const days={},sess={},fws={},weeks=[];let arN=0,mobN=0;
+  const days={},sess={},fws={},weeks=[];let arN=0,mobN=0,ftDone=false;
+  if(isRun(P.goal)&&(P.vStart!=null||P.noTest)){P.vd=true;const nbw=info.filter(x=>x.i>=0).length;
+    P.vGain=P.goal==='pace'&&P.vStart!=null?Math.max(0,Math.min(vdotOf(P.dist,P.pace*P.dist)-P.vStart,vdGain(nbw))):vdGain(nbw)*.5}
   info.forEach(wi=>{const wk={...wi,days:[]};const dose=plDose(P,wi);let cardioN=0;
     PL_DOW.forEach((dow,j)=>{const date=ds(new Date(pd(start).getFullYear(),pd(start).getMonth(),pd(start).getDate()+wi.w*7+j));const t=P.types[dow];let key='R',label='Hvile';
       if(t==='styrke'){const f=weekly(dow,wi),k='P'+date.replace(/-/g,'');const bar=STR_BY.get(f.main[0].toLowerCase())[1]===EQ_ST;
@@ -1430,7 +1467,7 @@ function plBuild(P){
         const p=w.c?cfRebuild(w.c):null;sess[k]={name:`Fuld træning · ${l[1]}`,kind:'crossfit',fw:true,dur:`${T} min`};key=k;label=`${l[1]} + ${p?p.overskrift:'WOD'}`}
       else if(t==='kondition'&&isRun(P.goal)){cardioN++;const nRun=PL_DOW.filter(d=>P.types[d]==='kondition').length,nb=info.filter(x=>x.i>=0).length;
         const order=P.goal==='pace'?{1:['I'],2:['I','L'],3:['I','T','L'],4:['I','E','T','L'],5:['I','E','T','E','L'],6:['E','I','E','T','E','L'],7:['E','I','E','T','E','E','L']}:{1:['L'],2:['E','L'],3:['E','F','L'],4:['E','F','E','L'],5:['E','F','E','T','L'],6:['E','F','E','T','E','L'],7:['E','F','E','T','E','E','L']};
-        const rk={kind:order[Math.min(7,nRun)][cardioN-1],bi:Math.max(0,wi.i),nb:Math.max(1,nb),wi:{w:wi.w,dl:wi.dl,test:wi.test,i:wi.i},nRun};const [k,ss]=runSess({...P,nRun},rk.kind,rk.bi,rk.nb,rk.wi,date);ss.rk=rk;sess[k]=ss;key=k;label=ss.name}
+        const rk={kind:order[Math.min(7,nRun)][cardioN-1],bi:Math.max(0,wi.i),nb:Math.max(1,nb),wi:{w:wi.w,dl:wi.dl,test:wi.test,i:wi.i},nRun};const ft=P.vd&&P.vStart==null&&!ftDone&&date>=TODAY;if(ft)ftDone=true;const [k,ss]=runSess({...P,nRun,firstTest:ft},rk.kind,rk.bi,rk.nb,rk.wi,date);ss.rk=rk;sess[k]=ss;key=k;label=ss.name}
       else if(t==='kondition'){cardioN++;const kond=P.goal==='kondition',i=Math.max(0,wi.i);
         if(wi.dl&&cardioN>1){key='R';label='Hvile (deload)'}
         else{const slot=(cardioN-1)%(kond?3:2),kind=wi.dl?'easy':slot===0?'hard':slot===1?'easy':'tempo';
@@ -1446,7 +1483,7 @@ function plAccept(){const pv=ui.pl.preview;if(!pv)return;
   const ps={},pf={};Object.entries(state.planSess||{}).forEach(([k,v])=>{const d=k.slice(1);if(d<TODAY.replace(/-/g,''))ps[k]=v});
   Object.entries(state.planFw||{}).forEach(([d,v])=>{if(d<TODAY)pf[d]=v});
   state.blockDays={...keepPast,...pv.days};state.planSess={...ps,...pv.sess};state.planFw={...pf,...pv.fws};state.overrides=ov;state.skips=sk;
-  const end=pv.weeks[pv.weeks.length-1].days[6].date;const {preview:_p,pick:_k,...P0}=pv.P;state.block={P:JSON.parse(JSON.stringify(P0)),start:pv.start,end,weeks:pv.P.weeks,goal:pv.P.goal,goalName:plGoalName(pv.P),deloads:pv.weeks.filter(w=>w.dl).map(w=>w.w)};
+  const end=pv.weeks[pv.weeks.length-1].days[6].date;const {preview:_p,pick:_k,...P0}=pv.P;if(P0.vStart!=null&&P0.tSec){const vs=(state.vdots||[]).filter(x=>!(x.date===TODAY&&x.src==='plan'));vs.push({date:TODAY,v:P0.vStart,km:P0.tKm,sec:P0.tSec,src:'plan'});state.vdots=vs}state.block={P:JSON.parse(JSON.stringify(P0)),made:TODAY,start:pv.start,end,weeks:pv.P.weeks,goal:pv.P.goal,goalName:plGoalName(pv.P),deloads:pv.weeks.filter(w=>w.dl).map(w=>w.w)};
   applySess();save()}
 /* Stopping removes everything the plan put in the calendar. Only days you actually trained keep their session, so the history still makes sense. */
 /* Empty the calendar: no plan, no fixed week, no one-off sessions. Days you trained keep their session. */
@@ -1486,7 +1523,7 @@ function viewMonth(){const b=plActive(),wn=plWeekNo(),mon=mondayOf(TODAY);
   return `${head}${weeks}`}
 function isoWeek(d){const t=pd(d),x=new Date(Date.UTC(t.getFullYear(),t.getMonth(),t.getDate()));const day=x.getUTCDay()||7;x.setUTCDate(x.getUTCDate()+4-day);const y=new Date(Date.UTC(x.getUTCFullYear(),0,1));return Math.ceil(((x-y)/864e5+1)/7)}
 /* The wizard asks one thing per screen. Which screens appear depends on the goal (run goals add distance and pace). */
-function plSteps(P){const run=isRun(P.goal);return ['goal',...(run?['dist',P.goal==='distance'?'cur':'pace',...(P.goal==='pace'?['curpace']:[])]:[]),'weeks',...(P.weeks>=3?['deload',...(P.deload?['dlfreq']:[])]:[]),'start','days','week']}
+function plSteps(P){const run=isRun(P.goal);return ['goal',...(run?['dist','test',P.goal==='distance'?'cur':'pace']:[]),'weeks',...(P.weeks>=3?['deload',...(P.deload?['dlfreq']:[])]:[]),'start','days','week']}
 /* A suggested week for the goal and number of training days. Days are spread so hard days rarely stack; Sunday becomes active recovery. */
 const PL_SLOTS={2:[0,3],3:[0,2,4],4:[0,1,3,5],5:[0,1,3,4,5],6:[0,1,2,3,4,5]};
 const PL_MIX={styrke:{2:'SS',3:'SKS',4:'SKSS',5:'SKSKS',6:'SKSKSK'},kondition:{2:'KS',3:'KSK',4:'KSKK',5:'KSKSK',6:'KSKKSK'},
@@ -1495,6 +1532,16 @@ const PL_MIX={styrke:{2:'SS',3:'SKS',4:'SKSS',5:'SKSKS',6:'SKSKSK'},kondition:{2
 function plDraft(P){const n=P.nDays,mix=(PL_MIX[P.goal]||PL_MIX.styrke)[n],m={S:'styrke',K:'kondition',C:'crossfit'},t={};
   PL_DOW.forEach(d=>t[d]='hvile');PL_SLOTS[n].forEach((i,k)=>t[PL_DOW[i]]=m[mix[k]]);if(n>=3&&t[0]==='hvile')t[0]='restitution';
   P.types=t;P.draftSig=P.goal+'|'+n}
+/* Running test in the wizard: VDOT, paces and a realistic goal */
+function plTestV(P){if(P.noTest)return null;const sec=parseTime(P.tTxt);if(!sec||!P.tKm)return null;const p=sec/P.tKm;if(p<150||p>720)return null;return vdotOf(P.tKm,sec)}
+function plTestInfo(P){const v=plTestV(P);if(P.noTest)return '<p class="hint">Appen bruger rolige beskrivelser af tempoet, indtil du har løbet testen.</p>';
+  if(!v)return '<p class="hint">Skriv tiden, så vises dine tempoer.</p>';
+  return `<div class="vd-box"><div><b class="num">${fmtKm(v)}</b><small>VDOT</small></div><ul class="num"><li>Interval <b>${fmtPace(zPace(v,'I'))}</b></li><li>Tærskel <b>${fmtPace(zPace(v,'T'))}</b></li><li>Rolig <b>${fmtPace(zPace(v,'E'))}–${fmtPace(vdPace(v,ZONES.E[2]))}</b></li></ul></div>`}
+function plReal(P){const v=P.vStart;if(v==null)return null;const D=P.dist,now=vdPredict(v,D),gv=vdotOf(D,P.pace*D),need=gv-v,rw=runWeeks(P)[1],wk=Math.ceil(need/VD_GAIN);
+  const realPace=Math.round(vdPredict(v+vdGain(rw),D)/D/5)*5;
+  if(need<=0)return {cls:'ok',t:'Du kan allerede løbe det tempo',d:`Din tid nu svarer til ${fmtTime(now)} på ${RUN_D[D].toLowerCase()}. Sæt målet højere.`,btn:`<button class="btn ghost" data-act="plrealpace" data-v="${realPace}">Brug ${fmtPace(realPace)}/km</button>`};
+  if(need<=vdGain(rw))return {cls:'ok',t:'Realistisk mål',d:`Din tid nu svarer til ${fmtTime(now)}. Målet kræver ca. ${Math.max(1,wk)} ugers træning.`};
+  return {cls:'warn',t:'Ambitiøst mål',d:`Din tid nu svarer til ${fmtTime(now)} (${fmtPace(now/D)}/km). Målet kræver ca. ${wk} ugers træning. Et realistisk mål på ${rw} uger er ${fmtPace(realPace)}/km.`,btn:`<button class="btn ghost" data-act="plrealpace" data-v="${realPace}">Brug ${fmtPace(realPace)}/km</button>`}}
 function plDlOpts(P){return [2,3,4,5,6]}
 function plWk(P){if(isRun(P.goal)){const r=runWeeks(P);if(!r[0].includes(P.weeks))P.weeks=r[1];return r}if(P.weeks>8)P.weeks=8;return [[1,2,3,4,5,6,7,8],0]}
 function viewPlan(){const P=ui.pl;if(!P){ui.view='month';return viewMonth()}
@@ -1510,10 +1557,15 @@ function viewPlan(){const P=ui.pl;if(!P){ui.view='month';return viewMonth()}
   case 'dist':{const dists=P.goal==='pace'?[5,10,21.1]:[5,10,21.1,42.2];if(!dists.includes(P.dist))P.dist=5;
     return head(P.goal==='pace'?'Hvilken distance vil du løbe hurtigere?':'Hvilken distance vil du nå?')+card(`<div class="fmt-grid">${dists.map(d=>opt('pldist',d,P.dist===d,RUN_D[d])).join('')}</div>`)+nav()}
   case 'cur':return head('Hvor langt kan du løbe nu?','Din længste tur uden at gå.')+card(`<div class="chips">${[1,3,5,8,12,16,21].map(k=>`<button class="${P.cur===k?'on':''}" data-act="plcur" data-v="${k}">${k} km</button>`).join('')}</div>`)+nav();
-  case 'pace':return head('Hvilken pace vil du ramme?',`Målet for ${RUN_D[P.dist].toLowerCase()}.`)+card(stepper('pace'))+nav();
+  case 'test':{const v=plTestV(P);return head('Hvad er din bedste tid for nylig?','Et løb eller en test de sidste 2 måneder. Appen regner dine træningstempoer ud fra den.')+card(`
+    <div class="field"><span>Distance</span><div class="chips">${[3,5,10,21.1].map(k=>`<button class="${P.tKm===k?'on':''}" data-act="pltkm" data-v="${k}">${k===21.1?'Halvmaraton':k+' km'}</button>`).join('')}</div></div>
+    <label class="field"><span>Tid (mm:ss eller t:mm:ss)</span><input id="pl-tt" inputmode="numeric" value="${esc(P.tTxt||'')}" placeholder="${P.tKm>=10?'48:30':'22:30'}"${P.noTest?' disabled':''}></label>
+    <div id="pl-tv">${plTestInfo(P)}</div>
+    <button class="restbtn${P.noTest?' on':''}" data-act="plnotest">${P.noTest?'✓ ':''}Jeg har ingen tid. Første løbepas bliver en test</button>`)+nav()}
+  case 'pace':{const r=plReal(P);return head('Hvilken pace vil du ramme?',`Målet for ${RUN_D[P.dist].toLowerCase()}.`)+card(stepper('pace')+(r?`<div class="vd-real ${r.cls}"><b>${r.t}</b><span>${r.d}</span>${r.btn||''}</div>`:''))+nav()}
   case 'curpace':return head('Hvad er din pace nu?',`Hvad du kan løbe ${RUN_D[P.dist].toLowerCase()} på i dag.`)+card(stepper('curPace'))+nav();
-  case 'weeks':{const [wk,rec]=plWk(P);
-    return head('Hvor mange uger?')+card(`<div class="chips">${wk.map(k=>`<button class="${P.weeks===k?'on':''}" data-act="plweeks" data-v="${k}">${k}${k===rec?' ★':''}</button>`).join('')}</div>${rec?`<p class="hint">★ anbefalet for ${RUN_D[P.dist].toLowerCase()}</p>`:''}`)+nav()}
+  case 'weeks':{const [wk,rec]=plWk(P),need=P.goal==='pace'&&P.vStart!=null?vdotOf(P.dist,P.pace*P.dist)-P.vStart:0;
+    return head('Hvor mange uger?')+card(`<div class="chips">${wk.map(k=>`<button class="${P.weeks===k?'on':''}" data-act="plweeks" data-v="${k}">${k}${k===rec?' ★':''}</button>`).join('')}</div>${rec?`<p class="hint">★ anbefalet for ${RUN_D[P.dist].toLowerCase()}</p>`:''}${need>vdGain(P.weeks)?`<p class="hint warn-t">Dit mål kræver ca. ${Math.ceil(need/VD_GAIN)} uger. På ${P.weeks} uger er ${fmtPace(Math.round(vdPredict(P.vStart+vdGain(P.weeks),P.dist)/P.dist))}/km mere realistisk.</p>`:''}`)+nav()}
   case 'deload':return head('Skal der være lette uger?')+card(`<div class="fmt-grid">${opt('pldl',1,P.deload,'Ja','Kroppen når at komme sig. Anbefalet.')}${opt('pldl',0,!P.deload,'Nej','Fuld belastning hele vejen.')}</div>`)+nav();
   case 'dlfreq':{const o=plDlOpts(P),fit=plDlFits(P,P.dlEvery),cnt=plWeekInfo(P).filter(x=>x.dl).length;
     return head('Hvor ofte?','En let uge hver …')+card(`<div class="chips">${o.map(k=>`<button class="${P.dlEvery===k?'on':''}${plDlFits(P,k)?'':' dim'}" data-act="pldlf" data-v="${k}">${k}. uge${k===4?' ★':''}</button>`).join('')}</div>
@@ -1625,7 +1677,7 @@ let fbKnown=null;
 const fbPending=()=>fbKnown?state.logs.find(l=>TRAIN_T.includes(l.type)&&!fbKnown.has(l.id)&&l.fb===undefined):null;
 const FB_R=[['traet','Træt'],['syg','Syg'],['skade','Ømhed eller skade'],['tid','For lidt tid'],['ovelse','Øvelsen passede ikke']];
 function fbSheet(){const id=ui.fbHard,l=id?state.logs.find(x=>x.id===id):fbPending();if(!l)return '';const se=SESS[l.key]||{};
-  const q=se.tpace?['pace',`Holdt du pacen (${fmtPace(se.tpace)}/km)?`]:se.km?['dist',`Løb du hele turen (${fmtKm(se.km)} km)?`]:null;
+  const tp=sessTPace(se),q=se.rtest?null:tp?['pace',`Holdt du pacen (${fmtPace(tp)}/km)?`]:se.km?['dist',`Løb du hele turen (${fmtKm(se.km)} km)?`]:null;
   return `<div class="sheet-bg"><div class="sheet" role="dialog" aria-label="Hvordan gik det?"><p class="sheet-t">Hvordan gik det?</p><p class="muted small center">${esc(l.sess||l.name||'')}</p>
     ${!id?`<div class="fb-g">${[[1,'Let'],[2,'Passende'],[3,'Hårdt'],[4,'For hårdt']].map(([v,t])=>`<button class="${l.fb===v||l._fb===v?'on':''}" data-act="fb" data-v="${v}">${t}</button>`).join('')}</div>
     ${q?`<p class="small" style="margin-top:12px">${q[1]}</p><div class="fb-g three">${[[2,'Ja'],[1,'Tæt på'],[0,'Nej']].map(([v,t])=>`<button class="${l[q[0]+'Ok']===v?'on':''}" data-act="fbq" data-f="${q[0]}" data-v="${v}">${t}</button>`).join('')}</div>`:''}
@@ -1720,12 +1772,26 @@ function adaptFind(){const A=adS(),b=plActive(),H=A.handled,out=[],add=p=>{if(!H
   const cond=state.logs.filter(l=>l.type==='kondition'&&l.date>=addD(TODAY,-10)&&(l.early||l.fb===4&&SESS[l.key]&&SESS[l.key].kind==='interval'));
   if(cond.length>=2)add({id:'ce:'+cond[cond.length-1].id,title:'Intervallerne har været for hårde',why:'Du har stoppet før tid eller syntes, intervallerne var for hårde, to gange.',
     opts:[{label:'Kortere intervaller i en uge',lines:lighten(TODAY,7,10,1).filter(x=>/interval/.test(x)),apply:()=>lighten(TODAY,7,10)}]});
+  // 7a. A new running time compared with what the plan expects now
+  if(b&&b.P&&b.P.vd){const after=vdHist().filter(x=>x.date>=(b.made&&b.made<b.start?b.made:b.start)&&x.src!=='plan'),c=after[after.length-1],base=b.vBase!=null?b.vBase:b.P.vStart!=null?b.P.vStart:after.length?after[0].v:null;
+    if(c&&base!=null&&!(b.P.vStart==null&&after.length===1)){const nb=Math.max(1,(b.weeks||1)-1),wkNow=Math.min(1,Math.max(0,(pd(TODAY)-pd(b.start))/(7*864e5)/nb)),plan=base+(b.P.vGain||0)*wkNow+(b.vAdj||0);
+      const shift=d=>[`Intervaltempo: ${fmtPace(zPace(plan,'I'))} → ${fmtPace(zPace(plan+d,'I'))}/km`,`Tærskeltempo: ${fmtPace(zPace(plan,'T'))} → ${fmtPace(zPace(plan+d,'T'))}/km`];
+      if(c.v<plan-1.5)add({id:'vd:'+c.date+c.v.toFixed(1),title:'Din nye tid er langsommere end planen regner med',why:`${fmtKm(c.km)} km på ${fmtTime(c.sec)} svarer til VDOT ${fmtKm(c.v)}. Planen regner med ${fmtKm(plan)} nu.`,
+        opts:[{label:'Sæt tempoerne efter den nye tid',lines:shift(c.v-plan),apply:()=>{state.block={...state.block,vBase:base+(c.v-plan)}}}]});
+      else if(b.goal==='pace'&&vdPredict(c.v,b.P.dist)<b.P.pace*b.P.dist){const np=Math.round(vdPredict(c.v+.5*(b.P.vGain||1),b.P.dist)/b.P.dist/5)*5;
+        add({id:'vu:'+c.date+c.v.toFixed(1),title:'Du er allerede på mål-niveau',why:`${fmtKm(c.km)} km på ${fmtTime(c.sec)} svarer til ${fmtTime(vdPredict(c.v,b.P.dist))} på ${RUN_D[b.P.dist].toLowerCase()}. Det er hurtigere end dit mål.`,
+          opts:[{label:`Hæv målet til ${fmtPace(np)}/km`,lines:[`Mål-pace: ${fmtPace(b.P.pace)} → ${fmtPace(np)} /km`],apply:()=>{const B=state.block;state.block={...B,P:{...B.P,pace:np},goalName:plGoalName({...B.P,pace:np})}}}]})}}}
   // 7. Running goals
   if(b&&b.P&&isRun(b.goal)){const R=state.logs.filter(l=>l.type==='kondition'&&l.date>=b.start&&(l.paceOk!==undefined||l.distOk!==undefined)).slice(-3);
-    if(b.goal==='pace'&&R.filter(l=>l.paceOk===0).length>=2)add({id:'rs:'+R[R.length-1].id,title:'Pacen er for hurtig lige nu',why:'Du har ikke kunnet holde planens pace to gange. Planen virker bedst, når du kan ramme tempoet.',
+    const vdAdj=(d,dry)=>{const V=effV({vb:0});if(dry)return V?[`Intervaltempo: ${fmtPace(zPace(V,'I'))} → ${fmtPace(zPace(V+d,'I'))}/km`,`Tærskeltempo: ${fmtPace(zPace(V,'T'))} → ${fmtPace(zPace(V+d,'T'))}/km`]:[];state.block={...state.block,vAdj:(state.block.vAdj||0)+d};return []};
+    if(b.P.vd&&R.filter(l=>l.paceOk===0).length>=2)add({id:'rs:'+R[R.length-1].id,title:'Tempoerne er for hurtige lige nu',why:'Du har ikke kunnet holde planens tempo to gange. Træningen virker bedst, når du kan ramme det.',
+      opts:[{label:'Lidt roligere tempoer',lines:vdAdj(-1,1),apply:()=>vdAdj(-1)},{label:'Tydeligt roligere',lines:vdAdj(-2,1),apply:()=>vdAdj(-2)}]});
+    else if(b.P.vd&&R.length>=2&&R.slice(-2).every(l=>l.paceOk===2&&l.fb===1))add({id:'rf:'+R[R.length-1].id,title:'Tempoerne er lette for dig',why:'Du har holdt tempoet og syntes, det var let, to gange.',
+      opts:[{label:'Lidt hurtigere tempoer',lines:vdAdj(1,1),apply:()=>vdAdj(1)}]});
+    if(!b.P.vd&&b.goal==='pace'&&R.filter(l=>l.paceOk===0).length>=2)add({id:'rs:'+R[R.length-1].id,title:'Pacen er for hurtig lige nu',why:'Du har ikke kunnet holde planens pace to gange. Planen virker bedst, når du kan ramme tempoet.',
       opts:[{label:'Sænk mål-pacen 5 sek/km',lines:rebuildRuns({pace:b.P.pace+5,curPace:Math.max(b.P.curPace,b.P.pace+5)},1),apply:()=>rebuildRuns({pace:b.P.pace+5,curPace:Math.max(b.P.curPace,b.P.pace+5)})},
             {label:'Sænk 10 sek/km',lines:rebuildRuns({pace:b.P.pace+10,curPace:Math.max(b.P.curPace,b.P.pace+10)},1),apply:()=>rebuildRuns({pace:b.P.pace+10,curPace:Math.max(b.P.curPace,b.P.pace+10)})}]});
-    if(b.goal==='pace'&&R.length>=2&&R.slice(-2).every(l=>l.paceOk===2&&l.fb===1))add({id:'rf:'+R[R.length-1].id,title:'Pacen er let for dig',why:'Du har holdt pacen og syntes, det var let, to gange.',
+    if(!b.P.vd&&b.goal==='pace'&&R.length>=2&&R.slice(-2).every(l=>l.paceOk===2&&l.fb===1))add({id:'rf:'+R[R.length-1].id,title:'Pacen er let for dig',why:'Du har holdt pacen og syntes, det var let, to gange.',
       opts:[{label:'Hæv mål-pacen 5 sek/km',lines:rebuildRuns({pace:Math.max(150,b.P.pace-5)},1),apply:()=>rebuildRuns({pace:Math.max(150,b.P.pace-5)})}]});
     if(b.goal==='distance'&&R.filter(l=>l.distOk===0).length>=2){const lf=(b.P.lf||1)*.9;add({id:'rd:'+R[R.length-1].id,title:'Langturene er for lange lige nu',why:'Du har ikke nået hele langturen to gange.',
       opts:[{label:'Kortere langture (−10 %)',lines:rebuildRuns({lf},1),apply:()=>rebuildRuns({lf})}]})}}
@@ -1891,6 +1957,8 @@ function formKond(){
   <div class="duo"><label><span>Tid · min</span><input id="k-min" inputmode="numeric" value="${esc(k.min)}" data-bind="k.min" placeholder="40"></label><label><span>Sek</span><input id="k-sek" inputmode="numeric" value="${esc(k.sek)}" data-bind="k.sek" placeholder="00"></label></div>
   <div class="trio"><label><span>Km</span><input id="k-dist" inputmode="decimal" value="${esc(k.dist)}" data-bind="k.dist" placeholder="8,2"></label><label><span>Snitpuls</span><input id="k-hr" inputmode="numeric" value="${esc(k.hr)}" data-bind="k.hr" placeholder="155"></label><label><span>Hårdhed 1–10</span><select id="k-rpe" data-bind="k.rpe"><option value="">–</option>${[5,6,7,8,9,10].map(n=>`<option${String(k.rpe)===String(n)?' selected':''}>${n}</option>`).join('')}</select></label></div>
   <label class="field"><span>Note</span><input id="k-note" value="${esc(k.note)}" data-bind="k.note" placeholder="Fx cykel, 4×4 på 280 W"></label>
+  <button class="restbtn${k.race||(SESS[k.sess]&&SESS[k.sess].rtest)?' on':''}" data-act="krace">${k.race||(SESS[k.sess]&&SESS[k.sess].rtest)?'✓ ':''}Løb på tid (test eller løb)</button>
+  ${k.race||(SESS[k.sess]&&SESS[k.sess].rtest)?'<p class="hint">Tiden og distancen opdaterer dit VDOT og dine løbetempoer.</p>':''}
   <p class="hint">Hårdhed: 1 er helt let, 10 er alt hvad du har. Kommer du længere ved samme puls end sidst, er din kondition blevet bedre.</p>`;
 }
 function formVaegt(){
@@ -2072,6 +2140,19 @@ function goalForm(){const f=ui.goal;
   ${f.type==='vaegt'?`<label class="field"><span>Målvægt (kg)</span><input id="g-vkg" inputmode="decimal" data-bind="goal.kg" value="${esc(f.kg||'')}" placeholder="Fx 80"></label>`:''}
   ${f.type==='week'?`<label class="field"><span>Antal pas pr. uge</span><input id="g-n" inputmode="numeric" data-bind="goal.n" value="${esc(f.n||'')}" placeholder="Fx 4"></label>`:''}
   <div class="btns3" style="grid-template-columns:1fr 2fr"><button class="btn ghost" data-act="goalcancel">Annullér</button><button class="btn accent" data-act="goalsave">Gem mål</button></div></div>`}
+function vdFormInfo(){const f=ui.vdf,sec=parseTime(f&&f.t);if(!f||!sec||sec/f.km<150||sec/f.km>720)return '';return `<p class="hint num">VDOT ${fmtKm(vdotOf(f.km,sec))}</p>`}
+function vdCard(){const c=curVdot(),H=vdHist();
+  const form=ui.vdf?`<div class="vd-f"><div class="chips">${[3,5,10,21.1].map(k=>`<button class="${ui.vdf.km===k?'on':''}" data-act="vdkm" data-v="${k}">${k===21.1?'Halvmaraton':k+' km'}</button>`).join('')}</div>
+    <label class="field"><span>Tid</span><input id="vd-tt" inputmode="numeric" value="${esc(ui.vdf.t)}" placeholder="22:30"></label><div id="vd-pv">${vdFormInfo()}</div><button class="btn accent" data-act="vdsave">Gem tid</button></div>`:'';
+  const btn=`<button class="linkbtn" data-act="vdopen">${ui.vdf?'Luk':'+ Ny tid'}</button>`;
+  if(!c)return `<section class="card"><div class="row-between"><h3 class="sec">Løbeform</h3>${btn}</div>${form||'<p class="empty">Skriv en tid fra et løb eller en test, så regner appen dine træningstempoer ud.</p>'}</section>`;
+  const V=c.v,z=[['Rolig','E',`${fmtPace(zPace(V,'E'))}–${fmtPace(vdPace(V,ZONES.E[2]))}`],['Maraton','M'],['Tærskel','T'],['Interval','I'],['Gentagelser','R']];
+  const pts=H.map(x=>({x:pd(x.date).getTime(),y:x.v}));
+  return `<section class="card"><div class="row-between"><h3 class="sec">Løbeform</h3>${btn}</div>
+    <div class="big"><b class="num">${fmtKm(V)}</b><span>VDOT</span><em class="num">Fra ${fmtKm(c.km)} km på ${fmtTime(c.sec)} · ${shortDate(c.date)}</em></div>
+    <div class="vd-z">${z.map(([n,k,t])=>`<div><span>${n}</span><b class="num">${t||fmtPace(zPace(V,k))}</b></div>`).join('')}</div><p class="hint">Tempo pr. km. Planens løbepas bruger dem automatisk.</p>
+    <div class="vd-z">${[[5,'5 km'],[10,'10 km'],[21.0975,'Halvmaraton'],[42.195,'Maraton']].map(([k,n])=>`<div><span>${n}</span><b class="num">${fmtTime(vdPredict(V,k))}</b></div>`).join('')}</div><p class="hint">Forventede tider med din form nu.</p>
+    ${pts.length>1?chart(pts,v=>fmtKm(v),'interval'):''}${form}</section>`}
 function viewProg(){
   const goals=state.goals||[];
   const G=`<section class="card"><div class="row-between"><h3 class="sec">Dine mål</h3>${ui.goal?'':`<button class="linkbtn" data-act="goalnew">+ Nyt mål</button>`}</div>
@@ -2111,6 +2192,7 @@ function viewProg(){
   const sec=(t,body,empty,btn)=>`<section class="card"><div class="row-between"><h3 class="sec">${t}</h3>${btn||''}</div>${body||`<p class="empty">${empty}</p>`}</section>`;
   return `${G}
   ${sec('Styrke',sHtml,'Når du har logget et styrkepas, kan du følge dine løft her.')}
+  ${vdCard()}
   ${sec('Kondition',kHtml,'Når du har logget et konditionspas, kan du følge dine minutter her.')}
   ${sec('Tests',tHtml,'Tag en test, fx 3 km løb, og se om du bliver hurtigere.','<button class="linkbtn" data-act="logtest">+ Log test</button>')}
   ${sec('Kropsvægt',wHtml,'Vej dig en gang imellem og se udviklingen.','<button class="linkbtn" data-act="logvaegt">+ Log vægt</button>')}
@@ -2356,7 +2438,7 @@ function doSave(){
     entry={id,date,type:'styrke',key:ui.sess,sess:ui.sess==='X'?'Styrke':SESS[ui.sess].name,sets,dur};ui.wStart=null;
   }else if(t==='kondition'){
     const dur=(num(ui.k.min)||0)*60+(num(ui.k.sek)||0);if(!dur)return toast('Skriv hvor lang tid du trænede');
-    entry={id,date,type:'kondition',key:ui.k.sess,early:!!ui.k.early,name:ui.k.sess==='X'?'Kondition':SESS[ui.k.sess].name,dur,dist:num(ui.k.dist),hr:num(ui.k.hr),rpe:num(ui.k.rpe),note:ui.k.note.trim()};
+    entry={id,date,type:'kondition',key:ui.k.sess,early:!!ui.k.early,race:!!ui.k.race||!!(SESS[ui.k.sess]&&SESS[ui.k.sess].rtest&&num(ui.k.dist)),name:ui.k.sess==='X'?'Kondition':SESS[ui.k.sess].name,dur,dist:num(ui.k.dist),hr:num(ui.k.hr),rpe:num(ui.k.rpe),note:ui.k.note.trim()};
   }else if(t==='vaegt'){
     const kg=num(ui.v.kg);if(!kg)return toast('Skriv din vægt i kg');entry={id,date,type:'vaegt',kg};
   }else{
@@ -2366,7 +2448,7 @@ function doSave(){
   }
   state.logs.push(entry);save();
   if(t==='styrke'){clearDraft();ui.rest=null;$('#restbar').hidden=true;initRows(ui.sess==='X'?'A':ui.sess)}
-  ui.k={...ui.k,min:'',sek:'',dist:'',hr:'',rpe:'',note:'',early:false};ui.v.kg='';ui.t.val='';ui.dirty=false;
+  ui.k={...ui.k,min:'',sek:'',dist:'',hr:'',rpe:'',note:'',early:false,race:false};ui.v.kg='';ui.t.val='';ui.dirty=false;
   if(!storageOK){render();return toast('Kunne ikke gemme på telefonen')}
   if((t==='styrke'||t==='kondition')&&date===TODAY){ui.view='today';render(true);toast(t==='styrke'?'Gemt. Næste gangs vægte er klar.':'Gemt')}
   else{render();toast('Gemt')}
@@ -2381,7 +2463,7 @@ function doRestore(){
   let d;try{d=JSON.parse(ui.impText)}catch(e){d=null}
   if(!d||!Array.isArray(d.logs)){ui.pendingRestore=false;render();return toast('Teksten er ikke en gyldig backup')}
   if(!ui.pendingRestore){ui.pendingRestore=true;return render()}
-  state={sessEdits:d.sessEdits||{},customSess:d.customSess||{},plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:'custom',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,name:d.name,onboarded:true,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,strUdstyr:d.strUdstyr||null,strGen:d.strGen||null,fw:d.fw||null,fwT:d.fwT||60,theme:d.theme||'auto',accent:d.accent||'orange',goals:d.goals||[],block:d.block||null,blockDays:d.blockDays||{},planSess:d.planSess||{},planFw:d.planFw||{},extras:d.extras||{},adapt:d.adapt||{handled:{},since:TODAY,hist:[]},shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);applySess();
+  state={sessEdits:d.sessEdits||{},customSess:d.customSess||{},plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:'custom',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,name:d.name,onboarded:true,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,strUdstyr:d.strUdstyr||null,strGen:d.strGen||null,fw:d.fw||null,fwT:d.fwT||60,theme:d.theme||'auto',accent:d.accent||'orange',goals:d.goals||[],block:d.block||null,blockDays:d.blockDays||{},planSess:d.planSess||{},planFw:d.planFw||{},extras:d.extras||{},adapt:d.adapt||{handled:{},since:TODAY,hist:[]},vdots:d.vdots||[],shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);applySess();
 }
 function guessUnit(name){
   const prev=logsOf('test').filter(l=>l.name===name);if(prev.length)return prev[prev.length-1].unit;
@@ -2515,13 +2597,23 @@ document.addEventListener('click',e=>{
     case 'plpick':ui.pl.pick=+b.dataset.d;render();break;
     case 'plclose':ui.pl.pick=null;render();break;
     case 'plset':ui.pl.types[ui.pl.pick]=b.dataset.v;ui.pl.pick=null;render();break;
-    case 'plnext':{const P=ui.pl,st=plSteps(P),k=st.indexOf(P.step);P.pick=null;if(st[k+1])slideAnim(1,()=>{P.step=st[k+1];if(P.step==='weeks')plWk(P);if(P.step==='week'&&P.draftSig!==P.goal+'|'+P.nDays)plDraft(P);render(true)});break}
+    case 'plnext':{const P=ui.pl,st=plSteps(P),k=st.indexOf(P.step);P.pick=null;
+      if(P.step==='test'){const v=plTestV(P);if(!v&&!P.noTest){toast('Skriv tiden som mm:ss, fx 22:30');break}
+        P.vStart=v||null;P.tSec=v?parseTime(P.tTxt):null;if(v){P.curPace=Math.round(vdPredict(v,P.dist)/P.dist);if(!P.paceSet){P.pace=Math.max(150,Math.round(vdPredict(v+vdGain(runWeeks(P)[1]),P.dist)/P.dist/5)*5);P.paceSet=true}if(P.curPace<P.pace)P.curPace=P.pace}}if(st[k+1])slideAnim(1,()=>{P.step=st[k+1];if(P.step==='weeks')plWk(P);if(P.step==='week'&&P.draftSig!==P.goal+'|'+P.nDays)plDraft(P);render(true)});break}
     case 'plndays':ui.pl.nDays=+b.dataset.v;render();break;
     case 'plprev':{const P=ui.pl;if(navDepth>0){history.back();break}slideAnim(-1,()=>{if(P.step==='review')P.step='week';else{const st=plSteps(P),k=st.indexOf(P.step);P.step=st[Math.max(0,k-1)]}render(true)});break}
     case 'pltype':ui.pl.types[+b.dataset.d]=b.dataset.v;render();break;
     case 'plweeks':ui.pl.weeks=+b.dataset.v;render();break;
     case 'plgoal':{const P=ui.pl;P.goal=b.dataset.v;if(isRun(P.goal)){const r=runWeeks(P);P.weeks=r[1]}else if(P.weeks>8)P.weeks=4;render();break}
     case 'pldist':{const P=ui.pl;P.dist=+b.dataset.v;P.weeks=runWeeks(P)[1];render();break}
+    case 'krace':ui.k.race=!ui.k.race;render();break;
+    case 'vdopen':ui.vdf=ui.vdf?null:{km:5,t:''};render();break;
+    case 'vdkm':ui.vdf.km=+b.dataset.v;render();break;
+    case 'vdsave':{const f=ui.vdf,sec=parseTime(f.t);if(!sec||sec/f.km<150||sec/f.km>720){toast('Skriv tiden som mm:ss, fx 22:30');break}
+      state.vdots=[...(state.vdots||[]),{date:TODAY,v:vdotOf(f.km,sec),km:f.km,sec,src:'manual'}];ui.vdf=null;save();render();toast('Dine løbetempoer er opdateret');break}
+    case 'pltkm':ui.pl.tKm=+b.dataset.v;render();break;
+    case 'plnotest':ui.pl.noTest=!ui.pl.noTest;render();break;
+    case 'plrealpace':ui.pl.pace=+b.dataset.v;render();break;
     case 'plcur':ui.pl.cur=+b.dataset.v;render();break;
     case 'plpace':{const P=ui.pl,f=b.dataset.f;P[f]=Math.max(150,Math.min(600,P[f]+ +b.dataset.v));if(f==='pace'&&P.curPace<P.pace)P.curPace=P.pace;if(f==='curPace'&&P.curPace<P.pace)P.pace=P.curPace;render();break}
     case 'pldl':ui.pl.deload=b.dataset.v==='1'||b.dataset.v==='true';render();break;
@@ -2606,7 +2698,7 @@ document.addEventListener('click',e=>{
       ui.sched=c;ui.view='sched';render(true);break}
     case 'schback':ui.view=ui.sched?ui.sched.from:'train';render(true);break;
     case 'fb':{const l=fbPending();if(!l)break;const v=+b.dataset.v,se=SESS[l.key]||{};l.fb=v;if(v===4)ui.fbHard=l.id;
-      else if(se.tpace&&l.paceOk===undefined||se.km&&l.distOk===undefined){l.fb=undefined;l._fb=v}save();render();break}
+      else if(!se.rtest&&sessTPace(se)&&l.paceOk===undefined||se.km&&l.distOk===undefined){l.fb=undefined;l._fb=v}save();render();break}
     case 'fbq':{const l=fbPending();if(!l)break;l[b.dataset.f+'Ok']=+b.dataset.v;if(l._fb!==undefined){l.fb=l._fb;delete l._fb;if(l.fb===4)ui.fbHard=l.id}save();render();break}
     case 'fbskip':{const l=fbPending();if(l){l.fb=l._fb??0;delete l._fb;save()}render();break}
     case 'fbr':case 'fbrskip':{const l=state.logs.find(x=>x.id===ui.fbHard);if(l&&a==='fbr')l.fbr=b.dataset.v;ui.fbHard=null;save();render();toast('Tak. Planen tager hensyn til det.');break}
@@ -2636,6 +2728,8 @@ document.addEventListener('input',e=>{
     /* changing kg or reps carries forward to later sets that aren't done and still had the old value */
     if(f!=='rir')for(let k=j+1;k<r.sets.length;k++){const n=r.sets[k];if(!n.done&&n[f]===old){n[f]=t.value;const el=$(`#s${i}-${k}-${f}`);if(el)el.value=t.value}}
     saveDraft();return}
+  if(t.id==='pl-tt'&&ui.pl){ui.pl.tTxt=t.value;const el=$('#pl-tv');if(el)el.innerHTML=plTestInfo(ui.pl);return}
+  if(t.id==='vd-tt'&&ui.vdf){ui.vdf.t=t.value;const el=$('#vd-pv');if(el)el.innerHTML=vdFormInfo();return}
   if(t.dataset.bind){const path=t.dataset.bind.split('.'),o=path[0];let tgt=ui;for(let i=0;i<path.length-1;i++)tgt=tgt[path[i]];tgt[path[path.length-1]]=t.value;if(o!=='impText'&&o!=='cf')ui.dirty=true}
 });
 document.addEventListener('change',e=>{
