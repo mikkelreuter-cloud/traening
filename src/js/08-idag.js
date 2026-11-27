@@ -52,9 +52,7 @@ function viewToday(){
   const bkCard=backupDue&&!(state.bkSnooze&&state.bkSnooze>TODAY)?`<section class="card bk-card"><div class="row-between"><h3 class="sec">Tag en backup</h3><span class="muted small">${state.lastBackup?'Sidst '+shortDate(state.lastBackup):'Aldrig'}</span></div>
     <p class="muted small">Dine ${state.logs.length} logs ligger kun på telefonen. Gem en kopi i Drive eller på mail. Det tager 2 sekunder.</p>
     <div class="btns3" style="grid-template-columns:2fr 1fr"><button class="btn accent" data-act="bkshare">Gem backup</button><button class="btn ghost" data-act="bksnooze">Senere</button></div></section>`:'';
-  // No plan running: offer to make one. "Ikke nu" hides the question for 14 days.
-  const planCard=!plActive()&&!(state.planAsk&&state.planAsk>TODAY)?`<div class="notif" role="status"><b>Vil du oprette en træningsplan?</b><button class="btn accent" data-act="plopen">Ja</button><button class="notif-x" data-act="planasklater" aria-label="Ikke nu">Ikke nu</button></div>`:'';
-  return `${adaptCard()}${planCard}${bkCard}
+  return `${adaptCard()}${bkCard}
   ${isDeload(TODAY)?`<p class="slim-note">↓ Deload-uge · halvt så mange sæt, samme vægt</p>`:plActive()&&plWeekNo()>0&&state.block.deloads.includes(plWeekNo()-1)?`<p class="slim-note">↓ Deload-uge i dit forløb · lettere pas, så kroppen kan nå at blive stærkere</p>`:''}
   <section class="card">
     <div class="row-between"><h3 class="sec">Denne uge</h3><span class="muted small num">${doneN} af ${planned.length} pas</span></div>
@@ -136,3 +134,16 @@ function dayCard(sel){
     ${se.kind!=='crossfit'?`<button class="btn primary" data-act="logday" data-date="${sel}">Log denne dag</button>`:''}
   </section>`;
 }
+
+/* ---------- "Vil du oprette en træningsplan?" ----------
+   Floats above the tab bar, outside the page, so tab animations don't move it. Slides up 2 seconds after you land on I dag.
+   "Ikke nu" hides it for 14 days. */
+const planAskWanted=()=>!plActive()&&!(state.planAsk&&state.planAsk>TODAY)&&state.onboarded;
+let notifT=null;
+function syncNotif(){const want=ui.view==='today'&&planAskWanted(),el=document.getElementById('notif');
+  if(!want){clearTimeout(notifT);notifT=null;if(el&&el.classList.contains('show')){el.classList.remove('show');setTimeout(()=>{if(!el.classList.contains('show'))el.remove()},450)}else if(el)el.remove();return}
+  if(el||notifT)return;
+  notifT=setTimeout(()=>{notifT=null;if(ui.view!=='today'||!planAskWanted()||document.getElementById('notif'))return;
+    const e=document.createElement('div');e.id='notif';e.className='notif';e.setAttribute('role','status');
+    e.innerHTML='<b>Vil du oprette en træningsplan?</b><button class="btn accent" data-act="plopen">Ja</button><button class="notif-x" data-act="planasklater">Ikke nu</button>';
+    document.body.appendChild(e);requestAnimationFrame(()=>requestAnimationFrame(()=>e.classList.add('show')))},2000)}

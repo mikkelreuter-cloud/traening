@@ -25,7 +25,7 @@ function renderInner(top){if(typeof acHide==='function'&&!$('#ac').hidden)acHide
     (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():v==='train'?viewTrain():v==='sched'?viewSched():v==='day'?viewDay():v==='sess'?viewSess():v==='sessedit'?viewSessEdit():v==='expick'?viewPick():v==='fw'?viewFW():v==='month'?viewMonth():v==='plan'?viewPlan():viewSettings());
   if(!fbKnown)fbKnown=new Set(state.logs.map(l=>l.id));
   if(v!=='timer'&&v!=='onboard'&&(ui.fbHard||fbPending()))$('#main').insertAdjacentHTML('beforeend',fbSheet());
-  syncHistory();
+  syncHistory();syncNotif();
   requestAnimationFrame(moveTabInd);
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||(v==='log'&&t.dataset.view===(ui.logFrom==='prog'?'prog':ui.logFrom==='train'?'train':'today'))||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))||(((v==='sess'||v==='sessedit'||v==='expick'||(v==='fw'&&!ui.fwDate))&&t.dataset.view==='train')||((v==='plan')&&t.dataset.view==='month'))));
   {const g=TAB_ORDER.includes(v);$('#gear').hidden=!g;document.body.classList.toggle('has-gear',g)}

@@ -548,11 +548,11 @@ b,strong{font-weight:600}
 /* A question that floats above the tab bar like a notification, without moving the page */
 .notif{position:fixed;z-index:6;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));bottom:calc(96px + env(safe-area-inset-bottom,0px));max-width:380px;margin:0 auto;
   display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:10px 10px 10px 16px;border-radius:20px;background:var(--card);color:var(--text);
-  box-shadow:0 10px 30px rgb(0 0 0 / .35),inset 0 0 0 1px var(--line);animation:notifIn .35s cubic-bezier(.2,.8,.2,1)}
+  box-shadow:0 10px 30px rgb(0 0 0 / .35),inset 0 0 0 1px var(--line);opacity:0;transform:translateY(28px);transition:opacity .45s ease,transform .45s cubic-bezier(.2,.8,.2,1)}
+.notif.show{opacity:1;transform:none}
 .notif b{font-size:15px;line-height:1.25}.notif .btn{min-height:40px;padding:0 18px;width:auto}
 .notif-x{border:0;background:none;color:var(--muted);font:inherit;font-size:14px;padding:8px 6px;cursor:pointer}
-@keyframes notifIn{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
-@media (prefers-reduced-motion:reduce){.notif{animation:none}}
+@media (prefers-reduced-motion:reduce){.notif{transition:opacity .2s;transform:none}}
 </style>
 </head>
 <body>
@@ -585,7 +585,7 @@ b,strong{font-weight:600}
 <div class="tour" id="tour" hidden></div>
 <div class="ac" id="ac" hidden></div>
 
-<script src="sw.js?v=82c07023"></script>
+<script src="sw.js?v=ccd42faa"></script>
 <script>
 /* Grundlag: datoer, programmer, sessionsbibliotek (SESS) og vaner. */
 const KEY='styrke-vo2-log.v1';
@@ -1161,9 +1161,7 @@ function viewToday(){
   const bkCard=backupDue&&!(state.bkSnooze&&state.bkSnooze>TODAY)?`<section class="card bk-card"><div class="row-between"><h3 class="sec">Tag en backup</h3><span class="muted small">${state.lastBackup?'Sidst '+shortDate(state.lastBackup):'Aldrig'}</span></div>
     <p class="muted small">Dine ${state.logs.length} logs ligger kun på telefonen. Gem en kopi i Drive eller på mail. Det tager 2 sekunder.</p>
     <div class="btns3" style="grid-template-columns:2fr 1fr"><button class="btn accent" data-act="bkshare">Gem backup</button><button class="btn ghost" data-act="bksnooze">Senere</button></div></section>`:'';
-  // No plan running: offer to make one. "Ikke nu" hides the question for 14 days.
-  const planCard=!plActive()&&!(state.planAsk&&state.planAsk>TODAY)?`<div class="notif" role="status"><b>Vil du oprette en træningsplan?</b><button class="btn accent" data-act="plopen">Ja</button><button class="notif-x" data-act="planasklater" aria-label="Ikke nu">Ikke nu</button></div>`:'';
-  return `${adaptCard()}${planCard}${bkCard}
+  return `${adaptCard()}${bkCard}
   ${isDeload(TODAY)?`<p class="slim-note">↓ Deload-uge · halvt så mange sæt, samme vægt</p>`:plActive()&&plWeekNo()>0&&state.block.deloads.includes(plWeekNo()-1)?`<p class="slim-note">↓ Deload-uge i dit forløb · lettere pas, så kroppen kan nå at blive stærkere</p>`:''}
   <section class="card">
     <div class="row-between"><h3 class="sec">Denne uge</h3><span class="muted small num">${doneN} af ${planned.length} pas</span></div>
@@ -1245,6 +1243,19 @@ function dayCard(sel){
     ${se.kind!=='crossfit'?`<button class="btn primary" data-act="logday" data-date="${sel}">Log denne dag</button>`:''}
   </section>`;
 }
+
+/* ---------- "Vil du oprette en træningsplan?" ----------
+   Floats above the tab bar, outside the page, so tab animations don't move it. Slides up 2 seconds after you land on I dag.
+   "Ikke nu" hides it for 14 days. */
+const planAskWanted=()=>!plActive()&&!(state.planAsk&&state.planAsk>TODAY)&&state.onboarded;
+let notifT=null;
+function syncNotif(){const want=ui.view==='today'&&planAskWanted(),el=document.getElementById('notif');
+  if(!want){clearTimeout(notifT);notifT=null;if(el&&el.classList.contains('show')){el.classList.remove('show');setTimeout(()=>{if(!el.classList.contains('show'))el.remove()},450)}else if(el)el.remove();return}
+  if(el||notifT)return;
+  notifT=setTimeout(()=>{notifT=null;if(ui.view!=='today'||!planAskWanted()||document.getElementById('notif'))return;
+    const e=document.createElement('div');e.id='notif';e.className='notif';e.setAttribute('role','status');
+    e.innerHTML='<b>Vil du oprette en træningsplan?</b><button class="btn accent" data-act="plopen">Ja</button><button class="notif-x" data-act="planasklater">Ikke nu</button>';
+    document.body.appendChild(e);requestAnimationFrame(()=>requestAnimationFrame(()=>e.classList.add('show')))},2000)}
 /* Fuld træning (A opvarmning, B styrke, C WOD, D bonus) og Pas-rækker. */
 /* ---------- Træn: start any session, any day ---------- */
 /* Four headings cover all training: [title, colour kind, session keys] */
@@ -2512,7 +2523,7 @@ function renderInner(top){if(typeof acHide==='function'&&!$('#ac').hidden)acHide
     (v==='today'?viewToday():v==='cal'?viewCal():v==='log'?viewLog():v==='prog'?viewProg():v==='timer'?viewTimer():v==='habits'?viewHabits():v==='habit'?viewHabit():v==='habitnew'?viewHabitNew():v==='cf'?viewCF():v==='onboard'?viewOnboard():v==='train'?viewTrain():v==='sched'?viewSched():v==='day'?viewDay():v==='sess'?viewSess():v==='sessedit'?viewSessEdit():v==='expick'?viewPick():v==='fw'?viewFW():v==='month'?viewMonth():v==='plan'?viewPlan():viewSettings());
   if(!fbKnown)fbKnown=new Set(state.logs.map(l=>l.id));
   if(v!=='timer'&&v!=='onboard'&&(ui.fbHard||fbPending()))$('#main').insertAdjacentHTML('beforeend',fbSheet());
-  syncHistory();
+  syncHistory();syncNotif();
   requestAnimationFrame(moveTabInd);
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v||(v==='log'&&t.dataset.view===(ui.logFrom==='prog'?'prog':ui.logFrom==='train'?'train':'today'))||((v==='habit'||v==='habitnew')&&t.dataset.view==='habits')||(v==='cf'&&t.dataset.view==='today')||(v==='day'&&t.dataset.view===(ui.dayBack||'today'))||(((v==='sess'||v==='sessedit'||v==='expick'||(v==='fw'&&!ui.fwDate))&&t.dataset.view==='train')||((v==='plan')&&t.dataset.view==='month'))));
   {const g=TAB_ORDER.includes(v);$('#gear').hidden=!g;document.body.classList.toggle('has-gear',g)}
