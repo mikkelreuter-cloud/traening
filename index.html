@@ -541,7 +541,7 @@ b,strong{font-weight:600}
 
 <nav class="tabs" aria-label="Sider">
   <div class="in"><span class="tab-ind" aria-hidden="true"></span>
-    <button class="tab" data-act="view" data-view="today"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>Dagens træning</button>
+    <button class="tab" data-act="view" data-view="today"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>I dag</button>
     <button class="tab" data-act="view" data-view="train"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Træn frit</button>
     <button class="tab" data-act="view" data-view="month"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Plan</button>
     <button class="tab" data-act="view" data-view="prog"><svg viewBox="0 0 24 24"><path d="M5 20V12M10 20V6M15 20v-9M20 20V9"/></svg>Udvikling</button>
@@ -2115,7 +2115,7 @@ function render(top){if(typeof acHide==='function'&&!$('#ac').hidden)acHide();ha
 }
 /* ---------- Intro tour: a few swipeable cards shown once after setup ---------- */
 const TOUR=[
- {ic:'<path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/>',h:'Dagens træning',p:'Din uge med dagens træning. Tryk på en dag for at se den, og start dagens pas direkte.'},
+ {ic:'<path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/>',h:'I dag',p:'Din uge med dagens træning. Tryk på en dag for at se den, og start dagens pas direkte.'},
  {ic:'<path d="M8 5v14l11-7z"/>',h:'Træn frit',p:'Alle pas i grupper. Byg en fuld træning eller et CrossFit-pas, eller opret dit eget.'},
  {ic:'<path d="M6.5 9v6M17.5 9v6M3.5 10.5v3M20.5 10.5v3M6.5 12h11"/>',h:'Log mens du træner',p:'Tryk ✓ efter hvert sæt. Pausen starter, og appen foreslår vægten til næste gang.'},
  {ic:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',h:'Plan',p:'Se en måned frem, og planlæg et forløb på 1-8 uger mod et mål.'},
