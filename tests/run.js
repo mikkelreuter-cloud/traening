@@ -216,6 +216,29 @@ T('Service worker installerer og cacher med versionen fra byggeren',async()=>{co
   const keys=await p.evaluate(async()=>{await navigator.serviceWorker.ready;for(let i=0;i<40;i++){const k=await caches.keys();if(k.length)return k;await new Promise(r=>setTimeout(r,100))}return []});
   eq(keys,['traening-'+v]);ok(await p.evaluate(()=>!!window.CF&&typeof CF.byggePas==='function'),'motoren indlæst fra sw.js');
   p.close=async()=>c2.close();return p});
+/* ================= Editing the draft ================= */
+const draft=async(p,goal,types)=>ev(p,([goal,types])=>{ui.pl={...plStart(),goal,weeks:4,deload:false,types,start:'next'};ui.pl.preview=plBuild(ui.pl);ui.pl.step='review';ui.view='plan';render(true);
+  const d=ui.pl.preview.weeks[0].days.find(x=>x.key!=='R');ui.pl.open=d.date;render();return d.key},[goal,types]);
+T('Udkast: byt en hjælpeøvelse og et hovedløft i alle uger',async()=>{const p=await app({plan:REST});
+  const k=await draft(p,'muskler',{1:'styrke',2:'hvile',3:'hvile',4:'hvile',5:'hvile',6:'hvile',0:'hvile'});
+  const acc=await ev(p,k=>ui.pl.preview.sess[k].ex[1][0],k);await p.click(`[data-act=plexswap][data-key="${k}"][data-i="1"]`);await wait(p,150);
+  await p.click(`.alts [data-act=plexpick]:not([style])`);await wait(p,150);const acc2=await ev(p,k=>ui.pl.preview.sess[k].ex[1][0],k);ok(acc2!==acc,'hjælpeøvelse byttet');
+  const main=await ev(p,k=>ui.pl.preview.sess[k].main,k);await p.click(`[data-act=plexswap][data-key="${k}"][data-i="0"]`);await wait(p,150);
+  const to=await p.getAttribute('.alts [data-act=plexpick]:not([style])','data-v');await p.click('.alts [data-act=plexpick]:not([style])');await wait(p,150);
+  await p.click('[data-act=plexall]');await wait(p,150);
+  const r=await ev(p,()=>{const pv=ui.pl.preview;return pv.weeks.map(w=>pv.sess[w.days[0].key]).map(s=>s.main)});ok(r.every(m=>m===to),'alle mandage: '+r.join(','));ok(to!==main);
+  ok((await p.textContent('#main')).includes(to),'etiketten følger med');
+  await p.click('[data-act=placcept]');await wait(p);eq(await ev(p,()=>SESS[planDates().map(d=>dayOf(d).p)[0]].main),to,'gemt i planen');return p});
+T('Udkast: rediger fuld træning før accept',async()=>{const p=await app({plan:REST});
+  const k=await draft(p,'allround',{1:'crossfit',2:'hvile',3:'hvile',4:'hvile',5:'hvile',6:'hvile',0:'hvile'});
+  await p.click(`[data-act=plfwedit][data-key="${k}"]`);await wait(p,200);eq(await ev(p,()=>ui.view),'fw');ok(!(await p.$('[data-act=fwlog]')),'kan ikke logge et udkast');
+  const before=await ev(p,()=>JSON.stringify(fwW().c));await p.click('[data-act=fwnew]');await wait(p,150);const after=await ev(p,()=>JSON.stringify(fwW().c));ok(before!==after);
+  await p.click('[data-act=fwback]');await wait(p,200);eq(await ev(p,()=>[ui.view,ui.pl.step]),['plan','review']);
+  await p.click('[data-act=placcept]');await wait(p);eq(await ev(p,k=>JSON.stringify(state.planSess[k].w.c),k),after,'ændringen fulgte med');return p});
+T('Udkast: andet intervalformat',async()=>{const p=await app({plan:REST});
+  const k=await draft(p,'kondition',{1:'kondition',2:'hvile',3:'hvile',4:'hvile',5:'hvile',6:'hvile',0:'hvile'});
+  const a=await ev(p,k=>ui.pl.preview.sess[k].name,k);await p.click(`[data-act=plcondalt][data-key="${k}"]`);await wait(p,150);const b=await ev(p,k=>ui.pl.preview.sess[k].name,k);
+  ok(a!==b,a+' → '+b);ok((await p.textContent('#main')).includes(b));return p});
 /* ================= Data safety ================= */
 T('Automatiske kopier: én pr. dag, højst 5',async()=>{const p=await app({logs:[{id:'a',date:'2026-01-01',type:'styrke',sets:[]}]});
   const n=await ev(p,async()=>{const db=await snapDb(),tx=db.transaction('snaps','readwrite');['2026-01-01','2026-01-02','2026-01-03','2026-01-04','2026-01-05','2026-01-06'].forEach((d,i)=>tx.objectStore('snaps').put({date:d,t:i,n:1,data:'{}'},d));

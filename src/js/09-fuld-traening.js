@@ -73,7 +73,10 @@ const FW_A_MIN={45:8,60:10,75:12},FW_D_MIN={45:6,60:8,75:10};
 const FW_C_RANGE={45:{h:[8,12],l:[10,14]},60:{h:[10,15],l:[14,20]},75:{h:[15,20],l:[20,30]}};
 const FW_C_OK=[8,10,12,14,15,16,18,20,24,25,30];
 
-const fwW=()=>ui.fwKey?((state.planSess||{})[ui.fwKey]||{}).w:state.fw;
+/* Which full training is open: your free one (state.fw), a day's session in the calendar, or a session in a plan draft (ui.fwPrev) */
+const fwStore=()=>ui.fwPrev&&ui.pl&&ui.pl.preview?ui.pl.preview.sess:(state.planSess||{});
+const fwW=()=>ui.fwKey?(fwStore()[ui.fwKey]||{}).w:state.fw;
+function fwSetW(w){const k=ui.fwKey;if(ui.fwPrev)ui.pl.preview.sess[k]={...ui.pl.preview.sess[k],w};else{putSess(k,{...state.planSess[k],w});applySess()}}
 function fwEq(){return cfPrefs().udstyr||[]}
 function fwEqOk(eq){const U=fwEq();return eq==='Ingen udstyr'||!U.length||U.includes(eq)}
 function fwGenB(pat){
@@ -109,7 +112,7 @@ function fwSecHead(k,title,min){return `<div class="fw-h"><span class="fw-l">${k
 function fwAltList(kind,i,alts,label){return `<div class="alts">${alts.length?`<button data-act="fwpick" data-k="${kind}" data-i="${i}" data-v="${esc(label(fwPick(alts)))}" style="background:var(--pill);color:var(--pill-fg)">🎲 Tilfældig erstatning</button>`+alts.slice(0,12).map(a=>`<button data-act="fwpick" data-k="${kind}" data-i="${i}" data-v="${esc(label(a))}">${esc(kind==='c'?CF.navnVis(a):kind==='b'?a[1]:a[0])}</button>`).join(''):'<p class="hint">Ingen erstatninger med dit udstyr.</p>'}</div>`}
 function viewFW(){
   const w=fwW(),T=fwT(),P=cfPrefs(),all=cfUdstyrAlle(),have=P.udstyr||all,sw=ui.fwSwap;
-  const back=`<div class="habit-head"><button class="icon-btn" data-act="fwback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">${ui.fwKey?cap(niceDate(ui.fwDate))+(dayOf(ui.fwDate).p===ui.fwKey?' · fra din plan':''):'Opvarmning · styrke · WOD · bonus'}</p><h2 class="h2">Fuld træning</h2></div></div>`;
+  const back=`<div class="habit-head"><button class="icon-btn" data-act="fwback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">${ui.fwKey?cap(niceDate(ui.fwDate))+(ui.fwPrev?' · udkast til planen':dayOf(ui.fwDate).p===ui.fwKey?' · fra din plan':''):'Opvarmning · styrke · WOD · bonus'}</p><h2 class="h2">Fuld træning</h2></div></div>`;
   const opts=`<section class="card">
     ${ui.fwKey?`<p class="hint">Styrkedelen følger din plan. Bland og byt resten som du vil.</p>`:`<div class="field"><span>Tid i alt</span><div class="chips">${FW_TIMES.map(t=>`<button class="${T===t?'on':''}" data-act="fwtime" data-v="${t}">${t} min</button>`).join('')}</div></div>`}
     <div class="field"><span>Niveau</span><div class="chips">${['Begynder','Øvet','Avanceret'].map(n=>`<button class="${P.niveau===n?'on':''}" data-act="cfpref" data-k="niveau" data-v="${n}">${n}</button>`).join('')}</div></div>
@@ -141,9 +144,9 @@ function viewFW(){
   const L=ui.fwLog?`<section class="card"><h3 class="sec">Log træningen</h3>
     <label class="field"><span>Score i WOD'en</span><input id="fw-score" data-bind="fwLog.score" value="${esc(ui.fwLog.score)}" placeholder="Fx 12:34 eller 7 runder + 5"></label>
     <label class="field"><span>Note (valgfri)</span><input id="fw-note" data-bind="fwLog.note" value="${esc(ui.fwLog.note)}" placeholder="Fx vægt i styrke"></label>
-    <button class="btn accent" data-act="fwsave">Gem i log</button></section>`:`<button class="btn primary" data-act="fwlog">Log træningen</button>`;
+    <button class="btn accent" data-act="fwsave">Gem i log</button></section>`:ui.fwPrev?`<button class="btn accent" data-act="fwback">Færdig</button>`:`<button class="btn primary" data-act="fwlog">Log træningen</button>`;
   return back+opts+A+B+C+D+(ui.fwKey?'':`<button class="btn ghost" data-act="schopen" data-src="fw">📅 Læg i kalenderen</button>`)+L}
-function fwPlanName(w){const k=ui.fwKey;if(k&&state.planSess&&state.planSess[k]){state.planSess[k].name='Fuld træning · '+fwL(w.b.lift)[1];applySess()}}
+function fwPlanName(w){const k=ui.fwKey,S=fwStore();if(k&&S[k]){S[k].name='Fuld træning · '+fwL(w.b.lift)[1];if(!ui.fwPrev)applySess()}}
 function fwLines(){const w=fwW(),l=fwL(w.b.lift),p=fwC();
   return ['A) Opvarmning: '+[w.a.cardio,...w.a.gen,...w.a.spec].join(', '),'B) '+l[1]+': '+w.b.lines.join(' / '),'C) '+(p?p.overskrift+': '+p.linjer.join(' / '):''),...(w.d.length?['D) Bonus: '+w.d.join(', ')]:[])]}
 

@@ -544,6 +544,7 @@ b,strong{font-weight:600}
 .file-btn{position:relative;overflow:hidden;display:grid;place-items:center;cursor:pointer}.file-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .snap-row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;width:100%;padding:10px 0;border:0;border-top:1px solid var(--line);background:none;color:var(--text);font:inherit;text-align:left}
 .snap-row b{color:var(--accent);font-weight:600}.snap-row.armed b{color:var(--danger,#e5484d)}
+.pl-ex li{grid-template-columns:1fr auto auto}.pl-exb{display:flex;gap:6px}.pl-ex .alts{grid-column:1/-1}
 </style>
 </head>
 <body>
@@ -576,7 +577,7 @@ b,strong{font-weight:600}
 <div class="tour" id="tour" hidden></div>
 <div class="ac" id="ac" hidden></div>
 
-<script src="sw.js?v=5f892cf4"></script>
+<script src="sw.js?v=5779664c"></script>
 <script>
 /* Grundlag: datoer, programmer, sessionsbibliotek (SESS) og vaner. */
 const KEY='styrke-vo2-log.v1';
@@ -1309,7 +1310,10 @@ const FW_A_MIN={45:8,60:10,75:12},FW_D_MIN={45:6,60:8,75:10};
 const FW_C_RANGE={45:{h:[8,12],l:[10,14]},60:{h:[10,15],l:[14,20]},75:{h:[15,20],l:[20,30]}};
 const FW_C_OK=[8,10,12,14,15,16,18,20,24,25,30];
 
-const fwW=()=>ui.fwKey?((state.planSess||{})[ui.fwKey]||{}).w:state.fw;
+/* Which full training is open: your free one (state.fw), a day's session in the calendar, or a session in a plan draft (ui.fwPrev) */
+const fwStore=()=>ui.fwPrev&&ui.pl&&ui.pl.preview?ui.pl.preview.sess:(state.planSess||{});
+const fwW=()=>ui.fwKey?(fwStore()[ui.fwKey]||{}).w:state.fw;
+function fwSetW(w){const k=ui.fwKey;if(ui.fwPrev)ui.pl.preview.sess[k]={...ui.pl.preview.sess[k],w};else{putSess(k,{...state.planSess[k],w});applySess()}}
 function fwEq(){return cfPrefs().udstyr||[]}
 function fwEqOk(eq){const U=fwEq();return eq==='Ingen udstyr'||!U.length||U.includes(eq)}
 function fwGenB(pat){
@@ -1345,7 +1349,7 @@ function fwSecHead(k,title,min){return `<div class="fw-h"><span class="fw-l">${k
 function fwAltList(kind,i,alts,label){return `<div class="alts">${alts.length?`<button data-act="fwpick" data-k="${kind}" data-i="${i}" data-v="${esc(label(fwPick(alts)))}" style="background:var(--pill);color:var(--pill-fg)">🎲 Tilfældig erstatning</button>`+alts.slice(0,12).map(a=>`<button data-act="fwpick" data-k="${kind}" data-i="${i}" data-v="${esc(label(a))}">${esc(kind==='c'?CF.navnVis(a):kind==='b'?a[1]:a[0])}</button>`).join(''):'<p class="hint">Ingen erstatninger med dit udstyr.</p>'}</div>`}
 function viewFW(){
   const w=fwW(),T=fwT(),P=cfPrefs(),all=cfUdstyrAlle(),have=P.udstyr||all,sw=ui.fwSwap;
-  const back=`<div class="habit-head"><button class="icon-btn" data-act="fwback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">${ui.fwKey?cap(niceDate(ui.fwDate))+(dayOf(ui.fwDate).p===ui.fwKey?' · fra din plan':''):'Opvarmning · styrke · WOD · bonus'}</p><h2 class="h2">Fuld træning</h2></div></div>`;
+  const back=`<div class="habit-head"><button class="icon-btn" data-act="fwback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">${ui.fwKey?cap(niceDate(ui.fwDate))+(ui.fwPrev?' · udkast til planen':dayOf(ui.fwDate).p===ui.fwKey?' · fra din plan':''):'Opvarmning · styrke · WOD · bonus'}</p><h2 class="h2">Fuld træning</h2></div></div>`;
   const opts=`<section class="card">
     ${ui.fwKey?`<p class="hint">Styrkedelen følger din plan. Bland og byt resten som du vil.</p>`:`<div class="field"><span>Tid i alt</span><div class="chips">${FW_TIMES.map(t=>`<button class="${T===t?'on':''}" data-act="fwtime" data-v="${t}">${t} min</button>`).join('')}</div></div>`}
     <div class="field"><span>Niveau</span><div class="chips">${['Begynder','Øvet','Avanceret'].map(n=>`<button class="${P.niveau===n?'on':''}" data-act="cfpref" data-k="niveau" data-v="${n}">${n}</button>`).join('')}</div></div>
@@ -1377,9 +1381,9 @@ function viewFW(){
   const L=ui.fwLog?`<section class="card"><h3 class="sec">Log træningen</h3>
     <label class="field"><span>Score i WOD'en</span><input id="fw-score" data-bind="fwLog.score" value="${esc(ui.fwLog.score)}" placeholder="Fx 12:34 eller 7 runder + 5"></label>
     <label class="field"><span>Note (valgfri)</span><input id="fw-note" data-bind="fwLog.note" value="${esc(ui.fwLog.note)}" placeholder="Fx vægt i styrke"></label>
-    <button class="btn accent" data-act="fwsave">Gem i log</button></section>`:`<button class="btn primary" data-act="fwlog">Log træningen</button>`;
+    <button class="btn accent" data-act="fwsave">Gem i log</button></section>`:ui.fwPrev?`<button class="btn accent" data-act="fwback">Færdig</button>`:`<button class="btn primary" data-act="fwlog">Log træningen</button>`;
   return back+opts+A+B+C+D+(ui.fwKey?'':`<button class="btn ghost" data-act="schopen" data-src="fw">📅 Læg i kalenderen</button>`)+L}
-function fwPlanName(w){const k=ui.fwKey;if(k&&state.planSess&&state.planSess[k]){state.planSess[k].name='Fuld træning · '+fwL(w.b.lift)[1];applySess()}}
+function fwPlanName(w){const k=ui.fwKey,S=fwStore();if(k&&S[k]){S[k].name='Fuld træning · '+fwL(w.b.lift)[1];if(!ui.fwPrev)applySess()}}
 function fwLines(){const w=fwW(),l=fwL(w.b.lift),p=fwC();
   return ['A) Opvarmning: '+[w.a.cardio,...w.a.gen,...w.a.spec].join(', '),'B) '+l[1]+': '+w.b.lines.join(' / '),'C) '+(p?p.overskrift+': '+p.linjer.join(' / '):''),...(w.d.length?['D) Bonus: '+w.d.join(', ')]:[])]}
 
@@ -1557,7 +1561,7 @@ function plBuild(P){
       else if(t==='kondition'){cardioN++;const kond=P.goal==='kondition',i=Math.max(0,wi.i);
         if(wi.dl&&cardioN>1){key='R';label='Hvile (deload)'}
         else{const slot=(cardioN-1)%(kond?3:2),kind=wi.dl?'easy':slot===0?'hard':slot===1?'easy':'tempo';
-          const [k,ss]=condSess(kind,i,wi.w,cardioN-1,date);sess[k]=ss;key=k;label=ss.name}}
+          const [k,ss]=condSess(kind,i,wi.w,cardioN-1,date);ss.ck={kind,i,w:wi.w,slot:cardioN-1,alt:0};sess[k]=ss;key=k;label=ss.name}}
       else if(t==='restitution'){key='AR'+(1+(arN++%5));label=SESS[key].name}
       else if(t==='mobilitet'){key=(mobN++%2)?'BAL':'MOB';label=SESS[key].name}
       if(date>=TODAY)days[date]=key;wk.days.push({date,dow,t,key,label,past:date<TODAY})});
@@ -1580,14 +1584,28 @@ function plStop(){const done=new Set((state.logs||[]).map(l=>l.date));
 const plActive=()=>state.block&&state.block.end>=TODAY?state.block:null;
 function plWeekNo(){const b=plActive();if(!b)return 0;return Math.floor((pd(mondayOf(TODAY))-pd(b.start))/(7*864e5))+1}
 /* Full content of one day in the plan review */
+/* ---------- Editing the draft before you accept it ---------- */
+/* Day labels in the draft follow edits */
+function plRelabel(pv,key){const s=pv.sess[key];if(!s)return;pv.weeks.forEach(w=>w.days.forEach(x=>{if(x.key!==key)return;
+  if(s.fw&&s.w){const p=s.w.c?cfRebuild(s.w.c):null;x.label=`${fwL(s.w.b.lift)[1]} + ${p?p.overskrift:'WOD'}`}
+  else if(s.kind==='styrke'&&s.main&&x.label){const m=/^(.*?) ((?:\d+ × \d+|Test).*)$/.exec(x.label);x.label=m?`${s.main} ${m[2]}`:s.main}
+  else x.label=s.name}))}
+/* Exercises that can replace one in a strength session: same movement pattern, equipment you have, not already in the session */
+function plExAlts(s,i){const x=strFor(s.ex[i][0]),pat=x?x[3]:null;return STR_LIB.filter(y=>(pat?y[3]===pat:true)&&strOk(y)&&!s.ex.some(e=>e[0]===y[0]))}
+function plStrEdit(x,s){const P=ui.pl,sw=P.swap&&P.swap.key===x.key?P.swap.i:-1,ls=P.lastSwap&&P.lastSwap.key===x.key?P.lastSwap:null;
+  return `<ul class="ex pl-ex">${s.ex.map((e,i)=>{const main=s.pct&&s.main===e[0],k=main?kgFor(e[0],s.pct):null;return `<li><span class="exn">${esc(e[0])}</span><span class="exp num">${e[1]}×${e[2]}<small>${k?fnum(k)+' kg':main&&s.pct?s.pct+' %':e[3]+' i tanken'}</small></span>
+    <span class="pl-exb"><button class="restbtn swap" data-act="plexswap" data-key="${x.key}" data-i="${i}">${sw===i?'Luk':'Byt'}</button>${s.ex.length>2&&!main?`<button class="restbtn swap" data-act="plexdel" data-key="${x.key}" data-i="${i}" aria-label="Fjern ${esc(e[0])}">Fjern</button>`:''}</span>
+    ${sw===i?(()=>{const A=plExAlts(s,i);return `<div class="alts">${A.length?`<button data-act="plexpick" data-key="${x.key}" data-i="${i}" data-v="${esc(pickRand(A)[0])}" style="background:var(--pill);color:var(--pill-fg)">🎲 Tilfældig</button>`+A.slice(0,14).map(a=>`<button data-act="plexpick" data-key="${x.key}" data-i="${i}" data-v="${esc(a[0])}">${esc(a[0])}</button>`).join(''):'<p class="hint">Ingen andre øvelser til samme bevægelse med dit udstyr.</p>'}</div>`})():''}</li>`}).join('')}</ul>
+    ${ls?`<button class="btn ghost" data-act="plexall">Skift ${esc(ls.from)} til ${esc(ls.to)} alle ${DAYS[ls.dow]}e</button>`:''}`}
 function plDetail(x,pv){if(x.key==='R')return '';
   if(x.t==='crossfit'){const w=(pv.sess[x.key]||{}).w;if(!w)return '';const l=fwL(w.b.lift),p=w.c?cfRebuild(w.c):null;
-    return `<div class="pl-det"><p class="fw-sub">A) Opvarmning</p><p>${esc([w.a.cardio,...w.a.gen,...w.a.spec].join(' · '))}</p>
+    return `<div class="pl-det"><button class="btn ghost" data-act="plfwedit" data-key="${x.key}" data-date="${x.date}">Rediger træningen</button><p class="fw-sub">A) Opvarmning</p><p>${esc([w.a.cardio,...w.a.gen,...w.a.spec].join(' · '))}</p>
       <p class="fw-sub">B) ${esc(l[1])}</p>${w.b.lines.map(t=>`<p><b>${esc(t)}</b></p>`).join('')}
       ${p?`<p class="fw-sub">C) WOD</p>${cfWod(p)}`:''}
       ${w.d.length?`<p class="fw-sub">D) Bonus</p><p>${esc(w.d.join(' · '))}</p>`:''}</div>`}
   const s=pv.sess[x.key]||SESS[x.key];if(!s)return '';
-  return `<div class="pl-det"><p class="muted small">${esc(s.dur||'')}</p>${sessionBody(s,x.date)}${s.note?`<p class="note">${esc(s.note)}</p>`:''}</div>`}
+  if(s.kind==='styrke'&&s.ex&&pv.sess[x.key])return `<div class="pl-det"><p class="muted small">${esc(s.dur||'')}</p>${plStrEdit(x,s)}${s.note?`<p class="note">${esc(s.note)}</p>`:''}</div>`;
+  return `<div class="pl-det"><p class="muted small">${esc(s.dur||'')}</p>${s.ck?`<button class="btn ghost" data-act="plcondalt" data-key="${x.key}" data-date="${x.date}">🎲 Andet format</button>`:''}${sessionBody(s,x.date)}${s.note?`<p class="note">${esc(s.note)}</p>`:''}</div>`}
 /* Fanen Plan og planlæggerens spørgsmål ét ad gangen. */
 /* ---------- Planen: the plan for the coming month ---------- */
 function viewMonth(){const b=plActive(),wn=plWeekNo(),mon=mondayOf(TODAY);
@@ -2732,9 +2750,9 @@ document.addEventListener('click',e=>{
     case 'plstop':plStop();render();toast('Forløbet er stoppet og fjernet fra kalenderen');break;
     case 'fwopen':ui.fwDate=null;ui.fwKey=null;ui.fwSwap=null;ui.fwLog=null;if(!state.fw){state.fw=fwNew();save()}ui.view='fw';render(true);break;
     case 'fwday':ui.fwDate=b.dataset.date;ui.fwKey=sessKey(b.dataset.date);ui.fwSwap=null;ui.fwLog=null;ui.view='fw';render(true);break;
-    case 'fwback':ui.view=ui.fwKey?'today':'train';ui.fwKey=null;ui.fwDate=null;render(true);break;
+    case 'fwback':if(ui.fwPrev){plRelabel(ui.pl.preview,ui.fwKey);ui.fwPrev=false;ui.fwKey=null;ui.view='plan';render(true);break}ui.view=ui.fwKey?'today':'train';ui.fwKey=null;ui.fwDate=null;render(true);break;
     case 'fwtime':{state.fwT=+b.dataset.v;const w=fwW();if(w){w.T=state.fwT;w.c=fwGenC(w.b,w.T);w.d=fwGenD(w.b,w.T)}save();render();break}
-    case 'fwnew':{ui.fwSwap=null;if(ui.fwKey){const w=fwW();putSess(ui.fwKey,{...state.planSess[ui.fwKey],w:w?{...w,a:fwGenA(w.b),c:fwGenC(w.b,w.T),d:fwGenD(w.b,w.T)}:fwNew()});applySess()}else state.fw=fwNew();save();render();toast('Ny træning');break}
+    case 'fwnew':{ui.fwSwap=null;if(ui.fwKey){const w=fwW();fwSetW(w?{...w,a:fwGenA(w.b),c:fwGenC(w.b,w.T),d:fwGenD(w.b,w.T)}:fwNew())}else state.fw=fwNew();save();render();toast('Ny træning');break}
     case 'fwudstyr':ui.fwEq=!ui.fwEq;render();break;
     case 'fwroll':{const w=fwW(),k=b.dataset.s;ui.fwSwap=null;
       if(k==='a')w.a=fwGenA(w.b);else if(k==='b'){if(ui.fwKey){const al=fwAltsB();if(al.length){w.b={...w.b,lift:fwPick(al)[0]};fwPlanName(w)}}else{w.b=fwGenB();w.a=fwGenA(w.b,w.a)}}else if(k==='c'){const c=fwGenC(w.b,w.T);if(c)w.c=c;else toast('Ingen WOD passede til dit udstyr')}else if(k==='d')w.d=fwGenD(w.b,w.T);
@@ -2801,6 +2819,20 @@ document.addEventListener('click',e=>{
     {const bp=b.dataset.p==='blueprint';state.program=bp?'blueprint':'egen';state.plan=bp?{...BP_PLAN}:{...DEFAULT_PLAN};state.addons=bp?{...BP_ADDONS}:{};state.cycleStart=mondayOf(TODAY);save();render();toast(bp?'Blueprint-program valgt':'Standardplan valgt');break}
     case 'mobdone':{const k=b.dataset.key,d=b.dataset.date||TODAY,S=SESS[k];state.logs.push({id:Date.now().toString(36),date:d,type:'mobilitet',name:S.name,dur:S.min*60});save();render();toast('Gemt');break}
     case 'copy':doCopy();break;
+    case 'plfwedit':ui.fwPrev=true;ui.fwKey=b.dataset.key;ui.fwDate=b.dataset.date;ui.fwSwap=null;ui.fwLog=null;ui.view='fw';render(true);break;
+    case 'plexswap':{freezeTop();const P=ui.pl,k=b.dataset.key,i=+b.dataset.i;P.swap=P.swap&&P.swap.key===k&&P.swap.i===i?null:{key:k,i};render();break}
+    case 'plexpick':{freezeTop();const P=ui.pl,pv=P.preview,k=b.dataset.key,i=+b.dataset.i,to=b.dataset.v,s=pv.sess[k],from=s.ex[i][0],x=strFor(to);
+      const ex=s.ex.map(e=>e.slice());const main=s.main===from;ex[i]=main||!x?[to,ex[i][1],ex[i][2],ex[i][3]]:[to,ex[i][1],x[5],x[6]];
+      pv.sess[k]={...s,ex,...(main?{main:to,name:s.name.replace(from,to)}:{})};plRelabel(pv,k);
+      const day=pv.weeks.flatMap(w=>w.days).find(d=>d.key===k);P.swap=null;P.lastSwap={key:k,from,to,dow:day?day.dow:null,i};render();break}
+    case 'plexall':{freezeTop();const P=ui.pl,pv=P.preview,L=P.lastSwap;let n=0;
+      pv.weeks.forEach(w=>w.days.forEach(d=>{const s=pv.sess[d.key];if(d.dow!==L.dow||!s||!s.ex||d.past)return;const i=s.ex.findIndex(e=>e[0]===L.from);if(i<0)return;
+        const ex=s.ex.map(e=>e.slice()),x=strFor(L.to),main=s.main===L.from;ex[i]=main||!x?[L.to,ex[i][1],ex[i][2],ex[i][3]]:[L.to,ex[i][1],x[5],x[6]];
+        pv.sess[d.key]={...s,ex,...(main?{main:L.to,name:s.name.replace(L.from,L.to)}:{})};plRelabel(pv,d.key);n++}));
+      P.lastSwap=null;render();toast(`Skiftet på ${n} ${n===1?'dag':'dage'}`);break}
+    case 'plexdel':{freezeTop();const pv=ui.pl.preview,k=b.dataset.key,s=pv.sess[k],ex=s.ex.filter((_,j)=>j!==+b.dataset.i);pv.sess[k]={...s,ex};ui.pl.swap=null;render();break}
+    case 'plcondalt':{freezeTop();const pv=ui.pl.preview,k=b.dataset.key,s=pv.sess[k],c={...s.ck,alt:(s.ck.alt||0)+1};
+      const [,n]=condSess(c.kind,c.i,c.w+c.alt,c.slot,b.dataset.date);n.ck=c;pv.sess[k]=n;plRelabel(pv,k);render();break}
     case 'bkshare':shareBackup();break;
     case 'bksnooze':state.bkSnooze=addD(TODAY,3);save();render();break;
     case 'snaprestore':{const t=+b.dataset.t;if(ui.pendingSnap!==t){ui.pendingSnap=t;render();break}const x=(ui.snaps||[]).find(s=>s.t===t);ui.pendingSnap=null;

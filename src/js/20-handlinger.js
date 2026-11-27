@@ -198,9 +198,9 @@ document.addEventListener('click',e=>{
     case 'plstop':plStop();render();toast('Forløbet er stoppet og fjernet fra kalenderen');break;
     case 'fwopen':ui.fwDate=null;ui.fwKey=null;ui.fwSwap=null;ui.fwLog=null;if(!state.fw){state.fw=fwNew();save()}ui.view='fw';render(true);break;
     case 'fwday':ui.fwDate=b.dataset.date;ui.fwKey=sessKey(b.dataset.date);ui.fwSwap=null;ui.fwLog=null;ui.view='fw';render(true);break;
-    case 'fwback':ui.view=ui.fwKey?'today':'train';ui.fwKey=null;ui.fwDate=null;render(true);break;
+    case 'fwback':if(ui.fwPrev){plRelabel(ui.pl.preview,ui.fwKey);ui.fwPrev=false;ui.fwKey=null;ui.view='plan';render(true);break}ui.view=ui.fwKey?'today':'train';ui.fwKey=null;ui.fwDate=null;render(true);break;
     case 'fwtime':{state.fwT=+b.dataset.v;const w=fwW();if(w){w.T=state.fwT;w.c=fwGenC(w.b,w.T);w.d=fwGenD(w.b,w.T)}save();render();break}
-    case 'fwnew':{ui.fwSwap=null;if(ui.fwKey){const w=fwW();putSess(ui.fwKey,{...state.planSess[ui.fwKey],w:w?{...w,a:fwGenA(w.b),c:fwGenC(w.b,w.T),d:fwGenD(w.b,w.T)}:fwNew()});applySess()}else state.fw=fwNew();save();render();toast('Ny træning');break}
+    case 'fwnew':{ui.fwSwap=null;if(ui.fwKey){const w=fwW();fwSetW(w?{...w,a:fwGenA(w.b),c:fwGenC(w.b,w.T),d:fwGenD(w.b,w.T)}:fwNew())}else state.fw=fwNew();save();render();toast('Ny træning');break}
     case 'fwudstyr':ui.fwEq=!ui.fwEq;render();break;
     case 'fwroll':{const w=fwW(),k=b.dataset.s;ui.fwSwap=null;
       if(k==='a')w.a=fwGenA(w.b);else if(k==='b'){if(ui.fwKey){const al=fwAltsB();if(al.length){w.b={...w.b,lift:fwPick(al)[0]};fwPlanName(w)}}else{w.b=fwGenB();w.a=fwGenA(w.b,w.a)}}else if(k==='c'){const c=fwGenC(w.b,w.T);if(c)w.c=c;else toast('Ingen WOD passede til dit udstyr')}else if(k==='d')w.d=fwGenD(w.b,w.T);
@@ -267,6 +267,20 @@ document.addEventListener('click',e=>{
     {const bp=b.dataset.p==='blueprint';state.program=bp?'blueprint':'egen';state.plan=bp?{...BP_PLAN}:{...DEFAULT_PLAN};state.addons=bp?{...BP_ADDONS}:{};state.cycleStart=mondayOf(TODAY);save();render();toast(bp?'Blueprint-program valgt':'Standardplan valgt');break}
     case 'mobdone':{const k=b.dataset.key,d=b.dataset.date||TODAY,S=SESS[k];state.logs.push({id:Date.now().toString(36),date:d,type:'mobilitet',name:S.name,dur:S.min*60});save();render();toast('Gemt');break}
     case 'copy':doCopy();break;
+    case 'plfwedit':ui.fwPrev=true;ui.fwKey=b.dataset.key;ui.fwDate=b.dataset.date;ui.fwSwap=null;ui.fwLog=null;ui.view='fw';render(true);break;
+    case 'plexswap':{freezeTop();const P=ui.pl,k=b.dataset.key,i=+b.dataset.i;P.swap=P.swap&&P.swap.key===k&&P.swap.i===i?null:{key:k,i};render();break}
+    case 'plexpick':{freezeTop();const P=ui.pl,pv=P.preview,k=b.dataset.key,i=+b.dataset.i,to=b.dataset.v,s=pv.sess[k],from=s.ex[i][0],x=strFor(to);
+      const ex=s.ex.map(e=>e.slice());const main=s.main===from;ex[i]=main||!x?[to,ex[i][1],ex[i][2],ex[i][3]]:[to,ex[i][1],x[5],x[6]];
+      pv.sess[k]={...s,ex,...(main?{main:to,name:s.name.replace(from,to)}:{})};plRelabel(pv,k);
+      const day=pv.weeks.flatMap(w=>w.days).find(d=>d.key===k);P.swap=null;P.lastSwap={key:k,from,to,dow:day?day.dow:null,i};render();break}
+    case 'plexall':{freezeTop();const P=ui.pl,pv=P.preview,L=P.lastSwap;let n=0;
+      pv.weeks.forEach(w=>w.days.forEach(d=>{const s=pv.sess[d.key];if(d.dow!==L.dow||!s||!s.ex||d.past)return;const i=s.ex.findIndex(e=>e[0]===L.from);if(i<0)return;
+        const ex=s.ex.map(e=>e.slice()),x=strFor(L.to),main=s.main===L.from;ex[i]=main||!x?[L.to,ex[i][1],ex[i][2],ex[i][3]]:[L.to,ex[i][1],x[5],x[6]];
+        pv.sess[d.key]={...s,ex,...(main?{main:L.to,name:s.name.replace(L.from,L.to)}:{})};plRelabel(pv,d.key);n++}));
+      P.lastSwap=null;render();toast(`Skiftet på ${n} ${n===1?'dag':'dage'}`);break}
+    case 'plexdel':{freezeTop();const pv=ui.pl.preview,k=b.dataset.key,s=pv.sess[k],ex=s.ex.filter((_,j)=>j!==+b.dataset.i);pv.sess[k]={...s,ex};ui.pl.swap=null;render();break}
+    case 'plcondalt':{freezeTop();const pv=ui.pl.preview,k=b.dataset.key,s=pv.sess[k],c={...s.ck,alt:(s.ck.alt||0)+1};
+      const [,n]=condSess(c.kind,c.i,c.w+c.alt,c.slot,b.dataset.date);n.ck=c;pv.sess[k]=n;plRelabel(pv,k);render();break}
     case 'bkshare':shareBackup();break;
     case 'bksnooze':state.bkSnooze=addD(TODAY,3);save();render();break;
     case 'snaprestore':{const t=+b.dataset.t;if(ui.pendingSnap!==t){ui.pendingSnap=t;render();break}const x=(ui.snaps||[]).find(s=>s.t===t);ui.pendingSnap=null;

@@ -527,3 +527,4 @@ b,strong{font-weight:600}
 .file-btn{position:relative;overflow:hidden;display:grid;place-items:center;cursor:pointer}.file-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .snap-row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;width:100%;padding:10px 0;border:0;border-top:1px solid var(--line);background:none;color:var(--text);font:inherit;text-align:left}
 .snap-row b{color:var(--accent);font-weight:600}.snap-row.armed b{color:var(--danger,#e5484d)}
+.pl-ex li{grid-template-columns:1fr auto auto}.pl-exb{display:flex;gap:6px}.pl-ex .alts{grid-column:1/-1}

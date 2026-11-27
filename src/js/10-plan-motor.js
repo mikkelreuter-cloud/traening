@@ -172,7 +172,7 @@ function plBuild(P){
       else if(t==='kondition'){cardioN++;const kond=P.goal==='kondition',i=Math.max(0,wi.i);
         if(wi.dl&&cardioN>1){key='R';label='Hvile (deload)'}
         else{const slot=(cardioN-1)%(kond?3:2),kind=wi.dl?'easy':slot===0?'hard':slot===1?'easy':'tempo';
-          const [k,ss]=condSess(kind,i,wi.w,cardioN-1,date);sess[k]=ss;key=k;label=ss.name}}
+          const [k,ss]=condSess(kind,i,wi.w,cardioN-1,date);ss.ck={kind,i,w:wi.w,slot:cardioN-1,alt:0};sess[k]=ss;key=k;label=ss.name}}
       else if(t==='restitution'){key='AR'+(1+(arN++%5));label=SESS[key].name}
       else if(t==='mobilitet'){key=(mobN++%2)?'BAL':'MOB';label=SESS[key].name}
       if(date>=TODAY)days[date]=key;wk.days.push({date,dow,t,key,label,past:date<TODAY})});
@@ -195,11 +195,25 @@ function plStop(){const done=new Set((state.logs||[]).map(l=>l.date));
 const plActive=()=>state.block&&state.block.end>=TODAY?state.block:null;
 function plWeekNo(){const b=plActive();if(!b)return 0;return Math.floor((pd(mondayOf(TODAY))-pd(b.start))/(7*864e5))+1}
 /* Full content of one day in the plan review */
+/* ---------- Editing the draft before you accept it ---------- */
+/* Day labels in the draft follow edits */
+function plRelabel(pv,key){const s=pv.sess[key];if(!s)return;pv.weeks.forEach(w=>w.days.forEach(x=>{if(x.key!==key)return;
+  if(s.fw&&s.w){const p=s.w.c?cfRebuild(s.w.c):null;x.label=`${fwL(s.w.b.lift)[1]} + ${p?p.overskrift:'WOD'}`}
+  else if(s.kind==='styrke'&&s.main&&x.label){const m=/^(.*?) ((?:\d+ × \d+|Test).*)$/.exec(x.label);x.label=m?`${s.main} ${m[2]}`:s.main}
+  else x.label=s.name}))}
+/* Exercises that can replace one in a strength session: same movement pattern, equipment you have, not already in the session */
+function plExAlts(s,i){const x=strFor(s.ex[i][0]),pat=x?x[3]:null;return STR_LIB.filter(y=>(pat?y[3]===pat:true)&&strOk(y)&&!s.ex.some(e=>e[0]===y[0]))}
+function plStrEdit(x,s){const P=ui.pl,sw=P.swap&&P.swap.key===x.key?P.swap.i:-1,ls=P.lastSwap&&P.lastSwap.key===x.key?P.lastSwap:null;
+  return `<ul class="ex pl-ex">${s.ex.map((e,i)=>{const main=s.pct&&s.main===e[0],k=main?kgFor(e[0],s.pct):null;return `<li><span class="exn">${esc(e[0])}</span><span class="exp num">${e[1]}×${e[2]}<small>${k?fnum(k)+' kg':main&&s.pct?s.pct+' %':e[3]+' i tanken'}</small></span>
+    <span class="pl-exb"><button class="restbtn swap" data-act="plexswap" data-key="${x.key}" data-i="${i}">${sw===i?'Luk':'Byt'}</button>${s.ex.length>2&&!main?`<button class="restbtn swap" data-act="plexdel" data-key="${x.key}" data-i="${i}" aria-label="Fjern ${esc(e[0])}">Fjern</button>`:''}</span>
+    ${sw===i?(()=>{const A=plExAlts(s,i);return `<div class="alts">${A.length?`<button data-act="plexpick" data-key="${x.key}" data-i="${i}" data-v="${esc(pickRand(A)[0])}" style="background:var(--pill);color:var(--pill-fg)">🎲 Tilfældig</button>`+A.slice(0,14).map(a=>`<button data-act="plexpick" data-key="${x.key}" data-i="${i}" data-v="${esc(a[0])}">${esc(a[0])}</button>`).join(''):'<p class="hint">Ingen andre øvelser til samme bevægelse med dit udstyr.</p>'}</div>`})():''}</li>`}).join('')}</ul>
+    ${ls?`<button class="btn ghost" data-act="plexall">Skift ${esc(ls.from)} til ${esc(ls.to)} alle ${DAYS[ls.dow]}e</button>`:''}`}
 function plDetail(x,pv){if(x.key==='R')return '';
   if(x.t==='crossfit'){const w=(pv.sess[x.key]||{}).w;if(!w)return '';const l=fwL(w.b.lift),p=w.c?cfRebuild(w.c):null;
-    return `<div class="pl-det"><p class="fw-sub">A) Opvarmning</p><p>${esc([w.a.cardio,...w.a.gen,...w.a.spec].join(' · '))}</p>
+    return `<div class="pl-det"><button class="btn ghost" data-act="plfwedit" data-key="${x.key}" data-date="${x.date}">Rediger træningen</button><p class="fw-sub">A) Opvarmning</p><p>${esc([w.a.cardio,...w.a.gen,...w.a.spec].join(' · '))}</p>
       <p class="fw-sub">B) ${esc(l[1])}</p>${w.b.lines.map(t=>`<p><b>${esc(t)}</b></p>`).join('')}
       ${p?`<p class="fw-sub">C) WOD</p>${cfWod(p)}`:''}
       ${w.d.length?`<p class="fw-sub">D) Bonus</p><p>${esc(w.d.join(' · '))}</p>`:''}</div>`}
   const s=pv.sess[x.key]||SESS[x.key];if(!s)return '';
-  return `<div class="pl-det"><p class="muted small">${esc(s.dur||'')}</p>${sessionBody(s,x.date)}${s.note?`<p class="note">${esc(s.note)}</p>`:''}</div>`}
+  if(s.kind==='styrke'&&s.ex&&pv.sess[x.key])return `<div class="pl-det"><p class="muted small">${esc(s.dur||'')}</p>${plStrEdit(x,s)}${s.note?`<p class="note">${esc(s.note)}</p>`:''}</div>`;
+  return `<div class="pl-det"><p class="muted small">${esc(s.dur||'')}</p>${s.ck?`<button class="btn ghost" data-act="plcondalt" data-key="${x.key}" data-date="${x.date}">🎲 Andet format</button>`:''}${sessionBody(s,x.date)}${s.note?`<p class="note">${esc(s.note)}</p>`:''}</div>`}
