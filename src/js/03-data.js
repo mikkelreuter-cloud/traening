@@ -4,7 +4,7 @@ let storageOK=true;
 try{localStorage.setItem('__t','1');localStorage.removeItem('__t')}catch(e){storageOK=false}
 /* ---------- Saved data. Every field has one default here, and old data is upgraded step by step by its version number. ---------- */
 const SCHEMA=4;
-const FIELDS={logs:()=>[],plan:()=>({...DEFAULT_PLAN}),addons:()=>({}),lastBackup:()=>null,program:()=>'custom',cycleStart:()=>null,hrmax:()=>null,habitStart:()=>null,
+const FIELDS={logs:()=>[],plan:()=>({...DEFAULT_PLAN}),addons:()=>({}),lastBackup:()=>null,bkSnooze:()=>null,program:()=>'custom',cycleStart:()=>null,hrmax:()=>null,habitStart:()=>null,
   coldPre:()=>undefined,customHabits:()=>[],sessEdits:()=>({}),customSess:()=>({}),customPlan:()=>null,customAddons:()=>null,customDeload:()=>true,
   cfPrefs:()=>null,strUdstyr:()=>null,strGen:()=>null,fw:()=>null,seGen:()=>null,theme:()=>'auto',accent:()=>'orange',goals:()=>[],fwT:()=>60,
   block:()=>null,days:()=>({}),planSess:()=>({}),adapt:()=>({handled:{},since:TODAY,hist:[]}),vdots:()=>[],shifts:()=>[],
@@ -43,12 +43,29 @@ function upgradeDays(st,d){const days={},o=x=>isObj(x)?x:{},put=(dt,k,v)=>{(days
     const k='C'+dt.replace(/-/g,'');ps[k]={name:c.title||'CrossFit',kind:'crossfit',cf:c,min:c.min,dur:(c.min||20)+' min'};put(dt,'m',k)});
   st.days=days;st.planSess=ps}
 /* If saved data can't be read, nothing is overwritten: a copy is kept and saving stops until you choose what to do */
-let dataBroken=null;
+let dataBroken=null,freshStart=false;
 function load(){let raw=null;try{raw=localStorage.getItem(KEY)}catch(e){}
   const fresh={...Object.fromEntries(Object.entries(FIELDS).map(([k,f])=>[k,f()])),plan:{0:'R',1:'R',2:'R',3:'R',4:'R',5:'R',6:'R'},v:SCHEMA};
-  if(!raw)return fresh;
+  if(!raw){freshStart=true;return fresh}
   try{return normalize(JSON.parse(raw))}catch(e){dataBroken={raw,err:String(e&&e.message||e)};try{localStorage.setItem(KEY+'.kopi',raw)}catch(_){}return fresh}}
-function save(){if(dataBroken)return;try{localStorage.setItem(KEY,JSON.stringify(state));storageOK=true}catch(e){storageOK=false}}
+function save(){if(dataBroken)return;try{localStorage.setItem(KEY,JSON.stringify(state));storageOK=true}catch(e){storageOK=false}snapSoon()}
+/* ---------- Keeping your data safe ----------
+   1. Ask the browser never to clear the app's storage by itself (it may when the phone is low on space).
+   2. Automatic copies in a second store (IndexedDB): one per day, the last 5 days. Used if the main copy is damaged or gone.
+   3. Backups as a file you send to Drive, mail or Files (see shareBackup). */
+let persisted=null;
+function askPersist(){try{const S=navigator.storage;if(!S||!S.persist)return;S.persisted().then(p=>p||S.persist()).then(p=>{persisted=!!p}).catch(()=>{})}catch(e){}}
+const SNAP_N=5;
+function snapDb(){return new Promise((res,rej)=>{try{const r=indexedDB.open('styrke-vo2-kopier',1);r.onupgradeneeded=()=>r.result.createObjectStore('snaps');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}})}
+const idbReq=q=>new Promise(r=>{q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)});
+async function snapPut(){if(dataBroken||!state.onboarded||!state.logs.length)return;
+  try{const db=await snapDb(),tx=db.transaction('snaps','readwrite'),st=tx.objectStore('snaps');st.put({date:TODAY,t:Date.now(),n:state.logs.length,data:JSON.stringify(state)},TODAY);
+    const keys=(await idbReq(st.getAllKeys()))||[];keys.sort().slice(0,Math.max(0,keys.length-SNAP_N)).forEach(k=>st.delete(k));
+    await new Promise(r=>{tx.oncomplete=r;tx.onerror=r;tx.onabort=r});db.close()}catch(e){}}
+async function snapList(){try{const db=await snapDb(),all=(await idbReq(db.transaction('snaps').objectStore('snaps').getAll()))||[];db.close();return all.sort((a,b)=>b.t-a.t)}catch(e){return []}}
+let snapT=null;function snapSoon(){clearTimeout(snapT);snapT=setTimeout(snapPut,1500)}
+/* Put a saved copy back. Goes through normalize(), like any other saved data. */
+function restoreFrom(text){const d=JSON.parse(text);state={...normalize(d),onboarded:true};dataBroken=null;applySess();save()}
 let state=load();
 /* Your own sessions and edits to built-in ones live in state; SESS is rebuilt from the built-ins plus these */
 const SESS_BASE=JSON.parse(JSON.stringify(SESS));

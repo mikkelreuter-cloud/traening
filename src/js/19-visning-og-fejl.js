@@ -72,17 +72,25 @@ document.addEventListener('focusout',e=>{if(e.target===acFor)setTimeout(()=>{if(
 const EKEY='styrke-vo2-errors.v1';
 function logErr(e,where){const m=String(e&&(e.stack||e.message)||e).slice(0,600);try{const L=JSON.parse(localStorage.getItem(EKEY)||'[]');L.push({t:new Date().toISOString(),where,m});localStorage.setItem(EKEY,JSON.stringify(L.slice(-20)))}catch(_){}return m}
 function backupText(){return dataBroken?dataBroken.raw:JSON.stringify(state)}
-function downloadBackup(){try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([backupText()],{type:'application/json'}));a.download=`traening-backup-${TODAY}.json`;document.body.appendChild(a);a.click();a.remove()}catch(e){}}
+const backupName=()=>`traening-backup-${TODAY}.json`;
+function downloadBackup(){try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([backupText()],{type:'application/json'}));a.download=backupName();document.body.appendChild(a);a.click();a.remove()}catch(e){}}
+/* Backup as a file: the phone's share menu (Drive, mail, Files), or a download where sharing files isn't possible */
+async function shareBackup(){let shared=false;
+  try{const f=new File([backupText()],backupName(),{type:'application/json'});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'Træning · backup'});shared=true}}
+  catch(e){if(e&&e.name==='AbortError')return}
+  if(!shared)downloadBackup();if(!dataBroken){state.lastBackup=TODAY;state.bkSnooze=null;save()}render();toast('Backup gemt')}
 function showCrash(msg,broken){let el=document.getElementById('crash');if(!el){el=document.createElement('div');el.id='crash';document.body.appendChild(el)}
   el.innerHTML=`<div class="crash-box" role="alertdialog" aria-label="Noget gik galt"><h2>${broken?'Dine data kunne ikke læses':'Noget gik galt'}</h2>
     <p>${broken?'Appen har ikke ændret noget. Dine data er gemt som de var, og appen gemmer ikke, før du har valgt.':'Dine data er ikke rørt. Gem en backup for en sikkerheds skyld, og prøv igen.'}</p>
     <button class="btn accent" data-crash="dl">Gem backup som fil</button><button class="btn ghost" data-crash="copy">Kopiér backup</button>
     ${broken?'<button class="btn ghost" data-crash="reset">Start forfra (din kopi bliver liggende)</button>':'<button class="btn ghost" data-crash="go">Fortsæt</button><button class="btn ghost" data-crash="reload">Genindlæs appen</button>'}
-    <details><summary>Detaljer</summary><pre>${esc(msg)}</pre></details></div>`;el.hidden=false}
+    <div id="crash-snap"></div><details><summary>Detaljer</summary><pre>${esc(msg)}</pre></details></div>`;el.hidden=false;
+  if(broken)snapList().then(l=>{const s=l[0],box=document.getElementById('crash-snap');if(s&&box)box.innerHTML=`<button class="btn accent" data-crash="snap">Gendan automatisk kopi fra ${shortDate(s.date)} (${s.n} logs)</button>`})}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-crash]');if(!b)return;e.stopPropagation();const a=b.dataset.crash;
   if(a==='dl')downloadBackup();else if(a==='copy'){try{navigator.clipboard.writeText(backupText());toast('Backup kopieret')}catch(_){}}
   else if(a==='reload')location.reload();else if(a==='go'){$('#crash').hidden=true}
-  else if(a==='reset'){dataBroken=null;save();$('#crash').hidden=true;render(true)}},true);
+  else if(a==='reset'){dataBroken=null;save();$('#crash').hidden=true;render(true)}
+  else if(a==='snap')snapList().then(l=>{for(const s of l){try{restoreFrom(s.data);$('#crash').hidden=true;render(true);toast(`Gendannet fra ${shortDate(s.date)}`);return}catch(_){}}toast('Ingen brugbar kopi')})},true);
 let crashing=false;
 function onCrash(e,where){const m=logErr(e,where);if(crashing)return;crashing=true;setTimeout(()=>{crashing=false},500);showCrash(m,false)}
 addEventListener('error',e=>onCrash(e.error||e.message,'error'));

@@ -73,7 +73,7 @@ function viewProg(){
   ${sec('Kropsvægt',wHtml,'Vej dig en gang imellem og se udviklingen.','<button class="linkbtn" data-act="logvaegt">+ Log vægt</button>')}
   ${all.length?`<section><h3 class="sec">Historik</h3><div class="card">${all.slice(0,60).map(logItem).join('')}</div></section>`:''}`;
 }
-function viewSettings(){
+function viewSettings(){if(ui.snaps===undefined){ui.snaps=[];snapList().then(l=>{ui.snaps=l;if(ui.view==='settings')render()})}
   return `<div class="habit-head"><button class="icon-btn" data-act="setback" aria-label="Tilbage" data-back>‹</button><h2 class="h2">Indstillinger</h2></div>
   <section class="card"><h3 class="sec">Dig</h3>
     <label class="field"><span>Navn</span><input id="nm" value="${esc(state.name||'')}" placeholder="Dit navn"></label></section>
@@ -85,12 +85,17 @@ function viewSettings(){
     <p class="hint">Bruges til at vise dine pulszoner i intervaller og zone 2, så du ved hvor hårdt du skal arbejde. Kender du den ikke, så brug 208 − 0,7 × din alder.</p>
     ${state.hrmax?`<p class="hint num">Zone 2: ${hr(.6)}–${hr(.7)} · Intervaller: ${hr(.9)}–${hr(.95)}</p>`:''}</section>
   <section class="card"><h3 class="sec">Dine data</h3>
-    <p class="hint">Alt gemmes automatisk på telefonen. En backup skal du kun bruge, hvis du skifter telefon eller sletter appens data.</p>
-    <button class="restbtn" data-act="bktog">${ui.bk?'Skjul':'Flyt til en ny telefon'}</button>
+    <p class="hint">Alt gemmes automatisk på telefonen${persisted===true?', og browseren har lovet ikke at rydde det':persisted===false?'. Browseren kan rydde det, hvis telefonen mangler plads, så tag en backup jævnligt':''}. Appen gemmer også selv en kopi hver dag de seneste 5 dage.</p>
+    <p class="small">Sidste backup: <b>${state.lastBackup?shortDate(state.lastBackup):'aldrig'}</b></p>
+    <button class="btn accent" data-act="bkshare">Gem backup (Drive, mail, Filer)</button>
+    <label class="btn ghost file-btn">Gendan fra fil<input type="file" id="bk-file" accept=".json,application/json"></label>
+    ${ui.pendingRestore?`<button class="btn danger armed" data-act="restore">Tryk igen: erstat alle data med backuppen</button>`:''}
+    ${(ui.snaps||[]).length?`<div class="field"><span>Automatiske kopier</span>${ui.snaps.map(x=>`<button class="snap-row${ui.pendingSnap===x.t?' armed':''}" data-act="snaprestore" data-t="${x.t}"><span>${cap(niceDate(x.date))}</span><span class="muted small num">${x.n} logs</span><b>${ui.pendingSnap===x.t?'Tryk igen':'Gendan'}</b></button>`).join('')}</div>`:''}
+    <button class="restbtn" data-act="bktog">${ui.bk?'Skjul':'Backup som tekst'}</button>
     ${ui.bk?`<button class="btn ghost" data-act="copy">Kopiér backup</button>
     <textarea id="exp" readonly rows="3" hidden aria-label="Backup-tekst"></textarea>
-    <label class="field"><span>Gendan fra backup</span><textarea id="imp" rows="3" data-bind="impText" placeholder="Indsæt backup-tekst her">${esc(ui.impText)}</textarea></label>
-    <button class="btn ${ui.pendingRestore?'danger armed':'ghost'}" data-act="restore">${ui.pendingRestore?'Tryk igen: erstat alle data':'Gendan'}</button>`:''}</section>
+    <label class="field"><span>Gendan fra tekst</span><textarea id="imp" rows="3" data-bind="impText" placeholder="Indsæt backup-tekst her">${esc(ui.impText)}</textarea></label>
+    ${ui.pendingRestore?'':`<button class="btn ghost" data-act="restore">Gendan</button>`}`:''}</section>
   <section class="card"><h3 class="sec">Ny i appen?</h3><button class="btn ghost" data-act="tourshow">Vis rundvisning</button></section>
   <section class="card"><h3 class="sec">Nulstil</h3>
     <button class="btn danger${ui.pendingCal?' armed':''}" data-act="wipecal">${ui.pendingCal?'Tryk igen for at rydde kalenderen':'Ryd kalenderen'}</button>

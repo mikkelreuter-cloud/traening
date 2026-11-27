@@ -267,6 +267,11 @@ document.addEventListener('click',e=>{
     {const bp=b.dataset.p==='blueprint';state.program=bp?'blueprint':'egen';state.plan=bp?{...BP_PLAN}:{...DEFAULT_PLAN};state.addons=bp?{...BP_ADDONS}:{};state.cycleStart=mondayOf(TODAY);save();render();toast(bp?'Blueprint-program valgt':'Standardplan valgt');break}
     case 'mobdone':{const k=b.dataset.key,d=b.dataset.date||TODAY,S=SESS[k];state.logs.push({id:Date.now().toString(36),date:d,type:'mobilitet',name:S.name,dur:S.min*60});save();render();toast('Gemt');break}
     case 'copy':doCopy();break;
+    case 'bkshare':shareBackup();break;
+    case 'bksnooze':state.bkSnooze=addD(TODAY,3);save();render();break;
+    case 'snaprestore':{const t=+b.dataset.t;if(ui.pendingSnap!==t){ui.pendingSnap=t;render();break}const x=(ui.snaps||[]).find(s=>s.t===t);ui.pendingSnap=null;
+      try{restoreFrom(x.data);ui.snaps=undefined;render(true);toast(`Gendannet fra ${shortDate(x.date)}`)}catch(e){toast('Kopien kunne ikke læses')}break}
+    case 'snapfound':{const x=ui.foundSnap;ui.foundSnap=null;try{restoreFrom(x.data);ui.ob=null;ui.view='today';render(true);toast('Dine data er gendannet')}catch(e){toast('Kopien kunne ikke læses')}break}
     case 'restore':doRestore();break;
     case 'schopen':{const src=b.dataset.src,c={src,mode:'days',dates:[],month:TODAY.slice(0,7),dows:[pd(TODAY).getDay()],weeks:4,start:'this',how:'add',from:ui.view};
       if(src==='key')c.key=b.dataset.key;else if(src==='cf'){if(!ui.cf||!ui.cf.pas)break;c.cf=cfSerialize(ui.cf.pas)}else{const w=fwW();if(!w)break;c.fw=w}
@@ -308,6 +313,7 @@ document.addEventListener('input',e=>{
   if(t.dataset.bind){const path=t.dataset.bind.split('.'),o=path[0];let tgt=ui;for(let i=0;i<path.length-1;i++)tgt=tgt[path[i]];tgt[path[path.length-1]]=t.value;if(o!=='impText'&&o!=='cf')ui.dirty=true}
 });
 document.addEventListener('change',e=>{
+  if(e.target.id==='bk-file'){const f=e.target.files&&e.target.files[0];if(!f)return;f.text().then(t=>{ui.impText=t;ui.pendingRestore=false;doRestore()});return}
   const t=e.target;
   if(t.id==='f-date'){ui.logDate=t.value||TODAY;const key=sessKey(ui.logDate);
     if(ui.logType==='styrke'&&['A','B','C'].includes(key)&&key!==ui.sess){ui.sess=key;initRows(key)}
@@ -332,3 +338,6 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(timer&
 if(state.onboarded&&!state.cycleStart){delete state.needCycle;state.cycleStart=mondayOf(TODAY);save()}
 if(!state.habitStart){state.habitStart=mondayOf(TODAY);save()}
 render();
+askPersist();snapSoon();
+if(dataBroken)showCrash(dataBroken.err,true);
+else if(freshStart)snapList().then(l=>{if(l[0]){ui.foundSnap=l[0];render()}});

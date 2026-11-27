@@ -49,7 +49,10 @@ function viewToday(){
       <button class="restbtn" data-act="skipcancel">Annullér</button></div>`
       :`<button class="linkbtn" data-act="skipask">Ikke klar i dag?</button>`):''}
 `;
-  return `${adaptCard()}
+  const bkCard=backupDue&&!(state.bkSnooze&&state.bkSnooze>TODAY)?`<section class="card bk-card"><div class="row-between"><h3 class="sec">Tag en backup</h3><span class="muted small">${state.lastBackup?'Sidst '+shortDate(state.lastBackup):'Aldrig'}</span></div>
+    <p class="muted small">Dine ${state.logs.length} logs ligger kun på telefonen. Gem en kopi i Drive eller på mail. Det tager 2 sekunder.</p>
+    <div class="btns3" style="grid-template-columns:2fr 1fr"><button class="btn accent" data-act="bkshare">Gem backup</button><button class="btn ghost" data-act="bksnooze">Senere</button></div></section>`:'';
+  return `${adaptCard()}${bkCard}
   ${isDeload(TODAY)?`<p class="slim-note">↓ Deload-uge · halvt så mange sæt, samme vægt</p>`:plActive()&&plWeekNo()>0&&state.block.deloads.includes(plWeekNo()-1)?`<p class="slim-note">↓ Deload-uge i dit forløb · lettere pas, så kroppen kan nå at blive stærkere</p>`:''}
   <section class="card">
     <div class="row-between"><h3 class="sec">Denne uge</h3><span class="muted small num">${doneN} af ${planned.length} pas</span></div>

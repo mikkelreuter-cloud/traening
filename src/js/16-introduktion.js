@@ -20,7 +20,7 @@ const OB_KEY={styrke:'S',crossfit:'CF',kondition:'I4',restitution:'AR1',mobilite
 function viewOnboard(){
   const o=ui.ob||(obInit(),ui.ob);
   const top=t=>`<p class="eyebrow num">Trin ${o.step} af 3</p><h2 class="h2">${t}</h2>`;
-  if(o.step===1)return `${top('Velkommen')}<p class="note">Lad os sætte din træningsuge op. Det tager et minut.</p>
+  if(o.step===1)return `${top('Velkommen')}${ui.foundSnap?`<section class="card bk-card"><h3 class="sec">Vi fandt dine data</h3><p class="muted small">En automatisk kopi fra ${shortDate(ui.foundSnap.date)} med ${ui.foundSnap.n} logs.</p><button class="btn accent" data-act="snapfound">Gendan mine data</button></section>`:''}<p class="note">Lad os sætte din træningsuge op. Det tager et minut.</p>
     <section class="card"><label class="field"><span>Hvad hedder du?</span><input id="ob-name" data-bind="ob.name" value="${esc(o.name)}" placeholder="Dit navn"></label></section>
     <button class="btn accent" data-act="obnext">Videre</button>`;
   if(o.step===2)return `${top('Hvad vil du træne?')}
