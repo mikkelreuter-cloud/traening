@@ -528,3 +528,11 @@ b,strong{font-weight:600}
 .snap-row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;width:100%;padding:10px 0;border:0;border-top:1px solid var(--line);background:none;color:var(--text);font:inherit;text-align:left}
 .snap-row b{color:var(--accent);font-weight:600}.snap-row.armed b{color:var(--danger,#e5484d)}
 .pl-ex li{grid-template-columns:1fr auto auto}.pl-exb{display:flex;gap:6px}.pl-ex .alts{grid-column:1/-1}
+/* A question that floats above the tab bar like a notification, without moving the page */
+.notif{position:fixed;z-index:6;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));bottom:calc(96px + env(safe-area-inset-bottom,0px));max-width:380px;margin:0 auto;
+  display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:10px 10px 10px 16px;border-radius:20px;background:var(--card);color:var(--text);
+  box-shadow:0 10px 30px rgb(0 0 0 / .35),inset 0 0 0 1px var(--line);animation:notifIn .35s cubic-bezier(.2,.8,.2,1)}
+.notif b{font-size:15px;line-height:1.25}.notif .btn{min-height:40px;padding:0 18px;width:auto}
+.notif-x{border:0;background:none;color:var(--muted);font:inherit;font-size:14px;padding:8px 6px;cursor:pointer}
+@keyframes notifIn{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.notif{animation:none}}

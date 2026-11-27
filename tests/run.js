@@ -235,10 +235,10 @@ T('Allround blander styrke, kondition, CrossFit og mobilitet, CrossFit er sit eg
     return {types:[...types].sort(),names:[PL_GOALS.allround[0],PL_GOALS.hybrid[0]],built:pv.weeks[0].days.filter(d=>d.key!=='R').length}});
   ok(['crossfit','kondition','mobilitet','styrke'].every(t=>r.types.includes(t)),'typer: '+r.types);eq(r.names,['CrossFit','Allround']);ok(r.built>=5);return p});
 T('Uden plan spørger I dag, om man vil oprette en, og Ja åbner planlæggeren',async()=>{const p=await app();
-  await ev(p,()=>{ui.view='today';render(true)});ok(await p.isVisible('.plan-ask'),'spørgsmålet vises');
-  await p.click('.plan-ask [data-act=planasklater]');await wait(p,150);ok(!(await p.isVisible('.plan-ask')),'Ikke nu skjuler');eq(await ev(p,()=>state.planAsk===addD(TODAY,14)),true);
-  await ev(p,()=>{state.planAsk=null;render()});await p.click('.plan-ask [data-act=plopen]');await wait(p,300);eq(await ev(p,()=>[ui.view,ui.pl.step]),['plan','goal']);
-  await ev(p,()=>{ui.pl={...plStart(),goal:'kondition',weeks:4,start:'next'};ui.pl.preview=plBuild(ui.pl);plAccept();ui.view='today';render(true)});ok(!(await p.isVisible('.plan-ask')),'væk når en plan kører');return p});
+  await ev(p,()=>{ui.view='today';render(true)});ok(await p.isVisible('.notif'),'spørgsmålet vises');
+  await p.click('.notif [data-act=planasklater]');await wait(p,150);ok(!(await p.isVisible('.notif')),'Ikke nu skjuler');eq(await ev(p,()=>state.planAsk===addD(TODAY,14)),true);
+  await ev(p,()=>{state.planAsk=null;render()});await p.click('.notif [data-act=plopen]');await wait(p,300);eq(await ev(p,()=>[ui.view,ui.pl.step]),['plan','goal']);
+  await ev(p,()=>{ui.pl={...plStart(),goal:'kondition',weeks:4,start:'next'};ui.pl.preview=plBuild(ui.pl);plAccept();ui.view='today';render(true)});ok(!(await p.isVisible('.notif')),'væk når en plan kører');return p});
 /* ================= Editing the draft ================= */
 const draft=async(p,goal,types)=>ev(p,([goal,types])=>{ui.pl={...plStart(),goal,weeks:4,deload:false,types,start:'next'};ui.pl.preview=plBuild(ui.pl);ui.pl.step='review';ui.view='plan';render(true);
   const d=ui.pl.preview.weeks[0].days.find(x=>x.key!=='R');ui.pl.open=d.date;render();return d.key},[goal,types]);

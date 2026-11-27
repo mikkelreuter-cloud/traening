@@ -53,9 +53,7 @@ function viewToday(){
     <p class="muted small">Dine ${state.logs.length} logs ligger kun på telefonen. Gem en kopi i Drive eller på mail. Det tager 2 sekunder.</p>
     <div class="btns3" style="grid-template-columns:2fr 1fr"><button class="btn accent" data-act="bkshare">Gem backup</button><button class="btn ghost" data-act="bksnooze">Senere</button></div></section>`:'';
   // No plan running: offer to make one. "Ikke nu" hides the question for 14 days.
-  const planCard=!plActive()&&!(state.planAsk&&state.planAsk>TODAY)?`<section class="card plan-ask"><h3 class="sec">Vil du oprette en træningsplan?</h3>
-    <p class="muted small">Svar på et par spørgsmål, så lægger appen en plan for de næste uger mod dit mål.</p>
-    <div class="btns3" style="grid-template-columns:2fr 1fr"><button class="btn accent" data-act="plopen">Ja</button><button class="btn ghost" data-act="planasklater">Ikke nu</button></div></section>`:'';
+  const planCard=!plActive()&&!(state.planAsk&&state.planAsk>TODAY)?`<div class="notif" role="status"><b>Vil du oprette en træningsplan?</b><button class="btn accent" data-act="plopen">Ja</button><button class="notif-x" data-act="planasklater" aria-label="Ikke nu">Ikke nu</button></div>`:'';
   return `${adaptCard()}${planCard}${bkCard}
   ${isDeload(TODAY)?`<p class="slim-note">↓ Deload-uge · halvt så mange sæt, samme vægt</p>`:plActive()&&plWeekNo()>0&&state.block.deloads.includes(plWeekNo()-1)?`<p class="slim-note">↓ Deload-uge i dit forløb · lettere pas, så kroppen kan nå at blive stærkere</p>`:''}
   <section class="card">
