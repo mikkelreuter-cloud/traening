@@ -1,0 +1,41 @@
+<title>Styrke & VO₂ Log</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap">
+<style>
+{{STYLE}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="brand" id="hdr-hi">Hej Mikkel!</p>
+      <h1 class="hdate" id="hdr-date">I dag</h1>
+    </div>
+    <button class="icon-btn" data-act="settings" aria-label="Plan og data">
+      <svg viewBox="0 0 24 24"><path d="M4 7h9M18 7h2M4 17h4M13 17h7"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="10.5" cy="17" r="2.3"/></svg>
+    </button>
+  </header>
+  <main id="main"></main>
+</div>
+
+<nav class="tabs" aria-label="Sider">
+  <div class="in"><span class="tab-ind" aria-hidden="true"></span>
+    <button class="tab" data-act="view" data-view="today"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>I dag</button>
+    <button class="tab" data-act="view" data-view="train"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Pas</button>
+    <button class="tab" data-act="view" data-view="month"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Plan</button>
+    <button class="tab" data-act="view" data-view="prog"><svg viewBox="0 0 24 24"><path d="M5 20V12M10 20V6M15 20v-9M20 20V9"/></svg>Udvikling</button>
+  </div>
+</nav>
+<div class="restbar" id="restbar" hidden><span id="rest-t" class="num">Pause</span><button data-act="reststop">Stop</button></div>
+<div class="toast" id="toast" hidden></div>
+<button class="icon-btn gear-fixed" id="gear" data-act="settings" aria-label="Indstillinger" hidden><svg viewBox="0 0 24 24"><path d="M4 7h9M18 7h2M4 17h4M13 17h7"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="10.5" cy="17" r="2.3"/></svg></button>
+<div class="tour" id="tour" hidden></div>
+<div class="ac" id="ac" hidden></div>
+
+<script>
+{{ENGINE}}
+</script>
+<script>
+{{APP}}
+</script>

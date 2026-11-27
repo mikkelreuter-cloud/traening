@@ -211,6 +211,11 @@ T('Klik: rediger en planlagt fuld træning, ændringen bliver i passet',async()=
   await p.click('[data-act=fwday]');await wait(p,200);eq(await ev(p,()=>ui.fwKey),k);await p.click('[data-act=fwnew]');await wait(p,200);
   const after=await ev(p,k=>JSON.stringify(state.planSess[k].w.c),k);ok(after!==before,'ny WOD gemt i passet');
   await p.reload();await wait(p,200);eq(await ev(p,k=>JSON.stringify(state.planSess[k].w.c),k),after,'overlever genstart');return p});
+T('Service worker installerer og cacher med versionen fra byggeren',async()=>{const b=ctx.browser(),c2=await b.newContext();const p=await c2.newPage();p.errs=[];p.on('pageerror',e=>p.errs.push(e.message));
+  await p.goto(base+'/index.html');const v=(await p.evaluate(()=>document.querySelector('script[src^="sw.js"]').getAttribute('src'))).split('v=')[1];
+  const keys=await p.evaluate(async()=>{await navigator.serviceWorker.ready;for(let i=0;i<40;i++){const k=await caches.keys();if(k.length)return k;await new Promise(r=>setTimeout(r,100))}return []});
+  eq(keys,['traening-'+v]);ok(await p.evaluate(()=>!!window.CF&&typeof CF.byggePas==='function'),'motoren indlæst fra sw.js');
+  p.close=async()=>c2.close();return p});
 (async()=>{await new Promise(r=>srv.listen(0,r));base='http://localhost:'+srv.address().port;
   const b=await pw.chromium.launch();ctx=await b.newContext({...pw.devices['Pixel 7'],serviceWorkers:'block'});
   const only=process.argv[2];let pass=0,fail=0;const t0=Date.now();

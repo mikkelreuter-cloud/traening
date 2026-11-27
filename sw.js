@@ -1,15 +1,40 @@
-/* This file has two jobs.
-   In the app page (window exists) it loads the CrossFit engine (Passemotoren) as window.CF.
+/* Built from src/engine.js and src/sw-cache.js by tools/build.py. Do not edit by hand.
+   This file has two jobs. In the app page (window exists) it loads the CrossFit engine (Passemotoren) as window.CF.
    As the service worker (no window) it runs the offline cache. */
 if(typeof window!=='undefined'&&typeof document!=='undefined'){
+/* Passemotoren: rules and generator for CrossFit workouts (motor.js) */
 (function(){
+/* ===========================================================================
+   PASSEMOTOREN \u2014 regels\u00e6t og generator til CrossFit-pas
+   ---------------------------------------------------------------------------
+   Ren JavaScript, ingen afh\u00e6ngigheder. Kan bruges i browser eller Node.
+   Tre dele:  1) BEVAEGELSER   2) REGLER (h\u00e5rde + bl\u00f8de)   3) MOTOR
+   ======================================================================== */
+
+/* --- 1) BEV\u00c6GELSER --------------------------------------------------------
+   mv(id, navn, mod, pat, musk, tal, r, vaegt, enhed, udstyr, niveau, skal)
+
+   mod     M = monostrukturelt (motor), G = gymnastik (kropsv\u00e6gt), W = v\u00e6gt
+   pat     bev\u00e6gelsesm\u00f8nstre. To \u00f8velser med samme m\u00f8nster m\u00e5 ikke st\u00e5
+           i samme pas (regel H1). En \u00f8velse kan have flere:
+           push_v lodret pres \u00b7 push_h vandret pres \u00b7 pull_v lodret tr\u00e6k
+           pull_h vandret tr\u00e6k \u00b7 squat \u00b7 hinge (hofteled) \u00b7 core \u00b7 carry \u00b7 mono
+   musk    belastede muskelgrupper, vigtigste f\u00f8rst
+   tal     [skill 1-3, load 0-3, greb 0-2, midline 0-2, rate]
+           rate = reps (eller meter/kalorier) pr. minut i j\u00e6vnt metcon-tempo
+   r       [min, max] reps pr. runde i et typisk 3-delt pas p\u00e5 10-20 min.
+           Motoren skalerer selv op/ned efter tidsdom\u00e6ne og rundetid.
+-------------------------------------------------------------------------- */
+
 function mv(id, navn, mod, pat, musk, tal, r, vaegt, enhed, udstyr, niveau, skal) {
   return { id, navn, mod, pat, musk, skill: tal[0], load: tal[1], greb: tal[2],
     mid: tal[3], rate: tal[4], rMin: r[0], rMax: r[1],
     vaegt: vaegt || null, enhed: enhed || "reps", udstyr, niveau, skal };
 }
 var B = "Begynder", O = "\u00d8vet", A = "Avanceret";
+
 var BEVAEGELSER = [
+  /* --- Monostrukturelt ------------------------------------------------- */
   mv("loeb","l\u00f8b","M",["mono"],["lunger","quad","l\u00e6g"],[1,0,0,0,200],[150,400],null,"meter","Ingen udstyr",B,"halver distancen"),
   mv("sprint","sprint","M",["mono"],["quad","l\u00e6g","lunger"],[1,0,0,0,260],[100,200],null,"meter","Ingen udstyr",B,"halver distancen"),
   mv("row_m","row","M",["mono"],["lunger","ryg","quad"],[1,0,1,0,230],[200,500],null,"meter","Ro-maskine",B,"halver distancen"),
@@ -20,6 +45,8 @@ var BEVAEGELSER = [
   mv("su","single unders","M",["mono"],["l\u00e6g","lunger"],[1,0,0,0,110],[60,120],null,"reps","Sjippetov",B,"del i to s\u00e6t"),
   mv("burpee","burpees","M",["mono","push_h"],["lunger","bryst","quad"],[1,0,0,0,13],[8,15],null,"reps","Ingen udstyr",B,"step-up burpees"),
   mv("shuttle","shuttle runs (10 m frem og tilbage)","M",["mono"],["quad","lunger"],[1,0,0,0,10],[4,8],null,"reps","Ingen udstyr",B,"halver antallet"),
+
+  /* --- Gymnastik: pres ------------------------------------------------- */
   mv("pushup","push-ups","G",["push_h"],["bryst","triceps","skulder","core"],[1,0,0,1,20],[10,20],null,"reps","Ingen udstyr",B,"push-ups fra kn\u00e6"),
   mv("hrpushup","hand-release push-ups","G",["push_h"],["bryst","triceps","skulder"],[1,0,0,1,17],[10,18],null,"reps","Ingen udstyr",O,"fra kn\u00e6"),
   mv("ringpushup","ring push-ups","G",["push_h"],["bryst","triceps","core"],[2,0,1,1,14],[8,15],null,"reps","Ringe",O,"push-ups i gulvet"),
@@ -30,6 +57,8 @@ var BEVAEGELSER = [
   mv("boxdip","box dips","G",["push_v"],["triceps","skulder"],[1,0,0,0,18],[10,20],null,"reps","Kasse",B,"f\u00f8dderne t\u00e6ttere p\u00e5 kroppen"),
   mv("wallwalk","wall walks","G",["push_v","core"],["skulder","core","triceps"],[2,0,0,2,6],[3,6],null,"reps","Ingen udstyr",O,"inchworms"),
   mv("hs_hold","handstand hold","G",["push_v","core"],["skulder","core"],[2,0,0,2,60],[20,45],null,"sek","Ingen udstyr",O,"plank"),
+
+  /* --- Gymnastik: tr\u00e6k ------------------------------------------------- */
   mv("pullup","pull-ups","G",["pull_v"],["ryg","biceps","greb"],[2,0,1,0,16],[7,15],null,"reps","Pull-up bar",O,"ring rows"),
   mv("c2b","chest-to-bar pull-ups","G",["pull_v"],["ryg","biceps","greb"],[3,0,1,0,13],[6,12],null,"reps","Pull-up bar",A,"almindelige pull-ups"),
   mv("strict_pullup","strict pull-ups","G",["pull_v"],["ryg","biceps","greb"],[2,0,1,0,9],[4,9],null,"reps","Pull-up bar",A,"assisteret med elastik"),
@@ -41,6 +70,8 @@ var BEVAEGELSER = [
   mv("t2b","toes-to-bar","G",["core"],["core","greb","ryg"],[3,0,1,2,14],[8,15],null,"reps","Pull-up bar",A,"hanging knee raises"),
   mv("k2e","knees-to-elbows","G",["core"],["core","greb"],[2,0,1,2,16],[8,15],null,"reps","Pull-up bar",O,"hanging knee raises"),
   mv("hkr","hanging knee raises","G",["core"],["core","greb"],[1,0,1,1,20],[10,20],null,"reps","Pull-up bar",B,"liggende kn\u00e6l\u00f8ft"),
+
+  /* --- Ben / squat ----------------------------------------------------- */
   mv("airsquat","air squats","G",["squat"],["quad","bagk\u00e6de"],[1,0,0,0,30],[15,30],null,"reps","Ingen udstyr",B,"hold til en kasse"),
   mv("jumpsquat","jump squats","G",["squat"],["quad","l\u00e6g"],[1,0,0,0,22],[12,25],null,"reps","Ingen udstyr",O,"air squats"),
   mv("lunge","walking lunge steps","G",["squat"],["quad","bagk\u00e6de"],[1,0,0,0,22],[14,30],null,"reps","Ingen udstyr",B,"halver antallet"),
@@ -60,6 +91,8 @@ var BEVAEGELSER = [
   mv("kb_lunge","kettlebell front rack lunges 2 x 16/12 kg","W",["squat","carry"],["quad","core"],[2,2,1,1,16],[10,20],"2 x 16/12 kg","reps","Kettlebell",O,"2 x 12/8 kg"),
   mv("sb_squat","sands\u00e6k squats 23/16 kg","W",["squat"],["quad","core"],[1,2,0,1,18],[10,20],"23/16 kg","reps","Sands\u00e6k",B,"15/10 kg"),
   mv("ohlunge","overhead walking lunge 20/15 kg plade","W",["squat","push_v","carry"],["skulder","quad","core"],[2,2,1,2,25],[15,30],"20/15 kg","meter","V\u00e6gtstang",A,"uden plade"),
+
+  /* --- Hofteled / v\u00e6gtl\u00f8ftning ----------------------------------------- */
   mv("deadlift","deadlifts 102/70 kg","W",["hinge"],["bagk\u00e6de","greb","core"],[2,3,1,2,13],[6,12],"102/70 kg","reps","V\u00e6gtstang",O,"70/50 kg"),
   mv("deadlift_t","deadlifts 143/100 kg","W",["hinge"],["bagk\u00e6de","greb","core"],[2,3,2,2,8],[3,6],"143/100 kg","reps","V\u00e6gtstang",A,"100/70 kg"),
   mv("sdhp","sumo deadlift high pulls 43/30 kg","W",["hinge","pull_h"],["bagk\u00e6de","ryg","skulder"],[2,2,1,1,16],[9,18],"43/30 kg","reps","V\u00e6gtstang",O,"30/20 kg"),
@@ -78,6 +111,8 @@ var BEVAEGELSER = [
   mv("sb_gto","sands\u00e6k ground-to-overhead 23/16 kg","W",["hinge","push_v"],["bagk\u00e6de","skulder"],[2,2,1,1,11],[6,12],"23/16 kg","reps","Sands\u00e6k",O,"15/10 kg"),
   mv("mbclean","medicinbold cleans 9/6 kg","W",["hinge","squat"],["bagk\u00e6de","quad"],[2,1,0,1,16],[10,20],"9/6 kg","reps","Wall ball",B,"6/4 kg"),
   mv("devil","devil press 2 x 22,5/15 kg","W",["hinge","push_v","push_h"],["skulder","bagk\u00e6de","lunger"],[2,2,1,1,8],[4,10],"2 x 22,5/15 kg","reps","H\u00e5ndv\u00e6gte",A,"2 x 15/10 kg"),
+
+  /* --- Pres med v\u00e6gt --------------------------------------------------- */
   mv("press","shoulder press 43/30 kg","W",["push_v"],["skulder","triceps","core"],[1,2,0,1,13],[6,12],"43/30 kg","reps","V\u00e6gtstang",O,"30/20 kg"),
   mv("pushpress","push press 52/35 kg","W",["push_v"],["skulder","triceps","quad"],[2,2,0,1,15],[7,14],"52/35 kg","reps","V\u00e6gtstang",O,"40/27,5 kg"),
   mv("pushjerk","push jerks 61/43 kg","W",["push_v"],["skulder","quad","triceps"],[2,2,0,1,13],[6,12],"61/43 kg","reps","V\u00e6gtstang",O,"43/30 kg"),
@@ -86,6 +121,8 @@ var BEVAEGELSER = [
   mv("bench","dumbbell bench press 2 x 27,5/18 kg","W",["push_h"],["bryst","triceps"],[1,2,1,0,14],[8,15],"2 x 27,5/18 kg","reps","H\u00e5ndv\u00e6gte",O,"2 x 18/12 kg"),
   mv("bbrow","bent-over rows 52/35 kg","W",["pull_h"],["ryg","biceps","greb"],[1,2,1,1,14],[8,15],"52/35 kg","reps","V\u00e6gtstang",O,"40/27,5 kg"),
   mv("db_row","dumbbell rows pr. side 22,5/15 kg","W",["pull_h"],["ryg","biceps","greb"],[1,1,1,0,16],[8,15],"22,5/15 kg","reps","H\u00e5ndv\u00e6gte",B,"15/10 kg"),
+
+  /* --- Core ------------------------------------------------------------ */
   mv("situp","sit-ups","G",["core"],["core"],[1,0,0,1,25],[15,30],null,"reps","Ingen udstyr",B,"halver antallet"),
   mv("ghd","GHD sit-ups","G",["core"],["core","bagk\u00e6de"],[2,0,0,2,18],[10,20],null,"reps","GHD",A,"almindelige sit-ups"),
   mv("hollow","hollow rocks","G",["core"],["core"],[2,0,0,2,22],[12,25],null,"reps","Ingen udstyr",O,"knee tucks"),
@@ -95,6 +132,8 @@ var BEVAEGELSER = [
   mv("backext","back extensions","G",["core","hinge"],["bagk\u00e6de","core"],[1,0,0,1,22],[12,25],null,"reps","GHD",B,"supermans p\u00e5 gulvet"),
   mv("superman","supermans","G",["core","hinge"],["bagk\u00e6de","core"],[1,0,0,1,25],[15,25],null,"reps","Ingen udstyr",B,"hold kortere tid"),
   mv("lsit","L-sit hold","G",["core"],["core","greb"],[2,0,1,2,45],[15,35],null,"sek","Pull-up bar",O,"tuck sit"),
+
+  /* --- B\u00e6ring og sl\u00e6de ------------------------------------------------- */
   mv("farmer","farmer carry 2 x 24/16 kg","W",["carry"],["greb","core","bagk\u00e6de"],[1,2,2,1,60],[50,200],"2 x 24/16 kg","meter","Kettlebell",B,"2 x 16/12 kg"),
   mv("oh_carry","overhead carry 22,5/15 kg","W",["carry","push_v"],["skulder","core"],[2,2,1,2,50],[30,100],"22,5/15 kg","meter","H\u00e5ndv\u00e6gte",O,"15/10 kg"),
   mv("fr_carry","front rack carry 52/35 kg","W",["carry"],["core","skulder","quad"],[2,2,1,2,50],[30,100],"52/35 kg","meter","V\u00e6gtstang",O,"40/27,5 kg"),
@@ -103,6 +142,12 @@ var BEVAEGELSER = [
   mv("sled_pull","sl\u00e6detr\u00e6k","W",["carry","pull_h"],["ryg","bagk\u00e6de","greb"],[1,2,2,0,35],[20,60],null,"meter","Sl\u00e6de",B,"lettere sl\u00e6de"),
   mv("tgu","Turkish get-ups (halvdelen pr. side) 24/16 kg","W",["carry","core"],["skulder","core","greb"],[3,2,1,2,6],[4,10],"24/16 kg","reps","Kettlebell",A,"16/12 kg"),
 ];
+
+/* --- 2) REGLER -----------------------------------------------------------
+   H\u00e5rde regler (H) bruges af generatoren og kan ikke brydes.
+   Bl\u00f8de regler (S) er anbefalinger: de tjekkes og vises som advarsler.
+-------------------------------------------------------------------------- */
+
 var REGLER = [
   { id:"H1", type:"h\u00e5rd", navn:"Ingen gentagne bev\u00e6gelsesm\u00f8nstre",
     tekst:"To \u00f8velser i samme pas m\u00e5 ikke dele bev\u00e6gelsesm\u00f8nster. Push-ups og handstand push-ups er begge pres; den anden \u00f8velse d\u00f8r af den f\u00f8rste i stedet for at udfordre noget nyt.",
@@ -126,6 +171,7 @@ var REGLER = [
     tekst:"\u00d8velser over atletens niveau kommer ikke i passet. Muscle-ups i et begynderpas giver et pas hvor tiden g\u00e5r med at stirre p\u00e5 ringene." },
   { id:"H9", type:"h\u00e5rd", navn:"H\u00f8jst to \u00f8velser pr. muskelgruppe",
     tekst:"To \u00f8velser m\u00e5 gerne dele prim\u00e6r muskelgruppe, tre m\u00e5 ikke. Thrusters, box jumps og lunges er tre forskellige m\u00f8nstre, men det er stadig tre gange quadriceps." },
+
   { id:"S1", type:"bl\u00f8d", navn:"Par pres med tr\u00e6k",
     tekst:"Det mest robuste par er et pres og et tr\u00e6k: mens det ene arbejder, restituerer det andet. Fran (thrusters og pull-ups) og Diane (deadlift og handstand push-ups) er samme id\u00e9." },
   { id:"S2", type:"bl\u00f8d", navn:"Tripletten: motor, v\u00e6gt, kropsv\u00e6gt",
@@ -147,6 +193,9 @@ var REGLER = [
   { id:"S10", type:"bl\u00f8d", navn:"Skal\u00e9r stimulus, ikke tal",
     tekst:"N\u00e5r du skalerer, s\u00e5 bevar den tid passet var t\u00e6nkt til. Et pas p\u00e5 8 minutter der tager 20, er et andet pas \u2014 ret v\u00e6gten og reps indtil tiden passer." },
 ];
+
+/* --- 3) MOTOR ------------------------------------------------------------ */
+
 var NIVEAU_RANG = { "Begynder":0, "\u00d8vet":1, "Avanceret":2 };
 var DOMAENER = [
   { id:"kort",   navn:"Under 8 min",  min:4,  max:8,  rundeSek:[50,80],   slots:[2,3] },
@@ -158,6 +207,7 @@ function domaeneFor(min) {
   for (var i = 0; i < DOMAENER.length; i++) if (min <= DOMAENER[i].max) return DOMAENER[i];
   return DOMAENER[DOMAENER.length - 1];
 }
+
 var FORMATER = [
   { id:"amrap",    navn:"AMRAP",                  score:"Runder + reps",  domaener:["kort","mellem","lang","ultra"] },
   { id:"rft",      navn:"Runder for tid",          score:"Samlet tid",     domaener:["kort","mellem","lang"] },
@@ -181,10 +231,14 @@ function slotInterval(fmtId, dom) {
     case "stige_op":  return [2, 3];
     case "chipper":   return [4, 8];
     case "exmom":     return [2, 4];
+    // AMRAP og runder for tid: standardvalget f\u00f8lger tidsdom\u00e6net, men beder du udtrykkeligt
+    // om flere \u00f8velser, f\u00e5r du dem \u2014 S8 advarer s\u00e5 i stedet for at n\u00e6gte.
     default:          return [2, 6];
   }
 }
 function formatFor(id) { for (var i=0;i<FORMATER.length;i++) if (FORMATER[i].id===id) return FORMATER[i]; return null; }
+
+/* ---- H\u00e5rde regler som kontrolfunktioner ---- */
 function delerMoenster(a, b) {
   for (var i = 0; i < a.pat.length; i++) if (b.pat.indexOf(a.pat[i]) >= 0) return a.pat[i];
   return null;
@@ -233,6 +287,8 @@ function alternativer(valgte, iSlot, rolle, opt) {
     return lovligIPas(m, andre, opt) === null;
   });
 }
+
+/* ---- Roller: hvad en plads i passet skal udfylde ---- */
 var ROLLER = {
   mono:      function(m){ return m.pat.indexOf("mono") >= 0; },
   vaegt:     function(m){ return m.mod === "W" && m.pat.indexOf("carry") < 0; },
@@ -247,6 +303,8 @@ var ROLLER = {
   hvadsomhelst: function(){ return true; },
 };
 function passerRolle(m, rolle) { var f = ROLLER[rolle]; return f ? f(m) : true; }
+
+/* ---- Skabeloner: rollekombinationer der virker ---- */
 var SKABELONER = [
   { roller:["pres","traek"],            navn:"Pres + tr\u00e6k",                 regler:["S1"] },
   { roller:["hofte","traek"],           navn:"Hofteled + tr\u00e6k",             regler:["S1"] },
@@ -276,6 +334,8 @@ var SKABELONER = [
   { roller:["mono","pres","traek","ben","hofte","core"],  navn:"Seks pladser: motor, pres, tr\u00e6k, ben, hofteled, midline", regler:["S1","S2"] },
   { roller:["mono","pres","traek","ben","core","baering"],navn:"Seks pladser: motor, pres, tr\u00e6k, ben, midline, b\u00e6ring",   regler:["S1","S2"] },
 ];
+
+/* ---- Rep-matematik ---- */
 function p\u00e6ntTal(n, rate) {
   if (n <= 6) return Math.max(1, Math.round(n));
   if (n <= 12) return Math.round(n);
@@ -283,7 +343,9 @@ function p\u00e6ntTal(n, rate) {
   return Math.round(n / 5) * 5;
 }
 function sekFor(m, antal) { return (antal / m.rate) * 60; }
+
 function s\u00e6tReps(movs, maalRundeSek) {
+  // Start midt i hver \u00f8velses interval, skal\u00e9r s\u00e5 runden rammer m\u00e5ltiden.
   var reps = movs.map(function(m){ return (m.rMin + m.rMax) / 2; });
   for (var runde = 0; runde < 14; runde++) {
     var sek = 0;
@@ -299,6 +361,8 @@ function s\u00e6tReps(movs, maalRundeSek) {
 function rundeSek(movs, reps) {
   var s = 0; for (var i = 0; i < movs.length; i++) s += sekFor(movs[i], reps[i]) + 5; return s;
 }
+
+/* ---- Udv\u00e6lgelse ---- */
 function vaelgSkabelon(rng, dom, fmt, antalSlots) {
   var kand = SKABELONER.filter(function(s) {
     if (antalSlots) { if (s.roller.length !== antalSlots) return false; }
@@ -326,6 +390,8 @@ function fyldSkabelon(rng, skab, opt) {
   }
   return valgte;
 }
+
+/* ---- R\u00e6kkef\u00f8lge (S5, S6) ---- */
 function sorterRaekkefoelge(movs, reps, fmtId) {
   var par = movs.map(function(m, i){ return { m:m, r:reps[i] }; });
   var monoFoerst = (fmtId === "rft" || fmtId === "interval" || fmtId === "stige_op");
@@ -337,7 +403,10 @@ function sorterRaekkefoelge(movs, reps, fmtId) {
   });
   return { movs: par.map(function(p){return p.m;}), reps: par.map(function(p){return p.r;}) };
 }
+
+/* ---- Formatspecifik opbygning ---- */
 var REP_SKEMAER = { ned:["21-15-9","15-12-9","27-21-15-9","21-18-15-12-9","12-9-6-3","30-20-10"] };
+
 function prng(seed) {
   var s = seed >>> 0;
   return function() { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
@@ -386,6 +455,7 @@ function byggePas(opt) {
   var oensket = opt.antal ? Math.min(graense[1], Math.max(graense[0], opt.antal)) : 0;
   if (fmt.id === "tabata") oensket = 0;
   if (fmt.id === "emom" && oensket && minutter % oensket) oensket = 0;
+
   for (var forsoeg = 0; forsoeg < 160; forsoeg++) {
     var slots = oensket;
     if (!slots) {   // intet \u00f8nske: formatets eget standardvalg
@@ -396,6 +466,7 @@ function byggePas(opt) {
       else if (fmt.id === "tabata") slots = Math.max(1, Math.min(4, Math.round((minutter + 1) / 5)));
       else if (fmt.id === "interval") slots = 2;
     }
+    // Over fire pladser og i de frit sammensatte formater v\u00e6lger vi \u00f8velser direkte
     if (fmt.id === "emom") { var pl = emomPlan(minutter, oensket, rng, opt.hvile); slots = pl.n; o.emomHvile = pl.hvile; }
     var frit = (fmt.id === "chipper" || fmt.id === "doedved" || fmt.id === "tabata" ||
                 fmt.id === "emom" || fmt.id === "interval" || (slots && slots > 6));
@@ -433,9 +504,11 @@ function byggePas(opt) {
   }
   return null;
 }
+
 var ROLLE_PRIORITET = ["mono","pres","traek","ben","hofte","core","baering"];
 function frieSlots(rng, n, o, fmt) {
   var valgte = [];
+  // Fordel pladserne over s\u00e5 mange forskellige roller som muligt (variation uden regelbrud)
   var roller = [];
   for (var k = 0; k < n; k++) roller.push(ROLLE_PRIORITET[k % ROLLE_PRIORITET.length]);
   if (n <= 2) roller = null;
@@ -459,6 +532,7 @@ function frieSlots(rng, n, o, fmt) {
   }
   return valgte;
 }
+
 function tjekAlle(movs, o) {
   var brud = [];
   for (var i = 0; i < movs.length; i++) {
@@ -468,12 +542,14 @@ function tjekAlle(movs, o) {
   }
   return brud;
 }
+
 function linje(m, antal) {
   if (m.enhed === "meter")    return antal + " m " + m.navn;
   if (m.enhed === "kalorier") return antal + " kalorier " + m.navn;
   if (m.enhed === "sek")      return antal + " sek " + m.navn;
   return antal + " " + m.navn;
 }
+
 function linjerFor(fmt, movs, reps, ekstra) {
   ekstra = ekstra || {};
   if (fmt.id === "stige_ned" || fmt.id === "stige_op") {
@@ -504,10 +580,12 @@ function linjerFor(fmt, movs, reps, ekstra) {
   }
   return movs.map(function(m, i){ return linje(m, reps[i]); });
 }
+
 function formater(fmt, dom, minutter, movs, o, rng) {
   var top_ = null;
   var maalRunde = dom.rundeSek[0] + rng() * (dom.rundeSek[1] - dom.rundeSek[0]);
   var reps, sorteret, skema = null, runder = null, intervalSek = null, overskrift = "", strategi = "", linjer = [];
+
   if (fmt.id === "amrap") {
     reps = s\u00e6tReps(movs, maalRunde);
     sorteret = sorterRaekkefoelge(movs, reps, fmt.id); movs = sorteret.movs; reps = sorteret.reps;
@@ -581,8 +659,10 @@ function formater(fmt, dom, minutter, movs, o, rng) {
     overskrift = "Stigende EMOM (d\u00f8d ved)";
     strategi = "Minut 1 er \u00e9n rep, minut 2 er to, og s\u00e5 videre indtil du ikke kan gennemf\u00f8re minuttet.";
   }
+
   var ekstra = { skema: skema, top: top_, minutter: minutter, hvile: fmt.id === "emom" && !!o.emomHvile };
   linjer = linjerFor(fmt, movs, reps, ekstra);
+
   return {
     format: fmt, overskrift: overskrift, skema: skema, minutter: minutter, domaene: dom,
     movs: movs, reps: reps, runder: runder, linjer: linjer, score: fmt.score, top: top_,
@@ -600,6 +680,8 @@ function navnVis(m) {
   return m.navn;
 }
 function unik(a) { return a.filter(function(v, i){ return a.indexOf(v) === i; }); }
+
+/* ---- Hvilke bl\u00f8de regler passet rammer ---- */
 function opfyldteRegler(movs, fmt, reps) {
   var ud = [];
   var harPres = movs.some(ROLLER.pres), harTraek = movs.some(ROLLER.traek);
@@ -630,17 +712,19 @@ function opfyldteRegler(movs, fmt, reps) {
   }
   return ud;
 }
+
 if (typeof module !== "undefined") {
   module.exports = { BEVAEGELSER:BEVAEGELSER, REGLER:REGLER, FORMATER:FORMATER, DOMAENER:DOMAENER,
     SKABELONER:SKABELONER, ROLLER:ROLLER, byggePas:byggePas, alternativer:alternativer,
     lovligIPas:lovligIPas, tjekAlle:tjekAlle, formatTilladt:formatTilladt, s\u00e6tReps:s\u00e6tReps, rundeSek:rundeSek,
     sorterRaekkefoelge:sorterRaekkefoelge, formater:formater, prng:prng, formatFor:formatFor, domaeneFor:domaeneFor, linje:linje, navnVis:navnVis, opfyldteRegler:opfyldteRegler, linjerFor:linjerFor, slotInterval:slotInterval };
 }
+
 window.CF={byggePas,alternativer,formater,prng,formatFor,domaeneFor,FORMATER,DOMAENER,BEVAEGELSER,REGLER,slotInterval,navnVis,formatTilladt};
 })();
 }else{
 // Offline cache: the app shell is cached on install; pages are network-first so updates arrive, fonts are cache-first.
-const CACHE='traening-v19';
+const CACHE='traening-dd2ecbc6';
 const SHELL=['./','./index.html','./sw.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});

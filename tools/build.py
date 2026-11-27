@@ -1,12 +1,30 @@
-"""Build index.html from src/app.html.
-src/app.html is the whole app in one file (the published artifact uses it as is).
-For the installed app, the inline training engine is replaced by sw.js, which is both the
-service worker and the engine, so the engine and its offline cache always match."""
-import os,re,sys
+"""Builds the app from src/.
+
+src/shell.html       page markup with {{STYLE}}, {{ENGINE}} and {{APP}}
+src/style.css        all styles
+src/engine.js        Passemotoren (CrossFit engine)
+src/js/NN-*.js       the app, in order. They share one scope: the files are joined into one script.
+src/sw-cache.js      offline cache for the service worker
+
+Output:
+dist/app.html  one self-contained file (used for the published preview, the code check and as a reference)
+index.html     the installed app. The engine is loaded from sw.js instead of inline.
+sw.js          service worker + engine in one file (same file, two jobs), so they always match.
+The cache version is a hash of the content, so every change reaches phones without bumping a number by hand."""
+import os,glob,hashlib,re
 root=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-s=open(os.path.join(root,'src/app.html')).read()
-ver=re.search(r"CACHE='traening-v(\d+)'",open(os.path.join(root,'sw.js')).read()).group(1)
-s=s.replace('<meta name="claude:viewport-fit-sides" content="cover">\n','',1)
+R=lambda p:open(os.path.join(root,p),encoding='utf-8').read()
+def W(p,s):
+    p=os.path.join(root,p);os.makedirs(os.path.dirname(p),exist_ok=True);open(p,'w',encoding='utf-8').write(s)
+mods=sorted(glob.glob(os.path.join(root,'src/js/*.js')))
+app=''.join(open(m,encoding='utf-8').read() for m in mods)
+engine=R('src/engine.js')
+single=R('src/shell.html').replace('{{STYLE}}\n',R('src/style.css'),1).replace('{{ENGINE}}\n',engine,1).replace('{{APP}}\n',app,1)
+W('dist/app.html',single)
+ver=hashlib.sha1((single+R('src/sw-cache.js')).encode()).hexdigest()[:8]
+
+# Installed app page
+s=single.replace('<meta name="claude:viewport-fit-sides" content="cover">\n','',1)
 head='''<!doctype html>
 <html lang="da">
 <head>
@@ -28,6 +46,13 @@ s=head+s[:i]+'\n</head>\n<body>\n'+s[i:].rstrip()+'''
 </html>
 '''
 a=s.index('<script>\n/* Passemotoren');b=s.index('</script>',a)+len('</script>')
-s=s[:a]+f'<script src="sw.js?v={ver}"></script>'+s[b:]
-open(os.path.join(root,'index.html'),'w').write(s)
-print(f'index.html bygget (motor v{ver}, {len(s)//1024} kB)')
+W('index.html',s[:a]+f'<script src="sw.js?v={ver}"></script>'+s[b:])
+
+# Service worker + engine. Non-ASCII is written as \\u escapes, so the file works whatever charset it is served with.
+esc=lambda t:''.join(c if ord(c)<128 else ''.join('\\u%04x'%u for u in (lambda b:[int.from_bytes(b[k:k+2],'big') for k in range(0,len(b),2)])(c.encode('utf-16-be'))) for c in t)
+sw=('/* Built from src/engine.js and src/sw-cache.js by tools/build.py. Do not edit by hand.\n'
+    '   This file has two jobs. In the app page (window exists) it loads the CrossFit engine (Passemotoren) as window.CF.\n'
+    '   As the service worker (no window) it runs the offline cache. */\n'
+    "if(typeof window!=='undefined'&&typeof document!=='undefined'){\n"+esc(engine)+'}else{\n'+esc(R('src/sw-cache.js').replace('__CACHE__','traening-'+ver))+'}\n')
+W('sw.js',sw)
+print(f'Bygget: dist/app.html, index.html, sw.js (version {ver}, {len(mods)} moduler)')

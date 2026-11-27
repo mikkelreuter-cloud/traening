@@ -573,8 +573,9 @@ b,strong{font-weight:600}
 <div class="tour" id="tour" hidden></div>
 <div class="ac" id="ac" hidden></div>
 
-<script src="sw.js?v=19"></script>
+<script src="sw.js?v=dd2ecbc6"></script>
 <script>
+/* Grundlag: datoer, programmer, sessionsbibliotek (SESS) og vaner. */
 const KEY='styrke-vo2-log.v1';
 const DAYS=['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'];
 const MONTHS=['januar','februar','marts','april','maj','juni','juli','august','september','oktober','november','december'];
@@ -661,6 +662,7 @@ function habitStreak(id){let n=0,d=pd(TODAY);if(!habitDone(id,TODAY))d.setDate(d
 function habitTargetText(h,d){if(h.id==='tak')return 'Skriv 3 ting som om de er sket';if(h.check)return 'Afkryds når den er gjort';const t=h.target(hw(h,d||TODAY));return h.id==='kulde'||t<60||t%60?fmtTime(t):Math.round(t/60)+' min'}
 const BP_GOALS={total:360,z2:150,vig:75,str:3,mob:45};
 
+/* Hjælpere: formatering, tid, og dine tal (beregnet max og kg ud fra %). */
 /* ---------- helpers ---------- */
 const $=s=>document.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
@@ -692,6 +694,7 @@ const shortDate=s=>{const d=pd(s);return `${d.getDate()}/${d.getMonth()+1}`};
 const fmtVal=(v,u)=>u==='tid'?fmtTime(v):fnum(v,2)+' '+u;
 const chip=(k,label)=>`<span class="chip k-${k}"><i></i>${label}</span>`;
 
+/* Gemte data: felter og standardværdier, opgradering (SCHEMA), load/save og sammensætning af pas. */
 /* ---------- storage ---------- */
 let storageOK=true;
 try{localStorage.setItem('__t','1');localStorage.removeItem('__t')}catch(e){storageOK=false}
@@ -759,6 +762,7 @@ function applyLook(){const r=document.documentElement;if(state.theme==='dark'||s
 applyLook();
 const customKeys=kind=>Object.keys(state.customSess||{}).filter(k=>state.customSess[k].kind===kind);
 
+/* Kalenderen: hvilket pas der ligger på en dag (days), ændringer af dagene, ugestatistik og vægtforslag. */
 /* ---------- data queries ---------- */
 const mondayOf=s=>weekDates(s)[0];
 /* Deload: every DELOAD_EVERY-th week of the cycle → half the sets, same weight, one interval session */
@@ -872,6 +876,7 @@ function suggest(ex){
 }
 const rirTxt=r=>(r===null||r===undefined||r==='')?'':` · ${r} i tanken`;
 function loggedExercises(){const m=new Map();logsOf('styrke').forEach(l=>l.sets.forEach(s=>m.set(s.ex.toLowerCase(),s.ex)));return [...m.values()]}
+/* Styrke: øvelsesbibliotek, udstyr og tilfældige styrkepas. */
 /* ---------- Strength exercise library: [name, equipment, muscle group, movement pattern, sets, reps, reps in reserve] ---------- */
 const EQ_ST='Stang og stativ',EQ_DB='Håndvægte',EQ_KB='Kettlebells',EQ_CB='Kabeltræk',EQ_MA='Maskiner',EQ_PU='Pull-up-stang',EQ_DI='Dip-stang',EQ_TB='Trap bar',EQ_RI='Ringe eller TRX',EQ_EL='Elastikker',EQ_SL='Slæde',EQ_SM='Ab wheel, kasse og bold',EQ_NO='Ingen udstyr';
 const STR_EQ=[EQ_ST,EQ_DB,EQ_KB,EQ_CB,EQ_MA,EQ_PU,EQ_DI,EQ_TB,EQ_RI,EQ_EL,EQ_SL,EQ_SM];
@@ -938,6 +943,7 @@ function strSwap(name){const x=strFor(name);const pats=x?[x[3]]:['squat','hinge'
 function allExercises(){const set=new Set();Object.values(SESS).forEach(s=>(s.ex||[]).forEach(e=>set.add(e[0])));loggedExercises().forEach(e=>set.add(e));STR_LIB.forEach(x=>set.add(x[0]));return [...set]}
 const testNames=()=>[...new Set(logsOf('test').map(l=>l.name))];
 
+/* Log af styrke: rækker og sæt, kladde, og visning af et pas. */
 /* ---------- UI state ---------- */
 const now=new Date();
 let ui={view:'today',calY:now.getFullYear(),calM:now.getMonth(),sel:TODAY,
@@ -991,6 +997,7 @@ function kondTip(s){
   else tip=l.rpe<=8?'Lidt for let (målet er 9 ud af 10). Gå hårdere i intervallerne i dag.':l.rpe>=10?'Det var helt maks. Hold samme tempo i dag.':'Rigtig intensitet. Prøv at komme lidt længere eller op i watt i dag.';
   return `<p class="sug num">Sidst (${shortDate(l.date)}): ${b.join(' · ')}</p><p class="hint">${tip}</p>`;
 }
+/* CrossFit: WOD-bygger oven på Passemotoren (window.CF). */
 /* ---------- CrossFit ---------- */
 const CF_DESC={amrap:'Så mange runder som muligt',rft:'Et antal runder på tid',stige_ned:'Faldende reps, fx 21-15-9',stige_op:'Stigende reps, 1-2-3 …',emom:'Arbejde i starten af hvert minut',exmom:'Arbejde hvert 2. eller 3. minut',interval:'Arbejde og pause i sæt',chipper:'Lang liste, én gang igennem',tabata:'20 sek arbejde, 10 sek pause',doedved:'Én rep mere hvert minut'};
 const CF_MIN=[5,8,10,12,15,20,25,30,40,50];
@@ -1071,6 +1078,7 @@ function viewCF(){
   <section class="card"><h3 class="sec">Derfor virker passet</h3><ul class="rules">${p.opfyldte.map(r=>`<li class="${r.advarsel?'warn':''}"><i>${r.advarsel?'!':'✓'}</i><span>${esc(r.tekst)}</span></li>`).join('')}</ul>
     <p class="hint">Skalering: ${esc(p.skalering)}</p></section>`;
 }
+/* Fanen I dag: ugestrimmel, dagens detaljer, kalender og dagskort. */
 function nextSession(from){const d=pd(from);for(let i=1;i<=7;i++){const n=ds(new Date(d.getFullYear(),d.getMonth(),d.getDate()+i)),s=sessFor(n);if(s.kind!=='hvile')return {d:n,s,i}}return null}
 const daysSince=d=>Math.round((pd(TODAY)-pd(d))/864e5);
 function weekCell(d,act){
@@ -1203,6 +1211,7 @@ function dayCard(sel){
     ${se.kind!=='crossfit'?`<button class="btn primary" data-act="logday" data-date="${sel}">Log denne dag</button>`:''}
   </section>`;
 }
+/* Fuld træning (A opvarmning, B styrke, C WOD, D bonus) og Pas-rækker. */
 /* ---------- Træn: start any session, any day ---------- */
 /* Four headings cover all training: [title, colour kind, session keys] */
 const restCustom=ar=>customKeys('mobilitet').filter(k=>(state.customSess[k].label==='Aktiv restitution')===ar);
@@ -1351,6 +1360,7 @@ function fwPlanName(w){const k=ui.fwKey;if(k&&state.planSess&&state.planSess[k])
 function fwLines(){const w=fwW(),l=fwL(w.b.lift),p=fwC();
   return ['A) Opvarmning: '+[w.a.cardio,...w.a.gen,...w.a.spec].join(', '),'B) '+l[1]+': '+w.b.lines.join(' / '),'C) '+(p?p.overskrift+': '+p.linjer.join(' / '):''),...(w.d.length?['D) Bonus: '+w.d.join(', ')]:[])]}
 
+/* Planlæggerens motor: løb og VDOT, ugeopbygning, dosis, variation, accepter og stop forløb. */
 /* ---------- Planlæg forløb: 1-8 uger ----------
    Wizard: training days → what each day is → weeks + goal → review → accept.
    The plan puts a session key on each date (days[date].p). It wins over the weekly plan,
@@ -1555,6 +1565,7 @@ function plDetail(x,pv){if(x.key==='R')return '';
       ${w.d.length?`<p class="fw-sub">D) Bonus</p><p>${esc(w.d.join(' · '))}</p>`:''}</div>`}
   const s=pv.sess[x.key]||SESS[x.key];if(!s)return '';
   return `<div class="pl-det"><p class="muted small">${esc(s.dur||'')}</p>${sessionBody(s,x.date)}${s.note?`<p class="note">${esc(s.note)}</p>`:''}</div>`}
+/* Fanen Plan og planlæggerens spørgsmål ét ad gangen. */
 /* ---------- Planen: the plan for the coming month ---------- */
 function viewMonth(){const b=plActive(),wn=plWeekNo(),mon=mondayOf(TODAY);
   const head=b?`<section class="card"><div class="row-between"><h3 class="sec">Dit forløb</h3><span class="muted small">${wn<1?`Starter ${shortDate(b.start)}`:`Uge ${wn} af ${b.weeks}`}</span></div>
@@ -1636,6 +1647,7 @@ function viewPlan(){const P=ui.pl;if(!P){ui.view='month';return viewMonth()}
       ${w.days.map(x=>{const op=P.open===x.date;return `<button class="pl-r${x.past?' past':''}${op?' open':''}" data-act="plopenday" data-date="${x.date}"${x.past?' disabled':''}><span class="pl-d">${PL_SHORT[x.dow]}</span>${chip(PL_TYPES[x.t][1],PL_TYPES[x.t][0])}<span class="pl-l">${esc(x.past?'Allerede gået':x.label)}</span>${x.past||x.key==='R'?'':'<span class="chev">›</span>'}</button>${op?plDetail(x,pv):''}`}).join('')}</section>`).join('')+
     `<button class="btn accent" data-act="placcept">Acceptér plan</button><div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn ghost" data-act="plprev">Ret ugen</button><button class="btn ghost" data-act="plbuild">🎲 Byg igen</button></div>`}
 
+/* Faneskift med glidende animation og fanen Pas. */
 /* ---------- Tab changes: the page slides sideways and the coloured pill slides to the new tab ---------- */
 const TAB_ORDER=['today','train','month','prog'];
 let tabIndReady=false;
@@ -1682,6 +1694,7 @@ function viewTrain(){
     const n=ks.length+(g==='CrossFit'?2:0);
     return `<section class="tr-grp${open?' open':''}"><button class="tr-head k-${kind}" data-act="trgrp" data-g="${esc(g)}" aria-expanded="${open}"><span class="bar"></span><span class="nm">${g}</span>${today?'<span class="tag">I dag</span>':''}<span class="cnt">${n} pas</span><span class="chev">›</span></button>${open?`<div class="tr-items">${extra}${ks.map(trainRow).join('')}</div>`:''}</section>`}).join('')}</div>`;
 }
+/* Læg et pas i kalenderen: enkelte dage eller samme ugedag i x uger. */
 /* ---------- Put a built session on days in the calendar: single days or the same weekday for x weeks ---------- */
 function schName(c){return c.src==='key'?(SESS[c.key]||{}).name||'Pas':c.src==='cf'?(c.cf.title||'CrossFit'):'Fuld træning · '+fwL(c.fw.b.lift)[1]}
 function schDates(c){if(c.mode==='days')return c.dates.slice().sort();
@@ -1711,6 +1724,7 @@ function schApply(c){const dates=schDates(c),cp=x=>JSON.parse(JSON.stringify(x))
     :(k=>(putSess(k,{name:schName(c),kind:'crossfit',fw:true,w:cp(c.fw),dur:c.fw.T+' min'}),k))(newKey('F',d));
   dates.forEach(d=>{const k=sessFor_(d);if(c.how==='add'&&sessKey(d)!=='R')addExtra(d,k);else setManual(d,k)});
   applySess();save();return dates.length}
+/* Feedback efter pas og forslag til justering af planen (godkendes før de udføres). */
 /* ---------- Feedback after each session ---------- */
 const TRAIN_T=['styrke','kondition','crossfit','mobilitet'];
 let fbKnown=null;
@@ -1843,6 +1857,7 @@ function viewSess(){
     <button class="btn ghost" data-act="schopen" data-src="key" data-key="${k}">📅 Læg i kalenderen</button></section>`;
 }
 const SE_KINDS=[['styrke','Styrke','Øvelser med sæt og vægt'],['crossfit','CrossFit','En WOD med format og tid'],['interval','Hård kondition','Fx intervaller'],['zone2','Rolig kondition','Fx en rolig tur'],['mobilitet','Mobilitet','Smidighed og udstrækning'],['restitution','Aktiv restitution','Let bevægelse dagen efter']];
+/* Opret og rediger pas, log-skærme, grafer og vaner. */
 /* ---------- Random sessions for the other kinds ---------- */
 const SE_ACT={lob:['Løb','løb'],cykel:['Cykel','cykel'],ro:['Romaskine','ro'],ski:['Skimaskine','ski']};
 const SE_INT={lang:['Lange intervaller',{20:['3 × 3 min hårdt','2 min roligt mellem hvert'],30:['4 × 4 min hårdt','3 min roligt mellem hvert'],45:['5 × 5 min hårdt','3 min roligt mellem hvert']}],
@@ -2058,6 +2073,7 @@ function customWeekCard(){
   </section>`;
 }
 function syncCustom(){if(state.program==='custom'){state.customPlan={...state.plan};state.customAddons={...(state.addons||{})}}}
+/* Introduktion for nye brugere og vaner. */
 /* ---------- First run: plan your week ---------- */
 const GOALS=[{id:'styrke',name:'Styrke',desc:'Vægttræning. Appen foreslår vægten hver gang.'},{id:'kondition',name:'Kondition',desc:'Hårde intervaller og rolige ture, der giver bedre kondition.'},{id:'crossfit',name:'CrossFit',desc:'Varierede, hårde pas, bygget efter dit udstyr og din tid.'},{id:'mobilitet',name:'Mobilitet',desc:'10 min smidighed efter træningen.'}];
 function obSuggest(days,goals){
@@ -2156,6 +2172,7 @@ function viewHabit(){
       <p class="hint">Lader du tiden stå tom, logges ugens mål.</p></section>`}
     ${week}${tips}${del}`;
 }
+/* Fanen Udvikling (mål, styrke, løbeform, kondition, tests, vægt) og Indstillinger. */
 /* ---------- Udvikling: mål, styrke, kondition, tests, kropsvægt og historik ---------- */
 const GOAL_T={lift:'Løft',test:'Løbetest',vaegt:'Kropsvægt',week:'Pas pr. uge'};
 function liftBest(ex){const k=String(ex||'').toLowerCase();let b=0;logsOf('styrke').forEach(l=>(l.sets||[]).forEach(s=>{if(s.ex.toLowerCase()===k&&s.kg>0)b=Math.max(b,e1rm(s.kg,s.reps+(s.rir||0)))}));return b}
@@ -2255,6 +2272,7 @@ function viewSettings(){
     <button class="btn danger${ui.pendingWipe?' armed':''}" data-act="wipe">${ui.pendingWipe?'Tryk igen for at slette alle logs':'Slet alle logs'}</button></section>`;
 }
 
+/* Lyd og intervaltimer. */
 /* ---------- sound ---------- */
 let actx;
 function beep(freq=880,dur=.15,vol=.3){
@@ -2387,6 +2405,7 @@ function viewTimer(){
   <p class="hint">Appen bipper 3-2-1 og ved hvert skift. Hold appen åben på skærmen.</p>`;
 }
 
+/* Visning (render), tilbage-gestus, rundvisning, forslagsliste og fejlskærm. */
 /* ---------- render ---------- */
 function habitCss(){let el=document.getElementById('hab-css');if(!el){el=document.createElement('style');el.id='hab-css';document.head.appendChild(el)}
   el.textContent=(state.customHabits||[]).map(c=>`.k-${c.id}{--k:${c.color}}`).join('')}
@@ -2477,6 +2496,7 @@ addEventListener('error',e=>onCrash(e.error||e.message,'error'));
 addEventListener('unhandledrejection',e=>onCrash(e.reason,'promise'));
 let tt;function toast(msg){const el=$('#toast');el.textContent=msg;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>{el.hidden=true},2200)}
 
+/* Handlinger: alle klik (data-act), gem, backup og opstart. */
 /* ---------- actions ---------- */
 function doSave(){
   const date=ui.logDate||TODAY,id=Date.now().toString(36)+Math.random().toString(36).slice(2,6),t=ui.logType;let entry;
