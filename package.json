@@ -1,0 +1,15 @@
+{
+  "name": "styrke-vo2-log",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "build": "python3 tools/build.py",
+    "lint": "node tools/lint.js",
+    "test": "node tests/run.js",
+    "check": "python3 tools/build.py && node tools/lint.js && node tests/run.js"
+  },
+  "devDependencies": {
+    "eslint": "^9.17.0",
+    "globals": "^15.14.0"
+  }
+}
