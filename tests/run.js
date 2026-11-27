@@ -90,7 +90,7 @@ T('Ryd kalenderen giver hviledage og beholder logs',async()=>{const p=await app(
 /* ================= Planner ================= */
 T('Spørgsmålene i planlæggeren passer til målet',async()=>{const p=await app();
   const r=await ev(p,()=>{const P=plStart();return ['styrke','pace','distance'].map(g=>plSteps({...P,goal:g,weeks:8,deload:true}).join(','))});
-  eq(r[0],'goal,weeks,deload,dlfreq,start,days,week');eq(r[1],'goal,dist,test,pace,weeks,deload,dlfreq,start,days,week');eq(r[2],'goal,dist,test,cur,weeks,deload,dlfreq,start,days,week');return p});
+  eq(r[0],'goal,weeks,deload,dlfreq,start,days,week,eqstr,strmin');eq(r[1],'goal,dist,test,pace,weeks,deload,dlfreq,start,days,week,eqstr,strmin');eq(r[2],'goal,dist,test,cur,weeks,deload,dlfreq,start,days,week,eqstr,strmin');return p});
 T('Styrkeforløb: testuge til sidst, lette uger efter valget',async()=>{const p=await app();
   const r=await ev(p,()=>{const P={...plStart(),goal:'styrke',weeks:8,dlEvery:3,types:{1:'styrke',2:'hvile',3:'styrke',4:'hvile',5:'styrke',6:'hvile',0:'hvile'}};const w=plBuild(P).weeks;
     const K={...P,goal:'kondition',dlEvery:2};const k=plBuild(K).weeks;return {s:w.map(x=>x.test?'T':x.dl?'D':'.').join(''),k:k.map(x=>x.test?'T':x.dl?'D':'.').join('')}});
@@ -181,7 +181,7 @@ T('Klik: log et styrkepas og svar på "Hvordan gik det?"',async()=>{const p=awai
   ok(!(await p.isVisible('.sheet')),'lukker');eq(await ev(p,()=>state.logs.slice(-1)[0].fb),2);return p});
 T('Klik: planlæg et styrkeforløb hele vejen',async()=>{const p=await app();
   await p.click('.tab[data-view=month]');await wait(p);await p.click('[data-act=plopen]');await wait(p);
-  for(let i=0;i<12&&await ev(p,()=>ui.view==='plan'&&ui.pl.step!=='week');i++){await p.click('[data-act=plnext]');await wait(p)}
+  for(let i=0;i<16&&!(await p.$('[data-act=plbuild]'));i++){await p.click('[data-act=plnext]');await wait(p)}
   await p.click('[data-act=plbuild]');await wait(p);await p.click('[data-act=placcept]');await wait(p);
   ok(await ev(p,()=>!!state.block),'forløb gemt');ok((await p.textContent('#main')).includes('Dit forløb'));return p});
 T('Klik: læg et pas i kalenderen fra Pas',async()=>{const p=await app();
@@ -216,6 +216,14 @@ T('Service worker installerer og cacher med versionen fra byggeren',async()=>{co
   const keys=await p.evaluate(async()=>{await navigator.serviceWorker.ready;for(let i=0;i<40;i++){const k=await caches.keys();if(k.length)return k;await new Promise(r=>setTimeout(r,100))}return []});
   eq(keys,['traening-'+v]);ok(await p.evaluate(()=>!!window.CF&&typeof CF.byggePas==='function'),'motoren indlæst fra sw.js');
   p.close=async()=>c2.close();return p});
+T('Planlæggeren spørger om niveau, udstyr og tid, når ugen har fuld træning og styrke',async()=>{const p=await app({plan:REST});
+  const r=await ev(p,()=>{const P={...plStart(),goal:'allround',weeks:4,types:{1:'crossfit',2:'styrke',3:'hvile',4:'styrke',5:'hvile',6:'styrke',0:'hvile'}};const st=plSteps(P).slice(-5).join(',');
+    P.fwT=45;P.strMin=75;const pv=plBuild(P);const f=pv.sess[pv.weeks[0].days[0].key],s=pv.sess[pv.weeks[0].days[1].key];return {st,T:f.w.T,acc:s.ex.length-1}});
+  eq(r.st,'level,eqcf,fwtime,eqstr,strmin');eq(r.T,45,'tid til fuld træning');eq(r.acc,4,'75 min giver 4 hjælpeøvelser');
+  await ev(p,()=>{ui.pl={...plStart(),goal:'allround',types:{1:'crossfit',2:'hvile',3:'hvile',4:'hvile',5:'hvile',6:'hvile',0:'hvile'},step:'level',draftSig:'allround|4',nDays:4};ui.view='plan';render(true)});
+  await p.click('[data-act=plcfniv][data-v=Begynder]');eq(await ev(p,()=>cfPrefs().niveau),'Begynder','samme niveau som WOD-byggeren');
+  await p.click('[data-act=plnext]');await wait(p);eq(await ev(p,()=>ui.pl.step),'eqcf');const u=await p.getAttribute('[data-act=cfeq]','data-v');await p.click('[data-act=cfeq]');
+  ok(await ev(p,u=>!cfPrefs().udstyr.includes(u),u),'udstyr fravalgt');await p.click('[data-act=plnext]');await wait(p);ok(await p.$('[data-act=plbuild]'),'sidste spørgsmål bygger planen');return p});
 /* ================= Editing the draft ================= */
 const draft=async(p,goal,types)=>ev(p,([goal,types])=>{ui.pl={...plStart(),goal,weeks:4,deload:false,types,start:'next'};ui.pl.preview=plBuild(ui.pl);ui.pl.step='review';ui.view='plan';render(true);
   const d=ui.pl.preview.weeks[0].days.find(x=>x.key!=='R');ui.pl.open=d.date;render();return d.key},[goal,types]);

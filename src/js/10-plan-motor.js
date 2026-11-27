@@ -102,7 +102,7 @@ function plTypeOfKey(k){if(!k||k==='R')return 'hvile';if(k==='S'||(SESS[k]&&SESS
   const s=SESS[k];if(!s)return 'hvile';if(s.kind==='interval'||s.kind==='zone2')return 'kondition';if(/^AR/.test(k))return 'restitution';if(s.kind==='mobilitet')return 'mobilitet';return 'hvile'}
 function plStart(){const t={};PL_DOW.forEach(d=>t[d]=plTypeOfKey(state.plan[d]));
   const days=PL_DOW.filter(d=>['styrke','crossfit','kondition'].includes(t[d]));
-  return {step:'goal',nDays:Math.min(6,Math.max(2,days.length||4)),draftSig:null,types:t,weeks:4,goal:'styrke',dist:5,cur:3,pace:300,curPace:330,tKm:5,tTxt:'',noTest:false,vStart:null,deload:true,dlEvery:4,start:'next',preview:null,pick:null}}
+  return {step:'goal',nDays:Math.min(6,Math.max(2,days.length||4)),draftSig:null,types:t,fwT:fwT(),strMin:45,weeks:4,goal:'styrke',dist:5,cur:3,pace:300,curPace:330,tKm:5,tTxt:'',noTest:false,vStart:null,deload:true,dlEvery:4,start:'next',preview:null,pick:null}}
 /* Sets × reps @ % for week i (0-based) of the block. Deload weeks are lighter; a strength block ends with a test. */
 const PL_PROG={styrke:[[5,5,70],[5,4,75],[5,3,80],[4,3,85],[5,2,85],[4,2,88],[3,2,90]],
   muskler:[[4,10,60],[4,8,67],[4,8,70],[4,6,75],[5,6,75],[4,5,78],[4,5,80]],
@@ -131,7 +131,9 @@ const PL_SECOND={squat:'press_v',hinge:'press_h'};
 const PL_ACC={squat:[['lunge'],['leg_iso','glute'],['core']],hinge:[['lunge'],['pull_h'],['core','carry']],press_v:[['pull_v'],['delt'],['arms']],press_h:[['pull_h'],['chest_iso','delt'],['arms']],
   clean:[['pull_v'],['lunge'],['core']],snatch:[['pull_h'],['lunge'],['core']],pull:[['push_h'],['delt'],['arms']]};
 const plLibPick=(names)=>{for(const n of names){const x=strFor(n);if(x&&strOk(x))return x}return strFor(names[names.length-1])};
-function plAccFor(pat,n,used){const out=[];(PL_ACC[pat]||[]).slice(0,n).forEach(ps=>{const c=STR_LIB.filter(x=>ps.includes(x[3])&&strOk(x)&&!used.has(x[0]));if(c.length){const x=fwPick(c);used.add(x[0]);out.push(x)}});return out}
+/* Accessories per strength session follow the time you have: 30 min → 1, 45 → 2, 60 → 3, 75 → 4 (one more when building muscle) */
+const plAccN=P=>Math.min(5,({30:1,45:2,60:3,75:4}[P.strMin]||2)+(P.goal==='muskler'?1:0));
+function plAccFor(pat,n,used){const out=[],G=PL_ACC[pat]||[];(G.length?[...Array(n)].map((_,j)=>G[j%G.length]):[]).forEach(ps=>{const c=STR_LIB.filter(x=>ps.includes(x[3])&&strOk(x)&&!used.has(x[0]));if(c.length){const x=fwPick(c);used.add(x[0]);out.push(x)}});return out}
 /* One plan: date → {key, sess?, fw?} */
 function plBuild(P){
   const mon=mondayOf(TODAY),start=P.start==='next'?ds(new Date(pd(mon).getFullYear(),pd(mon).getMonth(),pd(mon).getDate()+7)):mon;
@@ -143,9 +145,9 @@ function plBuild(P){
   const fixed={};lifting.forEach(d=>{const pat=pats[d],used=new Set(),main=plLibPick(PL_MAIN[pat]);used.add(main[0]);
     const sec=nLift<=2&&P.types[d]==='styrke'?(nLift===1?['press_h','pull']:[PL_SECOND[pat]]).filter(Boolean).map(p=>{const x=plLibPick(PL_MAIN[p]);used.add(x[0]);return x}):[];
     const fwl=FW_LIFTS.filter(x=>x[2]===pat&&fwEqOk(x[3])),fwBar=fwl.filter(x=>x[4]);
-    fixed[d]={pat,main,sec,acc:plAccFor(pat,P.goal==='muskler'?3:2,used),fwLift:(fwBar[0]||fwl[0]||FW_LIFTS.find(x=>x[2]===pat))[0],fwOpts:(fwBar.length?fwBar:fwl).map(x=>x[0]),lastAcc:new Set()}});
+    fixed[d]={pat,main,sec,acc:plAccFor(pat,plAccN(P),used),fwLift:(fwBar[0]||fwl[0]||FW_LIFTS.find(x=>x[2]===pat))[0],fwOpts:(fwBar.length?fwBar:fwl).map(x=>x[0]),lastAcc:new Set()}});
   const weekly=(d,wi)=>{const f=fixed[d],wv=waveOf(wi),mo=mainOpts(f.pat),main=P.goal==='styrke'?f.main:mo[wv%mo.length];
-    const used=new Set([main[0],...f.sec.map(x=>x[0]),...f.lastAcc]);const acc=plAccFor(f.pat,P.goal==='muskler'?3:2,used);
+    const used=new Set([main[0],...f.sec.map(x=>x[0]),...f.lastAcc]);const acc=plAccFor(f.pat,plAccN(P),used);
     f.lastAcc=new Set(acc.map(x=>x[0]));const fo=f.fwOpts.length?f.fwOpts:[f.fwLift];return {...f,main,acc,fwLift:P.goal==='styrke'?f.fwLift:fo[wv%fo.length]}};
   const days={},sess={},weeks=[];let arN=0,mobN=0,ftDone=false;
   if(isRun(P.goal)&&(P.vStart!=null||P.noTest)){P.vd=true;const nbw=info.filter(x=>x.i>=0).length;
@@ -160,7 +162,7 @@ function plBuild(P){
         sess[k]={name:`${f.main[0]} · uge ${wi.w+1}`,kind:'styrke',dur:'ca. '+Math.round((ex.reduce((a,x)=>a+x[1],0))*2.2+8)+' min',ex,main:f.main[0],pct:dose.test?null:dose.pct||null,
           note:(wi.dl?'Deload-uge: let og kort, så kroppen kan nå at blive stærkere. ':'')+`Hovedløft: ${what}.`+(dose.pct&&!dose.test?' Vægten regnes ud fra dine loggede sæt og følger med, når du bliver stærkere.':'')};
         key=k;label=`${f.main[0]} ${what}`}
-      else if(t==='crossfit'){const f=weekly(dow,wi),k='F'+date.replace(/-/g,''),l=fwL(f.fwLift),T=fwT();
+      else if(t==='crossfit'){const f=weekly(dow,wi),k='F'+date.replace(/-/g,''),l=fwL(f.fwLift),T=FW_TIMES.includes(P.fwT)?P.fwT:fwT();
         let b;if(P.goal==='allround'&&!wi.dl&&!wi.test&&l[4]){const ids=['across','ladder','wave','531','emom','wave','ladder'],s=FW_SCHEMES.find(x=>x.id===ids[wi.i%ids.length]);b=s&&s.pats.includes(l[2])?{lift:l[0],scheme:s.id,lines:s.lines(l),note:s.note,min:s.min,heavy:s.heavy,pct:true}:null}
         if(!b){const lines=dose.test?['Byg op til en ny 3RM','Ca. 6-8 sæt, hvile 2:30 mellem de tunge']:wi.dl?['3 × 5 @ 60 %','Let og hurtigt. Fokus på teknik']:[`${dose.s} sæt × ${dose.r}${l[4]?` @ ${dose.pct} %`:` · ${dose.rir} i tanken`}`,'Ét sæt hvert 2:00-2:30 min'];
           b={lift:l[0],scheme:dose.test?'build':wi.dl?'across':'across',lines,note:wi.dl?'Deload-uge: let, så kroppen kan nå at blive stærkere.':'Samme løft i denne periode, lidt tungere hver uge.',min:dose.test?18:wi.dl?10:14,heavy:dose.pct>=80||dose.test?1:0,pct:!!l[4]&&!dose.test}}

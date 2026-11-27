@@ -577,7 +577,7 @@ b,strong{font-weight:600}
 <div class="tour" id="tour" hidden></div>
 <div class="ac" id="ac" hidden></div>
 
-<script src="sw.js?v=5779664c"></script>
+<script src="sw.js?v=2055a4b9"></script>
 <script>
 /* Grundlag: datoer, programmer, sessionsbibliotek (SESS) og vaner. */
 const KEY='styrke-vo2-log.v1';
@@ -1491,7 +1491,7 @@ function plTypeOfKey(k){if(!k||k==='R')return 'hvile';if(k==='S'||(SESS[k]&&SESS
   const s=SESS[k];if(!s)return 'hvile';if(s.kind==='interval'||s.kind==='zone2')return 'kondition';if(/^AR/.test(k))return 'restitution';if(s.kind==='mobilitet')return 'mobilitet';return 'hvile'}
 function plStart(){const t={};PL_DOW.forEach(d=>t[d]=plTypeOfKey(state.plan[d]));
   const days=PL_DOW.filter(d=>['styrke','crossfit','kondition'].includes(t[d]));
-  return {step:'goal',nDays:Math.min(6,Math.max(2,days.length||4)),draftSig:null,types:t,weeks:4,goal:'styrke',dist:5,cur:3,pace:300,curPace:330,tKm:5,tTxt:'',noTest:false,vStart:null,deload:true,dlEvery:4,start:'next',preview:null,pick:null}}
+  return {step:'goal',nDays:Math.min(6,Math.max(2,days.length||4)),draftSig:null,types:t,fwT:fwT(),strMin:45,weeks:4,goal:'styrke',dist:5,cur:3,pace:300,curPace:330,tKm:5,tTxt:'',noTest:false,vStart:null,deload:true,dlEvery:4,start:'next',preview:null,pick:null}}
 /* Sets × reps @ % for week i (0-based) of the block. Deload weeks are lighter; a strength block ends with a test. */
 const PL_PROG={styrke:[[5,5,70],[5,4,75],[5,3,80],[4,3,85],[5,2,85],[4,2,88],[3,2,90]],
   muskler:[[4,10,60],[4,8,67],[4,8,70],[4,6,75],[5,6,75],[4,5,78],[4,5,80]],
@@ -1520,7 +1520,9 @@ const PL_SECOND={squat:'press_v',hinge:'press_h'};
 const PL_ACC={squat:[['lunge'],['leg_iso','glute'],['core']],hinge:[['lunge'],['pull_h'],['core','carry']],press_v:[['pull_v'],['delt'],['arms']],press_h:[['pull_h'],['chest_iso','delt'],['arms']],
   clean:[['pull_v'],['lunge'],['core']],snatch:[['pull_h'],['lunge'],['core']],pull:[['push_h'],['delt'],['arms']]};
 const plLibPick=(names)=>{for(const n of names){const x=strFor(n);if(x&&strOk(x))return x}return strFor(names[names.length-1])};
-function plAccFor(pat,n,used){const out=[];(PL_ACC[pat]||[]).slice(0,n).forEach(ps=>{const c=STR_LIB.filter(x=>ps.includes(x[3])&&strOk(x)&&!used.has(x[0]));if(c.length){const x=fwPick(c);used.add(x[0]);out.push(x)}});return out}
+/* Accessories per strength session follow the time you have: 30 min → 1, 45 → 2, 60 → 3, 75 → 4 (one more when building muscle) */
+const plAccN=P=>Math.min(5,({30:1,45:2,60:3,75:4}[P.strMin]||2)+(P.goal==='muskler'?1:0));
+function plAccFor(pat,n,used){const out=[],G=PL_ACC[pat]||[];(G.length?[...Array(n)].map((_,j)=>G[j%G.length]):[]).forEach(ps=>{const c=STR_LIB.filter(x=>ps.includes(x[3])&&strOk(x)&&!used.has(x[0]));if(c.length){const x=fwPick(c);used.add(x[0]);out.push(x)}});return out}
 /* One plan: date → {key, sess?, fw?} */
 function plBuild(P){
   const mon=mondayOf(TODAY),start=P.start==='next'?ds(new Date(pd(mon).getFullYear(),pd(mon).getMonth(),pd(mon).getDate()+7)):mon;
@@ -1532,9 +1534,9 @@ function plBuild(P){
   const fixed={};lifting.forEach(d=>{const pat=pats[d],used=new Set(),main=plLibPick(PL_MAIN[pat]);used.add(main[0]);
     const sec=nLift<=2&&P.types[d]==='styrke'?(nLift===1?['press_h','pull']:[PL_SECOND[pat]]).filter(Boolean).map(p=>{const x=plLibPick(PL_MAIN[p]);used.add(x[0]);return x}):[];
     const fwl=FW_LIFTS.filter(x=>x[2]===pat&&fwEqOk(x[3])),fwBar=fwl.filter(x=>x[4]);
-    fixed[d]={pat,main,sec,acc:plAccFor(pat,P.goal==='muskler'?3:2,used),fwLift:(fwBar[0]||fwl[0]||FW_LIFTS.find(x=>x[2]===pat))[0],fwOpts:(fwBar.length?fwBar:fwl).map(x=>x[0]),lastAcc:new Set()}});
+    fixed[d]={pat,main,sec,acc:plAccFor(pat,plAccN(P),used),fwLift:(fwBar[0]||fwl[0]||FW_LIFTS.find(x=>x[2]===pat))[0],fwOpts:(fwBar.length?fwBar:fwl).map(x=>x[0]),lastAcc:new Set()}});
   const weekly=(d,wi)=>{const f=fixed[d],wv=waveOf(wi),mo=mainOpts(f.pat),main=P.goal==='styrke'?f.main:mo[wv%mo.length];
-    const used=new Set([main[0],...f.sec.map(x=>x[0]),...f.lastAcc]);const acc=plAccFor(f.pat,P.goal==='muskler'?3:2,used);
+    const used=new Set([main[0],...f.sec.map(x=>x[0]),...f.lastAcc]);const acc=plAccFor(f.pat,plAccN(P),used);
     f.lastAcc=new Set(acc.map(x=>x[0]));const fo=f.fwOpts.length?f.fwOpts:[f.fwLift];return {...f,main,acc,fwLift:P.goal==='styrke'?f.fwLift:fo[wv%fo.length]}};
   const days={},sess={},weeks=[];let arN=0,mobN=0,ftDone=false;
   if(isRun(P.goal)&&(P.vStart!=null||P.noTest)){P.vd=true;const nbw=info.filter(x=>x.i>=0).length;
@@ -1549,7 +1551,7 @@ function plBuild(P){
         sess[k]={name:`${f.main[0]} · uge ${wi.w+1}`,kind:'styrke',dur:'ca. '+Math.round((ex.reduce((a,x)=>a+x[1],0))*2.2+8)+' min',ex,main:f.main[0],pct:dose.test?null:dose.pct||null,
           note:(wi.dl?'Deload-uge: let og kort, så kroppen kan nå at blive stærkere. ':'')+`Hovedløft: ${what}.`+(dose.pct&&!dose.test?' Vægten regnes ud fra dine loggede sæt og følger med, når du bliver stærkere.':'')};
         key=k;label=`${f.main[0]} ${what}`}
-      else if(t==='crossfit'){const f=weekly(dow,wi),k='F'+date.replace(/-/g,''),l=fwL(f.fwLift),T=fwT();
+      else if(t==='crossfit'){const f=weekly(dow,wi),k='F'+date.replace(/-/g,''),l=fwL(f.fwLift),T=FW_TIMES.includes(P.fwT)?P.fwT:fwT();
         let b;if(P.goal==='allround'&&!wi.dl&&!wi.test&&l[4]){const ids=['across','ladder','wave','531','emom','wave','ladder'],s=FW_SCHEMES.find(x=>x.id===ids[wi.i%ids.length]);b=s&&s.pats.includes(l[2])?{lift:l[0],scheme:s.id,lines:s.lines(l),note:s.note,min:s.min,heavy:s.heavy,pct:true}:null}
         if(!b){const lines=dose.test?['Byg op til en ny 3RM','Ca. 6-8 sæt, hvile 2:30 mellem de tunge']:wi.dl?['3 × 5 @ 60 %','Let og hurtigt. Fokus på teknik']:[`${dose.s} sæt × ${dose.r}${l[4]?` @ ${dose.pct} %`:` · ${dose.rir} i tanken`}`,'Ét sæt hvert 2:00-2:30 min'];
           b={lift:l[0],scheme:dose.test?'build':wi.dl?'across':'across',lines,note:wi.dl?'Deload-uge: let, så kroppen kan nå at blive stærkere.':'Samme løft i denne periode, lidt tungere hver uge.',min:dose.test?18:wi.dl?10:14,heavy:dose.pct>=80||dose.test?1:0,pct:!!l[4]&&!dose.test}}
@@ -1622,7 +1624,7 @@ function viewMonth(){const b=plActive(),wn=plWeekNo(),mon=mondayOf(TODAY);
   return `${head}${weeks}`}
 function isoWeek(d){const t=pd(d),x=new Date(Date.UTC(t.getFullYear(),t.getMonth(),t.getDate()));const day=x.getUTCDay()||7;x.setUTCDate(x.getUTCDate()+4-day);const y=new Date(Date.UTC(x.getUTCFullYear(),0,1));return Math.ceil(((x-y)/864e5+1)/7)}
 /* The wizard asks one thing per screen. Which screens appear depends on the goal (run goals add distance and pace). */
-function plSteps(P){const run=isRun(P.goal);return ['goal',...(run?['dist','test',P.goal==='distance'?'cur':'pace']:[]),'weeks',...(P.weeks>=3?['deload',...(P.deload?['dlfreq']:[])]:[]),'start','days','week']}
+function plSteps(P){const run=isRun(P.goal);return ['goal',...(run?['dist','test',P.goal==='distance'?'cur':'pace']:[]),'weeks',...(P.weeks>=3?['deload',...(P.deload?['dlfreq']:[])]:[]),'start','days','week',...(PL_DOW.some(d=>P.types[d]==='crossfit')?['level','eqcf','fwtime']:[]),...(PL_DOW.some(d=>P.types[d]==='styrke')?['eqstr','strmin']:[])]}
 /* A suggested week for the goal and number of training days. Days are spread so hard days rarely stack; Sunday becomes active recovery. */
 const PL_SLOTS={2:[0,3],3:[0,2,4],4:[0,1,3,5],5:[0,1,3,4,5],6:[0,1,2,3,4,5]};
 const PL_MIX={styrke:{2:'SS',3:'SKS',4:'SKSS',5:'SKSKS',6:'SKSKSK'},kondition:{2:'KS',3:'KSK',4:'KSKK',5:'KSKSK',6:'KSKKSK'},
@@ -1647,6 +1649,7 @@ function viewPlan(){const P=ui.pl;if(!P){ui.view='month';return viewMonth()}
   const steps=plSteps(P);if(P.step!=='review'&&!steps.includes(P.step))P.step=steps[0];
   const idx=steps.indexOf(P.step),n=steps.length;
   const head=(t,sub)=>`<div class="habit-head"><button class="icon-btn" data-act="plback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">Planlæg forløb${idx>=0?` · ${idx+1} af ${n}`:''}</p><h2 class="h2">${t}</h2></div></div>${idx>=0?`<div class="pl-prog">${steps.map((_,k)=>`<i class="${k<=idx?'on':''}"></i>`).join('')}</div>`:''}${sub?`<p class="note">${sub}</p>`:''}`;
+  const fin=dis=>idx===n-1?nav('Byg planen','plbuild',dis):nav(undefined,undefined,dis);
   const nav=(lbl,act,dis)=>`<div class="btns3" style="grid-template-columns:1fr 2fr">${idx>0?`<button class="btn ghost" data-act="plprev">Tilbage</button>`:`<button class="btn ghost" data-act="plback">Annullér</button>`}<button class="btn accent" data-act="${act||'plnext'}"${dis?' disabled':''}>${lbl||'Næste'}</button></div>`;
   const card=(x)=>`<section class="card">${x}</section>`;
   const opt=(act,v,on,l,d)=>`<button class="fmt${on?' on':''}" data-act="${act}" data-v="${v}"><b>${l}</b>${d?`<small>${d}</small>`:''}</button>`;
@@ -1671,6 +1674,11 @@ function viewPlan(){const P=ui.pl;if(!P){ui.view='month';return viewMonth()}
       <p class="hint${fit?'':' warn-t'}">${fit?`${cnt} ${cnt===1?'let uge':'lette uger'} på ${P.weeks} uger · ★ mest brugt: 3 hårde uger, 1 let`:`Dit forløb er ${P.weeks} uger, så du når ikke en let uge. Vælg et lavere tal, eller gå tilbage og vælg flere uger.`}</p>`)+nav()}
   case 'start':return head('Hvornår vil du starte?')+card(`<div class="fmt-grid">${opt('plst','this',P.start==='this','Denne uge','Dage der er gået springes over.')}${opt('plst','next',P.start==='next','Næste uge','Starter mandag.')}</div>`)+nav();
   case 'days':return head('Hvor mange dage om ugen vil du træne?')+card(`<div class="chips">${[2,3,4,5,6].map(k=>`<button class="${P.nDays===k?'on':''}" data-act="plndays" data-v="${k}">${k} dage</button>`).join('')}</div>`)+nav();
+  case 'level':{const C=cfPrefs();return head('Hvilket niveau træner du på?','Bruges til WOD\'er og fuld træning, ligesom når du bygger et pas.')+card(`<div class="fmt-grid">${[['Begynder','Skalerede bevægelser og lettere vægte'],['Øvet','Standardbevægelser og -vægte'],['Avanceret','Svære bevægelser og Rx-vægte']].map(([n,d])=>opt('plcfniv',n,C.niveau===n,n,d)).join('')}</div>`)+fin()}
+  case 'eqcf':{const all=cfUdstyrAlle(),have=cfPrefs().udstyr||all;return head('Hvilket udstyr har du til fuld træning?','Det samme valg som når du bygger en WOD.')+card(`<div class="chips">${all.map(u=>`<button class="${have.includes(u)?'on':''}" data-act="cfeq" data-v="${esc(u)}">${esc(u)}</button>`).join('')}</div><p class="hint">${have.length} af ${all.length} valgt</p>`)+fin()}
+  case 'fwtime':return head('Hvor lang tid har du til en fuld træning?')+card(`<div class="chips">${FW_TIMES.map(t=>`<button class="${P.fwT===t?'on':''}" data-act="plfwt" data-v="${t}">${t} min</button>`).join('')}</div>`)+fin();
+  case 'eqstr':{const have=strHave();return head('Hvilket udstyr har du til styrke?','Det samme valg som når du laver et styrkepas.')+card(`<div class="chips">${STR_EQ.map(u=>`<button class="${have.includes(u)?'on':''}" data-act="seeq" data-v="${esc(u)}">${esc(u)}</button>`).join('')}</div><p class="hint">Kropsvægtsøvelser er altid med.</p>`)+fin()}
+  case 'strmin':return head('Hvor lang tid har du til et styrkepas?')+card(`<div class="chips">${[30,45,60,75].map(t=>`<button class="${P.strMin===t?'on':''}" data-act="plstrmin" data-v="${t}">${t} min</button>`).join('')}</div><p class="hint">${plAccN(P)} ${plAccN(P)===1?'hjælpeøvelse':'hjælpeøvelser'} ud over hovedløftet.</p>`)+fin();
   case 'week':{const heavy=d=>['styrke','crossfit'].includes(P.types[d]);
     const warn=new Set();PL_DOW.forEach((d,i)=>{const r=[0,1,2].map(k=>PL_DOW[(i+k)%7]);if(r.every(heavy))r.forEach(x=>warn.add(x))});
     const cnt={};PL_DOW.forEach(d=>cnt[P.types[d]]=(cnt[P.types[d]]||0)+1);
@@ -1679,7 +1687,7 @@ function viewPlan(){const P=ui.pl;if(!P){ui.view='month';return viewMonth()}
     return head('Forslag til din uge',`${esc(plGoalName(P))} · ${P.nDays} træningsdage. Tryk på en dag for at ændre den.`)+`<section class="card pl-week-edit">${PL_DOW.map(d=>`<button class="pl-wrow k-${PL_TYPES[P.types[d]][1]}" data-act="plpick" data-d="${d}"><span class="pl-wd">${PL_SHORT[d]}</span>${plIcon(P.types[d])}<span class="pl-wt">${PL_TYPES[P.types[d]][0]}</span>${warn.has(d)||noRest?'<span class="pl-warn" title="Mange tunge dage i træk">!</span>':''}<span class="chev">›</span></button>`).join('')}</section>
     <div class="pl-sum">${Object.keys(PL_TYPES).filter(t=>cnt[t]).map(t=>`<span class="k-${PL_TYPES[t][1]}"><span class="bar"></span>${cnt[t]} ${PL_TYPES[t][0].toLowerCase()}</span>`).join('')}</div>
     ${run&&!nRun?'<p class="hint warn-t">Gør mindst 2 dage til kondition for at bygge en løbeplan.</p>':''}
-    ${nav('Byg planen','plbuild',run&&!nRun)}
+    ${idx===n-1?nav('Byg planen','plbuild',run&&!nRun):nav('Næste','plnext',run&&!nRun)}
     ${P.pick!=null?`<div class="sheet-bg" data-act="plclose"><div class="sheet" role="dialog" aria-label="${PL_SHORT[P.pick]}"><p class="sheet-t">${cap(DAYS[P.pick])}</p><div class="sheet-grid">${Object.keys(PL_TYPES).map(t=>`<button class="sheet-b k-${PL_TYPES[t][1]}${P.types[P.pick]===t?' on':''}" data-act="plset" data-v="${t}">${plIcon(t)}<span>${PL_TYPES[t][0]}</span></button>`).join('')}</div></div></div>`:''}`}
   }
   const pv=P.preview;
@@ -2819,6 +2827,9 @@ document.addEventListener('click',e=>{
     {const bp=b.dataset.p==='blueprint';state.program=bp?'blueprint':'egen';state.plan=bp?{...BP_PLAN}:{...DEFAULT_PLAN};state.addons=bp?{...BP_ADDONS}:{};state.cycleStart=mondayOf(TODAY);save();render();toast(bp?'Blueprint-program valgt':'Standardplan valgt');break}
     case 'mobdone':{const k=b.dataset.key,d=b.dataset.date||TODAY,S=SESS[k];state.logs.push({id:Date.now().toString(36),date:d,type:'mobilitet',name:S.name,dur:S.min*60});save();render();toast('Gemt');break}
     case 'copy':doCopy();break;
+    case 'plcfniv':state.cfPrefs={...cfPrefs(),niveau:b.dataset.v};save();render();break;
+    case 'plfwt':ui.pl.fwT=+b.dataset.v;render();break;
+    case 'plstrmin':ui.pl.strMin=+b.dataset.v;render();break;
     case 'plfwedit':ui.fwPrev=true;ui.fwKey=b.dataset.key;ui.fwDate=b.dataset.date;ui.fwSwap=null;ui.fwLog=null;ui.view='fw';render(true);break;
     case 'plexswap':{freezeTop();const P=ui.pl,k=b.dataset.key,i=+b.dataset.i;P.swap=P.swap&&P.swap.key===k&&P.swap.i===i?null:{key:k,i};render();break}
     case 'plexpick':{freezeTop();const P=ui.pl,pv=P.preview,k=b.dataset.key,i=+b.dataset.i,to=b.dataset.v,s=pv.sess[k],from=s.ex[i][0],x=strFor(to);

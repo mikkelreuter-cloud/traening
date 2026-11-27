@@ -267,6 +267,9 @@ document.addEventListener('click',e=>{
     {const bp=b.dataset.p==='blueprint';state.program=bp?'blueprint':'egen';state.plan=bp?{...BP_PLAN}:{...DEFAULT_PLAN};state.addons=bp?{...BP_ADDONS}:{};state.cycleStart=mondayOf(TODAY);save();render();toast(bp?'Blueprint-program valgt':'Standardplan valgt');break}
     case 'mobdone':{const k=b.dataset.key,d=b.dataset.date||TODAY,S=SESS[k];state.logs.push({id:Date.now().toString(36),date:d,type:'mobilitet',name:S.name,dur:S.min*60});save();render();toast('Gemt');break}
     case 'copy':doCopy();break;
+    case 'plcfniv':state.cfPrefs={...cfPrefs(),niveau:b.dataset.v};save();render();break;
+    case 'plfwt':ui.pl.fwT=+b.dataset.v;render();break;
+    case 'plstrmin':ui.pl.strMin=+b.dataset.v;render();break;
     case 'plfwedit':ui.fwPrev=true;ui.fwKey=b.dataset.key;ui.fwDate=b.dataset.date;ui.fwSwap=null;ui.fwLog=null;ui.view='fw';render(true);break;
     case 'plexswap':{freezeTop();const P=ui.pl,k=b.dataset.key,i=+b.dataset.i;P.swap=P.swap&&P.swap.key===k&&P.swap.i===i?null:{key:k,i};render();break}
     case 'plexpick':{freezeTop();const P=ui.pl,pv=P.preview,k=b.dataset.key,i=+b.dataset.i,to=b.dataset.v,s=pv.sess[k],from=s.ex[i][0],x=strFor(to);

@@ -14,7 +14,7 @@ function viewMonth(){const b=plActive(),wn=plWeekNo(),mon=mondayOf(TODAY);
   return `${head}${weeks}`}
 function isoWeek(d){const t=pd(d),x=new Date(Date.UTC(t.getFullYear(),t.getMonth(),t.getDate()));const day=x.getUTCDay()||7;x.setUTCDate(x.getUTCDate()+4-day);const y=new Date(Date.UTC(x.getUTCFullYear(),0,1));return Math.ceil(((x-y)/864e5+1)/7)}
 /* The wizard asks one thing per screen. Which screens appear depends on the goal (run goals add distance and pace). */
-function plSteps(P){const run=isRun(P.goal);return ['goal',...(run?['dist','test',P.goal==='distance'?'cur':'pace']:[]),'weeks',...(P.weeks>=3?['deload',...(P.deload?['dlfreq']:[])]:[]),'start','days','week']}
+function plSteps(P){const run=isRun(P.goal);return ['goal',...(run?['dist','test',P.goal==='distance'?'cur':'pace']:[]),'weeks',...(P.weeks>=3?['deload',...(P.deload?['dlfreq']:[])]:[]),'start','days','week',...(PL_DOW.some(d=>P.types[d]==='crossfit')?['level','eqcf','fwtime']:[]),...(PL_DOW.some(d=>P.types[d]==='styrke')?['eqstr','strmin']:[])]}
 /* A suggested week for the goal and number of training days. Days are spread so hard days rarely stack; Sunday becomes active recovery. */
 const PL_SLOTS={2:[0,3],3:[0,2,4],4:[0,1,3,5],5:[0,1,3,4,5],6:[0,1,2,3,4,5]};
 const PL_MIX={styrke:{2:'SS',3:'SKS',4:'SKSS',5:'SKSKS',6:'SKSKSK'},kondition:{2:'KS',3:'KSK',4:'KSKK',5:'KSKSK',6:'KSKKSK'},
@@ -39,6 +39,7 @@ function viewPlan(){const P=ui.pl;if(!P){ui.view='month';return viewMonth()}
   const steps=plSteps(P);if(P.step!=='review'&&!steps.includes(P.step))P.step=steps[0];
   const idx=steps.indexOf(P.step),n=steps.length;
   const head=(t,sub)=>`<div class="habit-head"><button class="icon-btn" data-act="plback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">Planlæg forløb${idx>=0?` · ${idx+1} af ${n}`:''}</p><h2 class="h2">${t}</h2></div></div>${idx>=0?`<div class="pl-prog">${steps.map((_,k)=>`<i class="${k<=idx?'on':''}"></i>`).join('')}</div>`:''}${sub?`<p class="note">${sub}</p>`:''}`;
+  const fin=dis=>idx===n-1?nav('Byg planen','plbuild',dis):nav(undefined,undefined,dis);
   const nav=(lbl,act,dis)=>`<div class="btns3" style="grid-template-columns:1fr 2fr">${idx>0?`<button class="btn ghost" data-act="plprev">Tilbage</button>`:`<button class="btn ghost" data-act="plback">Annullér</button>`}<button class="btn accent" data-act="${act||'plnext'}"${dis?' disabled':''}>${lbl||'Næste'}</button></div>`;
   const card=(x)=>`<section class="card">${x}</section>`;
   const opt=(act,v,on,l,d)=>`<button class="fmt${on?' on':''}" data-act="${act}" data-v="${v}"><b>${l}</b>${d?`<small>${d}</small>`:''}</button>`;
@@ -63,6 +64,11 @@ function viewPlan(){const P=ui.pl;if(!P){ui.view='month';return viewMonth()}
       <p class="hint${fit?'':' warn-t'}">${fit?`${cnt} ${cnt===1?'let uge':'lette uger'} på ${P.weeks} uger · ★ mest brugt: 3 hårde uger, 1 let`:`Dit forløb er ${P.weeks} uger, så du når ikke en let uge. Vælg et lavere tal, eller gå tilbage og vælg flere uger.`}</p>`)+nav()}
   case 'start':return head('Hvornår vil du starte?')+card(`<div class="fmt-grid">${opt('plst','this',P.start==='this','Denne uge','Dage der er gået springes over.')}${opt('plst','next',P.start==='next','Næste uge','Starter mandag.')}</div>`)+nav();
   case 'days':return head('Hvor mange dage om ugen vil du træne?')+card(`<div class="chips">${[2,3,4,5,6].map(k=>`<button class="${P.nDays===k?'on':''}" data-act="plndays" data-v="${k}">${k} dage</button>`).join('')}</div>`)+nav();
+  case 'level':{const C=cfPrefs();return head('Hvilket niveau træner du på?','Bruges til WOD\'er og fuld træning, ligesom når du bygger et pas.')+card(`<div class="fmt-grid">${[['Begynder','Skalerede bevægelser og lettere vægte'],['Øvet','Standardbevægelser og -vægte'],['Avanceret','Svære bevægelser og Rx-vægte']].map(([n,d])=>opt('plcfniv',n,C.niveau===n,n,d)).join('')}</div>`)+fin()}
+  case 'eqcf':{const all=cfUdstyrAlle(),have=cfPrefs().udstyr||all;return head('Hvilket udstyr har du til fuld træning?','Det samme valg som når du bygger en WOD.')+card(`<div class="chips">${all.map(u=>`<button class="${have.includes(u)?'on':''}" data-act="cfeq" data-v="${esc(u)}">${esc(u)}</button>`).join('')}</div><p class="hint">${have.length} af ${all.length} valgt</p>`)+fin()}
+  case 'fwtime':return head('Hvor lang tid har du til en fuld træning?')+card(`<div class="chips">${FW_TIMES.map(t=>`<button class="${P.fwT===t?'on':''}" data-act="plfwt" data-v="${t}">${t} min</button>`).join('')}</div>`)+fin();
+  case 'eqstr':{const have=strHave();return head('Hvilket udstyr har du til styrke?','Det samme valg som når du laver et styrkepas.')+card(`<div class="chips">${STR_EQ.map(u=>`<button class="${have.includes(u)?'on':''}" data-act="seeq" data-v="${esc(u)}">${esc(u)}</button>`).join('')}</div><p class="hint">Kropsvægtsøvelser er altid med.</p>`)+fin()}
+  case 'strmin':return head('Hvor lang tid har du til et styrkepas?')+card(`<div class="chips">${[30,45,60,75].map(t=>`<button class="${P.strMin===t?'on':''}" data-act="plstrmin" data-v="${t}">${t} min</button>`).join('')}</div><p class="hint">${plAccN(P)} ${plAccN(P)===1?'hjælpeøvelse':'hjælpeøvelser'} ud over hovedløftet.</p>`)+fin();
   case 'week':{const heavy=d=>['styrke','crossfit'].includes(P.types[d]);
     const warn=new Set();PL_DOW.forEach((d,i)=>{const r=[0,1,2].map(k=>PL_DOW[(i+k)%7]);if(r.every(heavy))r.forEach(x=>warn.add(x))});
     const cnt={};PL_DOW.forEach(d=>cnt[P.types[d]]=(cnt[P.types[d]]||0)+1);
@@ -71,7 +77,7 @@ function viewPlan(){const P=ui.pl;if(!P){ui.view='month';return viewMonth()}
     return head('Forslag til din uge',`${esc(plGoalName(P))} · ${P.nDays} træningsdage. Tryk på en dag for at ændre den.`)+`<section class="card pl-week-edit">${PL_DOW.map(d=>`<button class="pl-wrow k-${PL_TYPES[P.types[d]][1]}" data-act="plpick" data-d="${d}"><span class="pl-wd">${PL_SHORT[d]}</span>${plIcon(P.types[d])}<span class="pl-wt">${PL_TYPES[P.types[d]][0]}</span>${warn.has(d)||noRest?'<span class="pl-warn" title="Mange tunge dage i træk">!</span>':''}<span class="chev">›</span></button>`).join('')}</section>
     <div class="pl-sum">${Object.keys(PL_TYPES).filter(t=>cnt[t]).map(t=>`<span class="k-${PL_TYPES[t][1]}"><span class="bar"></span>${cnt[t]} ${PL_TYPES[t][0].toLowerCase()}</span>`).join('')}</div>
     ${run&&!nRun?'<p class="hint warn-t">Gør mindst 2 dage til kondition for at bygge en løbeplan.</p>':''}
-    ${nav('Byg planen','plbuild',run&&!nRun)}
+    ${idx===n-1?nav('Byg planen','plbuild',run&&!nRun):nav('Næste','plnext',run&&!nRun)}
     ${P.pick!=null?`<div class="sheet-bg" data-act="plclose"><div class="sheet" role="dialog" aria-label="${PL_SHORT[P.pick]}"><p class="sheet-t">${cap(DAYS[P.pick])}</p><div class="sheet-grid">${Object.keys(PL_TYPES).map(t=>`<button class="sheet-b k-${PL_TYPES[t][1]}${P.types[P.pick]===t?' on':''}" data-act="plset" data-v="${t}">${plIcon(t)}<span>${PL_TYPES[t][0]}</span></button>`).join('')}</div></div></div>`:''}`}
   }
   const pv=P.preview;
