@@ -7,7 +7,7 @@ const PL_TYPES={styrke:['Styrke','styrke'],crossfit:['Fuld træning','crossfit']
 const PL_ICON={styrke:'<path d="M6.5 8v8M17.5 8v8M3.5 10v4M20.5 10v4M6.5 12h11"/>',crossfit:'<path d="M12 3c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2.5-5 .5 1.5 1.5 2 2.5 2 0-2.5-1-4.5 0-7z"/>',
   kondition:'<path d="M3 12h4l2.5-6 4 12L16 12h5"/>',restitution:'<path d="M5 19c0-8 6-13 14-14-1 8-6 14-14 14zM5 19l7-7"/>',mobilitet:'<circle cx="12" cy="5" r="2"/><path d="M12 8v5l-4 6M12 13l4 6M6 10h12"/>',hvile:'<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>'};
 const plIcon=t=>`<span class="pl-ic k-${PL_TYPES[t][1]}"><svg viewBox="0 0 24 24">${PL_ICON[t]}</svg></span>`;
-const PL_GOALS={styrke:['Blive stærkere','Tungere løft, færre gentagelser. Sidste uge er en test.'],kondition:['Bedre kondition','Flere og længere intervaller. Styrke holdes ved lige.'],allround:['Allround (CrossFit)','Varierede styrkeskemaer og WODs. God arbejdskapacitet.'],muskler:['Mere muskelmasse','Flere gentagelser og mere bonusarbejde.'],
+const PL_GOALS={styrke:['Blive stærkere','Tungere løft, færre gentagelser. Sidste uge er en test.'],kondition:['Bedre kondition','Flere og længere intervaller. Styrke holdes ved lige.'],allround:['CrossFit','Varierede styrkeskemaer og WOD\'er. God arbejdskapacitet.'],hybrid:['Allround','Styrke, løb, CrossFit og mobilitet blandet. Bred form til hverdag og tjeneste.'],muskler:['Mere muskelmasse','Flere gentagelser og mere bonusarbejde.'],
   distance:['Løb længere','Byg op til en distance. Sidste uge løber du den.'],pace:['Løb hurtigere','Hurtigere pace på en distance. Sidste uge er en test.']};
 /* ---------- Running goals ----------
    Plan length from common running plans: 5-10 km 6-12 weeks, half marathon 10-16, marathon 14-20 (16-18 most common).
@@ -109,7 +109,9 @@ function plStart(){const t={};PL_DOW.forEach(d=>t[d]=plTypeOfKey(state.plan[d]))
 const PL_PROG={styrke:[[5,5,70],[5,4,75],[5,3,80],[4,3,85],[5,2,85],[4,2,88],[3,2,90]],
   muskler:[[4,10,60],[4,8,67],[4,8,70],[4,6,75],[5,6,75],[4,5,78],[4,5,80]],
   kondition:[[3,5,70],[3,5,72],[3,4,75],[3,4,77],[3,3,80],[3,3,82],[3,3,83]],
-  allround:[[5,5,70],[5,4,75],[5,3,80],[4,3,85],[5,2,85],[4,2,87],[3,2,90]]};
+  allround:[[5,5,70],[5,4,75],[5,3,80],[4,3,85],[5,2,85],[4,2,87],[3,2,90]],
+  hybrid:[[4,5,70],[4,5,72],[4,4,75],[4,4,77],[4,3,80],[4,3,82],[4,3,84]]};
+/* Goal keys are stored in saved plans: 'allround' is the CrossFit goal, 'hybrid' is Allround (everything mixed). */
 const plHasTest=P=>(P.goal==='styrke'||isRun(P.goal))&&P.weeks>=3;
 /* Deload every E weeks. The last week can be a deload unless it is a test week. */
 function plWeekInfo(P){const out=[];let n=0;for(let w=0;w<P.weeks;w++){const E=P.dlEvery||4,test=plHasTest(P)&&w===P.weeks-1,dl=P.deload&&P.weeks>=3&&w%E===E-1&&!test;out.push({w,dl,test,i:dl||test?-1:n++})}return out}

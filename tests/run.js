@@ -230,6 +230,10 @@ T('Fuld træning i en plan roterer B-løftet, styrkemål beholder det',async()=>
     const adj=pv.weeks.some(w=>w.days.some((d,i)=>{const n=w.days[i+1];if(!n||d.t!=='crossfit'||n.t!=='crossfit')return false;return PL_LOWER.includes(fwL(pv.sess[d.key].w.b.lift)[2])&&PL_LOWER.includes(fwL(pv.sess[n.key].w.b.lift)[2])}));
     return {oly:a.filter(l=>l[2]==='clean'||l[2]==='snatch').length,names:new Set(a.map(l=>l[1])).size,pats:[...new Set(a.map(l=>l[2]))].sort(),strength:new Set(s.map(l=>l[1])).size,adj}});
   ok(r.names>=8,'mange forskellige løft: '+r.names);ok(r.oly>=2,'Olympic-løft med: '+r.oly);ok(['clean','hinge','press_v','snatch','squat'].every(x=>r.pats.includes(x)),'alle hovedmønstre: '+r.pats);eq(r.strength,2,'styrkemål: ét løft pr. dag');eq(r.adj,false,'aldrig to tunge benløft dag efter dag');return p});
+T('Allround blander styrke, kondition, CrossFit og mobilitet, CrossFit er sit eget mål',async()=>{const p=await app({plan:REST});
+  const r=await ev(p,()=>{const P={...plStart(),goal:'hybrid',nDays:4};plDraft(P);const types=new Set(PL_DOW.map(d=>P.types[d]));const pv=plBuild({...P,weeks:4});
+    return {types:[...types].sort(),names:[PL_GOALS.allround[0],PL_GOALS.hybrid[0]],built:pv.weeks[0].days.filter(d=>d.key!=='R').length}});
+  ok(['crossfit','kondition','mobilitet','styrke'].every(t=>r.types.includes(t)),'typer: '+r.types);eq(r.names,['CrossFit','Allround']);ok(r.built>=5);return p});
 /* ================= Editing the draft ================= */
 const draft=async(p,goal,types)=>ev(p,([goal,types])=>{ui.pl={...plStart(),goal,weeks:4,deload:false,types,start:'next'};ui.pl.preview=plBuild(ui.pl);ui.pl.step='review';ui.view='plan';render(true);
   const d=ui.pl.preview.weeks[0].days.find(x=>x.key!=='R');ui.pl.open=d.date;render();return d.key},[goal,types]);

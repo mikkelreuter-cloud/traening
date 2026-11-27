@@ -18,10 +18,12 @@ function plSteps(P){const run=isRun(P.goal);return ['goal',...(run?['dist','test
 /* A suggested week for the goal and number of training days. Days are spread so hard days rarely stack; Sunday becomes active recovery. */
 const PL_SLOTS={2:[0,3],3:[0,2,4],4:[0,1,3,5],5:[0,1,3,4,5],6:[0,1,2,3,4,5]};
 const PL_MIX={styrke:{2:'SS',3:'SKS',4:'SKSS',5:'SKSKS',6:'SKSKSK'},kondition:{2:'KS',3:'KSK',4:'KSKK',5:'KSKSK',6:'KSKKSK'},
-  allround:{2:'CC',3:'CCC',4:'CKCC',5:'CCKCC',6:'CCKCCK'},muskler:{2:'SS',3:'SSS',4:'SSSS',5:'SSKSS',6:'SSSKSS'},
+  allround:{2:'CC',3:'CCC',4:'CKCC',5:'CCKCC',6:'CCKCCK'},hybrid:{2:'SK',3:'SKC',4:'SKCK',5:'SKCKS',6:'SKCKSM'},muskler:{2:'SS',3:'SSS',4:'SSSS',5:'SSKSS',6:'SSSKSS'},
   distance:{2:'KK',3:'KSK',4:'KSKK',5:'KSKSK',6:'KKSKSK'},pace:{2:'KK',3:'KSK',4:'KSKK',5:'KSKSK',6:'KKSKSK'}};
-function plDraft(P){const n=P.nDays,mix=(PL_MIX[P.goal]||PL_MIX.styrke)[n],m={S:'styrke',K:'kondition',C:'crossfit'},t={};
+function plDraft(P){const n=P.nDays,mix=(PL_MIX[P.goal]||PL_MIX.styrke)[n],m={S:'styrke',K:'kondition',C:'crossfit',M:'mobilitet'},t={};
   PL_DOW.forEach(d=>t[d]='hvile');PL_SLOTS[n].forEach((i,k)=>t[PL_DOW[i]]=m[mix[k]]);if(n>=3&&t[0]==='hvile')t[0]='restitution';
+  // Allround also gets a mobility day on a free day (not right before the weekend's recovery day)
+  if(P.goal==='hybrid'&&!PL_DOW.some(d=>t[d]==='mobilitet')){const f=PL_DOW.find(d=>t[d]==='hvile');if(f!==undefined)t[f]='mobilitet'}
   P.types=t;P.draftSig=P.goal+'|'+n}
 /* Running test in the wizard: VDOT, paces and a realistic goal */
 function plTestV(P){if(P.noTest)return null;const sec=parseTime(P.tTxt);if(!sec||!P.tKm)return null;const p=sec/P.tKm;if(p<150||p>720)return null;return vdotOf(P.tKm,sec)}
