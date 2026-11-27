@@ -527,6 +527,8 @@ b,strong{font-weight:600}
 .sc-d{position:relative;aspect-ratio:1;border:0;border-radius:12px;background:none;color:var(--text);font:inherit;font-variant-numeric:tabular-nums}
 .sc-d:disabled{opacity:.3}.sc-d.today{box-shadow:inset 0 0 0 1.5px var(--line)}.sc-d.on{background:var(--accent);color:#fff}
 .sc-d i{position:absolute;left:50%;bottom:5px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--k,var(--muted))}.sc-d.on i{background:#fff}
+.xtra{margin-top:14px;padding-top:14px;border-top:1px solid var(--line);display:grid;gap:6px}
+.wd{position:relative}.wd-x{position:absolute;top:-6px;right:-4px;font-size:10px;font-weight:700;line-height:1;padding:2px 4px;border-radius:6px;background:var(--accent);color:#fff}
 </style>
 </head>
 <body>
@@ -674,7 +676,7 @@ function load(){
     if(st.program==='blueprint'&&st.plan[2]==='I4'&&st.plan[0]==='Z2L')st.plan[2]='I5';
     /* v9: move 30/15 to Friday and Styrke C to Saturday, so intervals never follow a heavy leg day */
     if(st.program==='blueprint'&&st.plan[5]==='C'&&st.plan[6]==='I30B'){st.plan[5]='I30B';st.plan[6]='C';if(st.addons[5]==='MOB'){delete st.addons[5];st.addons[6]='MOB'}}
-    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.sessEdits=d.sessEdits||{};st.customSess=d.customSess||{};st.customPlan=d.customPlan||null;st.customAddons=d.customAddons||null;st.customDeload=d.customDeload;st.overrides=d.overrides||{};st.cfDays=d.cfDays||{};st.cfPrefs=d.cfPrefs||null;st.strUdstyr=d.strUdstyr||null;st.strGen=d.strGen||null;st.fw=d.fw||null;st.seGen=d.seGen||null;st.theme=d.theme||'auto';st.accent=d.accent||'orange';st.goals=d.goals||[];st.fwT=d.fwT||60;st.block=d.block||null;st.blockDays=d.blockDays||{};st.planSess=d.planSess||{};st.planFw=d.planFw||{};st.shifts=Array.isArray(d.shifts)?d.shifts:[];
+    st.cycleStart=d.cycleStart||null;if(st.program==='blueprint'&&!st.cycleStart)st.needCycle=true;st.hrmax=d.hrmax||null;st.habitStart=d.habitStart||null;st.coldPre=d.coldPre;st.customHabits=Array.isArray(d.customHabits)?d.customHabits:[];st.skips=d.skips||{};st.sessEdits=d.sessEdits||{};st.customSess=d.customSess||{};st.customPlan=d.customPlan||null;st.customAddons=d.customAddons||null;st.customDeload=d.customDeload;st.overrides=d.overrides||{};st.cfDays=d.cfDays||{};st.cfPrefs=d.cfPrefs||null;st.strUdstyr=d.strUdstyr||null;st.strGen=d.strGen||null;st.fw=d.fw||null;st.seGen=d.seGen||null;st.theme=d.theme||'auto';st.accent=d.accent||'orange';st.goals=d.goals||[];st.fwT=d.fwT||60;st.block=d.block||null;st.blockDays=d.blockDays||{};st.planSess=d.planSess||{};st.planFw=d.planFw||{};st.extras=d.extras||{};st.shifts=Array.isArray(d.shifts)?d.shifts:[];
     if(!st.program){const untouched=Object.keys(DEFAULT_PLAN).every(k=>st.plan[k]===DEFAULT_PLAN[k]);if(untouched)st.plan={...BP_PLAN};st.addons={...BP_ADDONS}}
     /* v20: one program only — your own week. Existing data counts as already set up. */
     if(st.program!=='custom'&&!d.customPlan)st.customDeload=d.customDeload??true;
@@ -722,6 +724,12 @@ function hrLine(s){
   return `<p class="sug num">Pulsen stiger langsomt og rammer ${hr(.9)}–${hr(.95)} i slutningen af hvert hårdt stykke. I pauserne skal den falde til under ${hr(.75)}.</p>`;
 }
 const sessFor=s=>SESS[sessKey(s)];
+/* Extra sessions on a day, on top of the day's main session */
+const extrasOn=d=>((state.extras||{})[d]||[]).filter(k=>SESS[k]);
+const logKind=k=>k==='styrke'?'styrke':k==='mobilitet'?'mobilitet':k==='crossfit'?'crossfit':'kondition';
+function extraDone(d,i){const L=logsOn(d),ks=extrasOn(d),t=logKind(SESS[ks[i]].kind),main=sessFor(d);
+  const need=(main.kind!=='hvile'&&logKind(main.kind)===t?1:0)+ks.slice(0,i).filter(k=>logKind(SESS[k].kind)===t).length+1;
+  return L.filter(l=>l.type===t).length>=need}
 const HABIT_LOG=t=>t==='kulde'||t==='meditation'||t==='tak'||/^h[a-z0-9]{6,}$/.test(t);
 const trainLogs=()=>state.logs.filter(l=>!HABIT_LOG(l.type));
 const logsOn=s=>state.logs.filter(l=>l.date===s);
@@ -992,7 +1000,7 @@ const daysSince=d=>Math.round((pd(TODAY)-pd(d))/864e5);
 function weekCell(d,act){
   const s=sessFor(d),dt=pd(d);
   return `<button class="wd k-${s.kind}${d===TODAY?' is-today':''}${isDone(d)?' is-done':''}${act&&(ui.wsel===undefined?TODAY:ui.wsel)===d?' is-sel':''}" data-act="${act||'calday'}" data-date="${d}" aria-label="${niceDate(d)}: ${s.name}">
-    <span class="dl">${DAYS[dt.getDay()].slice(0,2)}</span><span class="dn num">${dt.getDate()}</span><span class="bar"></span></button>`;
+    <span class="dl">${DAYS[dt.getDay()].slice(0,2)}</span><span class="dn num">${dt.getDate()}</span><span class="bar"></span>${extrasOn(d).length?'<span class="wd-x">+'+extrasOn(d).length+'</span>':''}</button>`;
 }
 /* Details for a tapped day in the week strip on I dag */
 function weekDetail(d,extra){const s=sessFor(d),done=isDone(d),cf=s.kind==='crossfit'?cfSaved(d):null;
@@ -1005,7 +1013,10 @@ function weekDetail(d,extra){const s=sessFor(d),done=isDone(d),cf=s.kind==='cros
     <p class="small ${done?'ok':'muted'}">${status}</p>
     ${s.kind!=='hvile'&&sum.length?`<ul class="wdet-l">${sum.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}
     ${extra||''}
-    ${(d!==TODAY||extra===undefined)&&s.kind!=='hvile'?`<button class="restbtn" data-act="calday" data-date="${d}">Se træning ›</button>`:''}</div>`}
+    ${(d!==TODAY||extra===undefined)&&s.kind!=='hvile'?`<button class="restbtn" data-act="calday" data-date="${d}">Se træning ›</button>`:''}
+    ${extrasOn(d).map((k,i)=>{const x=SESS[k],dn=extraDone(d,i);return `<div class="xtra k-${x.kind}"><div class="row-between"><span class="muted small">Også ${d===TODAY?'i dag':'denne dag'}</span>${chip(x.kind,x.label||KIND_LABEL[x.kind])}</div>
+      <h3 class="wdet-n">${esc(x.name)}${x.dur?`<span class="muted small"> · ${esc(x.dur)}</span>`:''}</h3><p class="small ${dn?'ok':'muted'}">${dn?'✓ Gennemført':d<TODAY?'Ikke logget':'Planlagt'}</p>
+      <div class="btns3" style="grid-template-columns:${d===TODAY&&!dn?'2fr ':''}1fr 1fr">${d===TODAY&&!dn?`<button class="btn accent" data-act="xstart" data-key="${k}">Start</button>`:''}<button class="btn ghost" data-act="xsee" data-key="${k}">Se</button><button class="btn ghost" data-act="xdel" data-date="${d}" data-i="${i}">Fjern</button></div></div>`}).join('')}</div>`}
 function viewToday(){
   const s=sessFor(TODAY),done=isDone(TODAY),wk=weekDates(TODAY);
   const planned=wk.filter(d=>sessFor(d).kind!=='hvile'),doneN=planned.filter(isDone).length;
@@ -1109,6 +1120,7 @@ function dayCard(sel){
     <div class="row-between"><h2 class="sess">${esc(se.name)}</h2>${chip(se.kind,se.label||KIND_LABEL[se.kind])}</div>
     ${sessionBody(se,sel)}
     ${addonFor(sel)?`<p class="note">+ ${esc(addonFor(sel).s.name)} (${addonFor(sel).s.dur}) bagefter</p>`:''}
+    ${extrasOn(sel).map((k,i)=>`<div class="xtra k-${SESS[k].kind}"><div class="row-between"><b>${esc(SESS[k].name)}</b>${chip(SESS[k].kind,SESS[k].label||KIND_LABEL[SESS[k].kind])}</div>${sessionBody(SESS[k])}<button class="restbtn" data-act="xdel" data-date="${sel}" data-i="${i}">Fjern fra dagen</button></div>`).join('')}
     ${L.length?`<h3 class="sec">Logget</h3><div>${L.map(logItem).join('')}</div>`:''}
     ${se.fw?`<button class="btn accent" data-act="fwday" data-date="${sel}">Åbn træningen</button>`:''}${se.kind==='crossfit'&&!se.fw?`<button class="btn accent" data-act="cfopen" data-date="${sel}">${cfSaved(sel)?'Se og rediger pas':'Byg CrossFit-pas'}</button>`:''}
     ${se.kind!=='crossfit'?`<button class="btn ghost" data-act="cfday" data-date="${sel}">Læg CrossFit ind på dagen</button>`:(state.overrides||{})[sel]==='CF'?`<button class="restbtn" data-act="cfundo" data-date="${sel}">Fjern CrossFit · tilbage til ${esc(SESS[baseKey(sel)].name)}</button>`:''}
@@ -1225,7 +1237,7 @@ function fwSecHead(k,title,min){return `<div class="fw-h"><span class="fw-l">${k
 function fwAltList(kind,i,alts,label){return `<div class="alts">${alts.length?`<button data-act="fwpick" data-k="${kind}" data-i="${i}" data-v="${esc(label(fwPick(alts)))}" style="background:var(--pill);color:var(--pill-fg)">🎲 Tilfældig erstatning</button>`+alts.slice(0,12).map(a=>`<button data-act="fwpick" data-k="${kind}" data-i="${i}" data-v="${esc(label(a))}">${esc(kind==='c'?CF.navnVis(a):kind==='b'?a[1]:a[0])}</button>`).join(''):'<p class="hint">Ingen erstatninger med dit udstyr.</p>'}</div>`}
 function viewFW(){
   const w=fwW(),T=fwT(),P=cfPrefs(),all=cfUdstyrAlle(),have=P.udstyr||all,sw=ui.fwSwap;
-  const back=`<div class="habit-head"><button class="icon-btn" data-act="fwback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">${ui.fwDate?cap(niceDate(ui.fwDate))+' · fra din plan':'Opvarmning · styrke · WOD · bonus'}</p><h2 class="h2">Fuld træning</h2></div></div>`;
+  const back=`<div class="habit-head"><button class="icon-btn" data-act="fwback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">${ui.fwDate?cap(niceDate(ui.fwDate.slice(0,10)))+(ui.fwDate.length>10?'':' · fra din plan'):'Opvarmning · styrke · WOD · bonus'}</p><h2 class="h2">Fuld træning</h2></div></div>`;
   const opts=`<section class="card">
     ${ui.fwDate?`<p class="hint">Styrkedelen følger din plan. Bland og byt resten som du vil.</p>`:`<div class="field"><span>Tid i alt</span><div class="chips">${FW_TIMES.map(t=>`<button class="${T===t?'on':''}" data-act="fwtime" data-v="${t}">${t} min</button>`).join('')}</div></div>`}
     <div class="field"><span>Niveau</span><div class="chips">${['Begynder','Øvet','Avanceret'].map(n=>`<button class="${P.niveau===n?'on':''}" data-act="cfpref" data-k="niveau" data-v="${n}">${n}</button>`).join('')}</div></div>
@@ -1259,7 +1271,7 @@ function viewFW(){
     <label class="field"><span>Note (valgfri)</span><input id="fw-note" data-bind="fwLog.note" value="${esc(ui.fwLog.note)}" placeholder="Fx vægt i styrke"></label>
     <button class="btn accent" data-act="fwsave">Gem i log</button></section>`:`<button class="btn primary" data-act="fwlog">Log træningen</button>`;
   return back+opts+A+B+C+D+(ui.fwDate?'':`<button class="btn ghost" data-act="schopen" data-src="fw">📅 Læg i kalenderen</button>`)+L}
-function fwPlanName(w){const k='F'+ui.fwDate.replace(/-/g,'');if(state.planSess&&state.planSess[k]){state.planSess[k].name='Fuld træning · '+fwL(w.b.lift)[1];applySess()}}
+function fwPlanName(w){if(ui.fwDate.length>10)return;const k='F'+ui.fwDate.replace(/-/g,'');if(state.planSess&&state.planSess[k]){state.planSess[k].name='Fuld træning · '+fwL(w.b.lift)[1];applySess()}}
 function fwLines(){const w=fwW(),l=fwL(w.b.lift),p=fwC();
   return ['A) Opvarmning: '+[w.a.cardio,...w.a.gen,...w.a.spec].join(', '),'B) '+l[1]+': '+w.b.lines.join(' / '),'C) '+(p?p.overskrift+': '+p.linjer.join(' / '):''),...(w.d.length?['D) Bonus: '+w.d.join(', ')]:[])]}
 
@@ -1421,7 +1433,7 @@ function plAccept(){const pv=ui.pl.preview;if(!pv)return;
 /* Stopping removes everything the plan put in the calendar. Only days you actually trained keep their session, so the history still makes sense. */
 /* Empty the calendar: no plan, no fixed week, no one-off sessions. Days you trained keep their session. */
 function wipeCalendar(){const done=new Set((state.logs||[]).map(l=>l.date)),keep=d=>d<TODAY&&done.has(d);
-  plStop();['overrides','skips','cfDays'].forEach(f=>{state[f]=Object.fromEntries(Object.entries(state[f]||{}).filter(([d])=>keep(d)))});
+  plStop();['overrides','skips','cfDays','extras'].forEach(f=>{state[f]=Object.fromEntries(Object.entries(state[f]||{}).filter(([d])=>keep(d)))});
   const rest={};PL_DOW.forEach(d=>rest[d]='R');state.plan={...rest};state.addons={};if(state.customPlan)state.customPlan={...rest};if(state.customAddons)state.customAddons={};
   applySess();save()}
 function plStop(){const done=new Set((state.logs||[]).map(l=>l.date)),bd={},ps={},pf={};
@@ -1452,7 +1464,7 @@ function viewMonth(){const b=plActive(),wn=plWeekNo(),mon=mondayOf(TODAY);
     const days=[0,1,2,3,4,5,6].map(j=>ds(new Date(pd(st).getFullYear(),pd(st).getMonth(),pd(st).getDate()+j)));
     const bw=b&&st>=b.start&&st<=b.end?Math.floor((pd(st)-pd(b.start))/(7*864e5)):-1;
     return `<section class="card mw"><div class="row-between"><h3 class="sec">${i===0?'Denne uge':i===1?'Næste uge':`Uge ${isoWeek(st)}`} <span class="muted small">· ${shortDate(days[0])}–${shortDate(days[6])}</span></h3>${bw>=0&&b.deloads.includes(bw)?'<span class="tag-dl">Deload</span>':''}</div>
-      ${days.map(d=>{const s=sessFor(d),op=ui.mOpen===d,done=isDone(d);return `<button class="pl-r m-r${d<TODAY?' past':''}${d===TODAY?' today':''}${op?' open':''}" data-act="mday" data-date="${d}"><span class="pl-d">${PL_SHORT[pd(d).getDay()]} ${pd(d).getDate()}</span>${chip(s.kind,s.label||KIND_LABEL[s.kind])}<span class="pl-l">${esc(s.name)}${done?' <span class="ok">✓</span>':''}</span>${s.kind==='hvile'?'':'<span class="chev">›</span>'}</button>${op?weekDetail(d):''}`}).join('')}</section>`}).join('');
+      ${days.map(d=>{const s=sessFor(d),op=ui.mOpen===d,done=isDone(d);return `<button class="pl-r m-r${d<TODAY?' past':''}${d===TODAY?' today':''}${op?' open':''}" data-act="mday" data-date="${d}"><span class="pl-d">${PL_SHORT[pd(d).getDay()]} ${pd(d).getDate()}</span>${chip(s.kind,s.label||KIND_LABEL[s.kind])}<span class="pl-l">${esc(s.name)}${extrasOn(d).length?` <span class="muted">+${extrasOn(d).length}</span>`:''}${done?' <span class="ok">✓</span>':''}</span>${s.kind==='hvile'&&!extrasOn(d).length?'':'<span class="chev">›</span>'}</button>${op?weekDetail(d):''}`}).join('')}</section>`}).join('');
   return `${head}${weeks}`}
 function isoWeek(d){const t=pd(d),x=new Date(Date.UTC(t.getFullYear(),t.getMonth(),t.getDate()));const day=x.getUTCDay()||7;x.setUTCDate(x.getUTCDate()+4-day);const y=new Date(Date.UTC(x.getUTCFullYear(),0,1));return Math.ceil(((x-y)/864e5+1)/7)}
 /* The wizard asks one thing per screen. Which screens appear depends on the goal (run goals add distance and pace). */
@@ -1572,15 +1584,23 @@ function viewSched(){const c=ui.sched;if(!c){ui.view='train';return viewTrain()}
   return `<div class="habit-head"><button class="icon-btn" data-act="schback" aria-label="Tilbage" data-back>‹</button><div><p class="eyebrow">Læg i kalenderen</p><h2 class="h2">${esc(schName(c))}</h2></div></div>
   <div class="seg">${[['days','Enkelte dage'],['weekly','Hver uge']].map(([k,l])=>`<button class="${c.mode===k?'on':''}" data-act="schmode" data-v="${k}">${l}</button>`).join('')}</div>
   ${body}
-  ${dates.length?`<p class="hint center">${dates.length} ${dates.length===1?'dag':'dage'}${dates.length>1?` · ${niceDate(dates[0])} til ${niceDate(dates[dates.length-1])}`:` · ${niceDate(dates[0])}`}${busy?`<br>${dates.length===1?'Der ligger allerede træning, som':`${busy} af dem har allerede træning, som`} bliver erstattet.`:''}</p>`:''}
+  ${dates.length?`<p class="hint center">${dates.length} ${dates.length===1?'dag':'dage'}${dates.length>1?` · ${niceDate(dates[0])} til ${niceDate(dates[dates.length-1])}`:` · ${niceDate(dates[0])}`}</p>`:''}
+  ${busy?`<section class="card"><p class="small">${dates.length===1?'Der ligger allerede træning på dagen.':`${busy} af dagene har allerede træning.`}</p>
+    <div class="seg" style="margin:0">${[['add','Læg oveni'],['replace','Erstat']].map(([k,l])=>`<button class="${c.how===k?'on':''}" data-act="schhow" data-v="${k}">${l}</button>`).join('')}</div>
+    <p class="hint">${c.how==='add'?'Begge pas ligger på dagen.':'Det, der lå der, bliver erstattet.'}</p></section>`:''}
   <button class="btn accent" data-act="schgo"${dates.length?'':' disabled'}>${dates.length?`Læg ind på ${dates.length} ${dates.length===1?'dag':'dage'}`:'Vælg dage'}</button>`}
-function schApply(c){const dates=schDates(c),ov={...(state.overrides||{})},sk={...(state.skips||{})};
-  dates.forEach(d=>{delete sk[d];
+function schApply(c){const dates=schDates(c),ov={...(state.overrides||{})},sk={...(state.skips||{})},ex={...(state.extras||{})};
+  dates.forEach(d=>{const add=c.how==='add'&&sessKey(d)!=='R';
+    if(add){const id=d.replace(/-/g,'')+Math.random().toString(36).slice(2,6);let k=c.key;
+      if(c.src==='cf'){k='X'+id;state.planSess={...(state.planSess||{}),[k]:{name:schName(c),kind:'crossfit',cf:JSON.parse(JSON.stringify(c.cf)),steps:[c.cf.title||'WOD',...(c.cf.linjer||[])],min:c.cf.min,dur:(c.cf.min||20)+' min'}}}
+      else if(c.src==='fw'){k='X'+id;const fid=d+'#'+id;state.planFw={...(state.planFw||{}),[fid]:JSON.parse(JSON.stringify(c.fw))};state.planSess={...(state.planSess||{}),[k]:{name:schName(c),kind:'crossfit',fw:true,fwId:fid,dur:c.fw.T+' min'}}}
+      ex[d]=[...(ex[d]||[]),k];return}
+    delete sk[d];
     if(c.src==='key')ov[d]=c.key;
     else if(c.src==='cf'){state.cfDays={...(state.cfDays||{}),[d]:JSON.parse(JSON.stringify(c.cf))};ov[d]='CF'}
     else{const k='F'+d.replace(/-/g,'');state.planFw={...(state.planFw||{}),[d]:JSON.parse(JSON.stringify(c.fw))};
       state.planSess={...(state.planSess||{}),[k]:{name:schName(c),kind:'crossfit',fw:true,dur:c.fw.T+' min'}};ov[d]=k}});
-  state.overrides=ov;state.skips=sk;applySess();save();return dates.length}
+  state.overrides=ov;state.skips=sk;state.extras=ex;applySess();save();return dates.length}
 function viewSess(){
   const k=ui.trKey,se=SESS[k];if(!se){ui.view='train';return viewTrain()}
   return `<div class="habit-head"><button class="icon-btn" data-act="view" data-view="train" aria-label="Tilbage" data-back>‹</button><h2 class="h2">${esc(se.name)}</h2></div>
@@ -2224,7 +2244,7 @@ function doRestore(){
   let d;try{d=JSON.parse(ui.impText)}catch(e){d=null}
   if(!d||!Array.isArray(d.logs)){ui.pendingRestore=false;render();return toast('Teksten er ikke en gyldig backup')}
   if(!ui.pendingRestore){ui.pendingRestore=true;return render()}
-  state={sessEdits:d.sessEdits||{},customSess:d.customSess||{},plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:'custom',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,name:d.name,onboarded:true,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,strUdstyr:d.strUdstyr||null,strGen:d.strGen||null,fw:d.fw||null,fwT:d.fwT||60,theme:d.theme||'auto',accent:d.accent||'orange',goals:d.goals||[],block:d.block||null,blockDays:d.blockDays||{},planSess:d.planSess||{},planFw:d.planFw||{},shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);applySess();
+  state={sessEdits:d.sessEdits||{},customSess:d.customSess||{},plan:{...DEFAULT_PLAN,...(d.plan||{})},logs:d.logs,lastBackup:d.lastBackup||null,program:'custom',addons:d.addons||(d.program==='egen'?{}:{...BP_ADDONS}),cycleStart:d.cycleStart||null,hrmax:d.hrmax||null,habitStart:d.habitStart||null,customHabits:d.customHabits||[],coldPre:d.coldPre,customPlan:d.customPlan||null,customAddons:d.customAddons||null,customDeload:d.customDeload,name:d.name,onboarded:true,skips:d.skips||{},overrides:d.overrides||{},cfDays:d.cfDays||{},cfPrefs:d.cfPrefs||null,strUdstyr:d.strUdstyr||null,strGen:d.strGen||null,fw:d.fw||null,fwT:d.fwT||60,theme:d.theme||'auto',accent:d.accent||'orange',goals:d.goals||[],block:d.block||null,blockDays:d.blockDays||{},planSess:d.planSess||{},planFw:d.planFw||{},extras:d.extras||{},shifts:d.shifts||[]};save();ui.pendingRestore=false;ui.impText='';render();toast(`Gendannet ${d.logs.length} logs`);applySess();
 }
 function guessUnit(name){
   const prev=logsOf('test').filter(l=>l.name===name);if(prev.length)return prev[prev.length-1].unit;
@@ -2262,6 +2282,8 @@ document.addEventListener('click',e=>{
     case 'logday':openLog(b.dataset.date);break;
     case 'calday':case 'sel':{ui.dayBack=ui.view==='day'?ui.dayBack:ui.view;ui.sel=b.dataset.date;const d=pd(ui.sel);ui.calY=d.getFullYear();ui.calM=d.getMonth();ui.view='day';render(true);break}
     case 'dayback':ui.view=ui.dayBack||'today';render(true);break;
+    case 'xstart':{const se=SESS[b.dataset.key];if(se&&se.fwId){ui.fwDate=se.fwId;ui.fwSwap=null;ui.fwLog=null;ui.view='fw';render(true);break}}
+    // falls through: other extra sessions start like any session
     case 'trstart':{const k=b.dataset.key,se=SESS[k];
       if(se.kind==='styrke'){ui.logDate=TODAY;ui.logType='styrke';const d=loadDraft();if(d&&d.sess===k){ui.sess=k;ui.rows=d.rows;ui.wStart=d.wStart||null}else{ui.sess=k;initRows(k)}ui.dirty=false;ui.view='log';render(true)}
       else if(se.kind==='interval'||se.kind==='zone2')startTimer(k);
@@ -2373,7 +2395,7 @@ document.addEventListener('click',e=>{
     case 'plstop':plStop();render();toast('Forløbet er stoppet og fjernet fra kalenderen');break;
     case 'fwopen':ui.fwDate=null;ui.fwSwap=null;ui.fwLog=null;if(!state.fw){state.fw=fwNew();save()}ui.view='fw';render(true);break;
     case 'fwday':ui.fwDate=b.dataset.date;ui.fwSwap=null;ui.fwLog=null;ui.view='fw';render(true);break;
-    case 'fwback':ui.view=ui.fwDate?'today':'train';render(true);break;
+    case 'fwback':ui.view=ui.fwDate?'today':'train';if(ui.fwDate&&ui.fwDate.length>10)ui.fwDate=null;render(true);break;
     case 'fwtime':{state.fwT=+b.dataset.v;const w=fwW();if(w){w.T=state.fwT;w.c=fwGenC(w.b,w.T);w.d=fwGenD(w.b,w.T)}save();render();break}
     case 'fwnew':{ui.fwSwap=null;if(ui.fwDate){const w=fwW();state.planFw={...(state.planFw||{}),[ui.fwDate]:w?{...w,a:fwGenA(w.b),c:fwGenC(w.b,w.T),d:fwGenD(w.b,w.T)}:fwNew()}}else state.fw=fwNew();save();render();toast('Ny træning');break}
     case 'fwudstyr':ui.fwEq=!ui.fwEq;render();break;
@@ -2392,7 +2414,7 @@ document.addEventListener('click',e=>{
       save();render();toast('Øvelse byttet');break}
     case 'fwlog':ui.fwLog={score:'',note:''};render();break;
     case 'fwsave':{const w=fwW(),l=fwL(w.b.lift),r=ui.fwLog;
-      state.logs.push({id:Date.now().toString(36),date:ui.fwDate||TODAY,type:'crossfit',name:'Fuld træning · '+l[1],score:(r.score||'').trim(),note:(r.note||'').trim(),linjer:fwLines(),dur:w.T*60});
+      state.logs.push({id:Date.now().toString(36),date:(ui.fwDate||TODAY).slice(0,10),type:'crossfit',name:'Fuld træning · '+l[1],score:(r.score||'').trim(),note:(r.note||'').trim(),linjer:fwLines(),dur:w.T*60});
       ui.fwLog=null;save();render();toast('Træning gemt');break}
     case 'cfswap':{const i=+b.dataset.i;ui.cf.swapI=ui.cf.swapI===i?null:i;render();break}
     case 'cfpick':cfSwap(+b.dataset.i,b.dataset.v);render();toast('Øvelse byttet');break;
@@ -2442,10 +2464,13 @@ document.addEventListener('click',e=>{
     case 'mobdone':{const k=b.dataset.key,d=b.dataset.date||TODAY,S=SESS[k];state.logs.push({id:Date.now().toString(36),date:d,type:'mobilitet',name:S.name,dur:S.min*60});save();render();toast('Gemt');break}
     case 'copy':doCopy();break;
     case 'restore':doRestore();break;
-    case 'schopen':{const src=b.dataset.src,c={src,mode:'days',dates:[],month:TODAY.slice(0,7),dows:[pd(TODAY).getDay()],weeks:4,start:'this',from:ui.view};
+    case 'schopen':{const src=b.dataset.src,c={src,mode:'days',dates:[],month:TODAY.slice(0,7),dows:[pd(TODAY).getDay()],weeks:4,start:'this',how:'add',from:ui.view};
       if(src==='key')c.key=b.dataset.key;else if(src==='cf'){if(!ui.cf||!ui.cf.pas)break;c.cf=cfSerialize(ui.cf.pas)}else{const w=fwW();if(!w)break;c.fw=w}
       ui.sched=c;ui.view='sched';render(true);break}
     case 'schback':ui.view=ui.sched?ui.sched.from:'train';render(true);break;
+    case 'schhow':ui.sched.how=b.dataset.v;render();break;
+    case 'xsee':{const se=SESS[b.dataset.key];if(se&&se.fwId){ui.fwDate=se.fwId;ui.fwSwap=null;ui.fwLog=null;ui.view='fw';render(true);break}ui.trKey=b.dataset.key;ui.view='sess';render(true);break}
+    case 'xdel':{freezeTop();const d=b.dataset.date,i=+b.dataset.i,ex={...(state.extras||{})},l=(ex[d]||[]).filter(k=>SESS[k]);l.splice(i,1);if(l.length)ex[d]=l;else delete ex[d];state.extras=ex;save();render();toast('Fjernet fra dagen');break}
     case 'schmode':ui.sched.mode=b.dataset.v;render();break;
     case 'schday':{const c=ui.sched,d=b.dataset.d,i=c.dates.indexOf(d);if(i>=0)c.dates.splice(i,1);else c.dates.push(d);render();break}
     case 'schmon':{const c=ui.sched,[y,m]=c.month.split('-').map(Number),n=new Date(y,m-1+(+b.dataset.v),1);c.month=ds(n).slice(0,7);render();break}
