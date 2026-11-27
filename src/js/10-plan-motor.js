@@ -97,6 +97,8 @@ function condSess(kind,i,w,slot,date){const k='K'+date.replace(/-/g,''),ph=[['Op
 const PL_DOW=[1,2,3,4,5,6,0];
 const PL_SHORT={1:'Man',2:'Tir',3:'Ons',4:'Tor',5:'Fre',6:'Lør',0:'Søn'};
 const PL_LOWER=['squat','hinge','clean','snatch'];
+/* The order full training days cycle through. Weighted like the sampled programming: squat most, then press and deadlift, Olympic lifts, bench and pulls. */
+const CF_ROT=['squat','press_v','hinge','clean','squat','snatch','press_v','hinge','press_h','squat','clean','pull'];
 /* Type of a day in the current weekly plan, so the wizard starts from what the app already knows */
 function plTypeOfKey(k){if(!k||k==='R')return 'hvile';if(k==='S'||(SESS[k]&&SESS[k].kind==='styrke'))return 'styrke';if(k==='CF')return 'crossfit';
   const s=SESS[k];if(!s)return 'hvile';if(s.kind==='interval'||s.kind==='zone2')return 'kondition';if(/^AR/.test(k))return 'restitution';if(s.kind==='mobilitet')return 'mobilitet';return 'hvile'}
@@ -152,7 +154,15 @@ function plBuild(P){
   const days={},sess={},weeks=[];let arN=0,mobN=0,ftDone=false;
   if(isRun(P.goal)&&(P.vStart!=null||P.noTest)){P.vd=true;const nbw=info.filter(x=>x.i>=0).length;
     P.vGain=P.goal==='pace'&&P.vStart!=null?Math.max(0,Math.min(vdotOf(P.dist,P.pace*P.dist)-P.vStart,vdGain(nbw))):vdGain(nbw)*.5}
-  info.forEach(wi=>{const wk={...wi,days:[]};const dose=plDose(P,wi);let cardioN=0;
+  // Full training days rotate the B lift through the CrossFit patterns week by week (squat, press, deadlift, clean, snatch …),
+  // never two lower-body lifts on neighbouring days. A strength goal keeps one lift per day, because it ends in a test.
+  const cfDays=PL_DOW.filter(d=>P.types[d]==='crossfit'),rotate=P.goal!=='styrke',patN={};let cfI=0;
+  const cfLift=p=>{const o=FW_LIFTS.filter(x=>x[2]===p&&fwEqOk(x[3])),bar=o.filter(x=>x[4]),L=bar.length?bar:o;if(!L.length)return null;const i=patN[p]=(patN[p]||0)+1;return L[(i-1)%L.length][0]};
+  const cfWeek=()=>{const wp={},patOf=d=>wp[d]||(P.types[d]==='styrke'?pats[d]:null),near=d=>{const i=PL_DOW.indexOf(d);return [PL_DOW[(i+6)%7],PL_DOW[(i+1)%7]]};
+    cfDays.forEach(d=>{let pick=null;for(let t=0;t<CF_ROT.length&&!pick;t++){const p=CF_ROT[(cfI+t)%CF_ROT.length];
+        if(!FW_LIFTS.some(x=>x[2]===p&&fwEqOk(x[3])))continue;if(PL_LOWER.includes(p)&&near(d).some(n=>PL_LOWER.includes(patOf(n))))continue;pick=p;cfI+=t+1}
+      wp[d]=pick||pats[d]});return wp};
+  info.forEach(wi=>{const wk={...wi,days:[]};const dose=plDose(P,wi);let cardioN=0;const cfPat=rotate?cfWeek():{};
     PL_DOW.forEach((dow,j)=>{const date=ds(new Date(pd(start).getFullYear(),pd(start).getMonth(),pd(start).getDate()+wi.w*7+j));const t=P.types[dow];let key='R',label='Hvile';
       if(t==='styrke'){const f=weekly(dow,wi),k='P'+date.replace(/-/g,'');const bar=STR_BY.get(f.main[0].toLowerCase())[1]===EQ_ST;
         const mainRow=dose.test?[f.main[0],6,3,1]:[f.main[0],dose.s,dose.r,dose.rir];
@@ -162,7 +172,7 @@ function plBuild(P){
         sess[k]={name:`${f.main[0]} · uge ${wi.w+1}`,kind:'styrke',dur:'ca. '+Math.round((ex.reduce((a,x)=>a+x[1],0))*2.2+8)+' min',ex,main:f.main[0],pct:dose.test?null:dose.pct||null,
           note:(wi.dl?'Deload-uge: let og kort, så kroppen kan nå at blive stærkere. ':'')+`Hovedløft: ${what}.`+(dose.pct&&!dose.test?' Vægten regnes ud fra dine loggede sæt og følger med, når du bliver stærkere.':'')};
         key=k;label=`${f.main[0]} ${what}`}
-      else if(t==='crossfit'){const f=weekly(dow,wi),k='F'+date.replace(/-/g,''),l=fwL(f.fwLift),T=FW_TIMES.includes(P.fwT)?P.fwT:fwT();
+      else if(t==='crossfit'){const f=weekly(dow,wi),k='F'+date.replace(/-/g,''),l=fwL(rotate&&cfPat[dow]&&cfLift(cfPat[dow])||f.fwLift),T=FW_TIMES.includes(P.fwT)?P.fwT:fwT();
         let b;if(P.goal==='allround'&&!wi.dl&&!wi.test&&l[4]){const ids=['across','ladder','wave','531','emom','wave','ladder'],s=FW_SCHEMES.find(x=>x.id===ids[wi.i%ids.length]);b=s&&s.pats.includes(l[2])?{lift:l[0],scheme:s.id,lines:s.lines(l),note:s.note,min:s.min,heavy:s.heavy,pct:true}:null}
         if(!b){const lines=dose.test?['Byg op til en ny 3RM','Ca. 6-8 sæt, hvile 2:30 mellem de tunge']:wi.dl?['3 × 5 @ 60 %','Let og hurtigt. Fokus på teknik']:[`${dose.s} sæt × ${dose.r}${l[4]?` @ ${dose.pct} %`:` · ${dose.rir} i tanken`}`,'Ét sæt hvert 2:00-2:30 min'];
           b={lift:l[0],scheme:dose.test?'build':wi.dl?'across':'across',lines,note:wi.dl?'Deload-uge: let, så kroppen kan nå at blive stærkere.':'Samme løft i denne periode, lidt tungere hver uge.',min:dose.test?18:wi.dl?10:14,heavy:dose.pct>=80||dose.test?1:0,pct:!!l[4]&&!dose.test}}

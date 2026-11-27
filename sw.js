@@ -724,7 +724,7 @@ window.CF={byggePas,alternativer,formater,prng,formatFor,domaeneFor,FORMATER,DOM
 })();
 }else{
 // Offline cache: the app shell is cached on install; pages are network-first so updates arrive, fonts are cache-first.
-const CACHE='traening-2055a4b9';
+const CACHE='traening-ca9eeedd';
 const SHELL=['./','./index.html','./sw.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
