@@ -248,6 +248,9 @@ T('Ned i vægt: styrke, rolig skånsom kondition der vokser, og gåture',async()
   eq(r.types.filter(t=>t==='styrke').length,2,'2 styrkepas');ok(r.types.includes('restitution'),'gåture');eq(r.types[6],'hvile','søndag hvile');
   ok(r.mins[r.mins.length-1]>r.mins[0],'minutterne stiger: '+r.mins);ok(r.mins[r.mins.length-1]>=200,'mindst 200 min til sidst: '+r.mins);ok(r.lowImpact,'skånsom kondition');
   eq(r.hard1,false,'ingen intervaller i uge 1');eq(r.hardLater,true,'intervaller fra uge 3');return p});
+T('Plan-fanen viser ingen tom kalender uden plan og træning',async()=>{const p=await app({plan:REST});
+  await p.click('.tab[data-view=month]');await wait(p);ok(!(await p.$('.mw')),'ingen kalender');ok((await p.textContent('#main')).includes('ingen planlagt træning'));
+  await ev(p,()=>{setManual(addD(TODAY,3),'Z2');render()});ok(await p.$('.mw'),'kalenderen vises, når der er træning');return p});
 /* ================= Editing the draft ================= */
 const draft=async(p,goal,types)=>ev(p,([goal,types])=>{ui.pl={...plStart(),goal,weeks:4,deload:false,types,start:'next'};ui.pl.preview=plBuild(ui.pl);ui.pl.step='review';ui.view='plan';render(true);
   const d=ui.pl.preview.weeks[0].days.find(x=>x.key!=='R');ui.pl.open=d.date;render();return d.key},[goal,types]);

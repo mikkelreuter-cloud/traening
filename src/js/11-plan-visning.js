@@ -6,6 +6,9 @@ function viewMonth(){const b=plActive(),wn=plWeekNo(),mon=mondayOf(TODAY);
       <div class="meter pl-meter"><i style="width:${Math.max(0,Math.min(100,Math.round((wn-1)/b.weeks*100+100/b.weeks*((pd(TODAY).getDay()+6)%7+1)/7)))}%"></i></div>
       <div class="btns3" style="grid-template-columns:1fr 1fr"><button class="btn ghost" data-act="plopen">Nyt forløb</button><button class="btn ghost" data-act="plstop">Stop forløbet</button></div></section>`
     :`<section class="card"><h3 class="sec">Intet forløb endnu</h3><p class="muted small">Din faste uge gentages. Planlæg 1-8 uger med et mål, så bliver træningen bygget op uge for uge.</p><button class="btn accent" data-act="plopen">Planlæg forløb</button></section>`;
+  // Nothing planned in the coming five weeks and no plan running: show only the invitation, not an empty calendar
+  if(!b&&[...Array(35)].every((_,i)=>{const d=addD(mon,i);return sessKey(d)==='R'&&!extrasOn(d).length}))
+    return head.replace('Din faste uge gentages. Planlæg','Du har ingen planlagt træning. Planlæg');
   const weeks=[0,1,2,3,4].map(i=>{const st=ds(new Date(pd(mon).getFullYear(),pd(mon).getMonth(),pd(mon).getDate()+7*i));
     const days=[0,1,2,3,4,5,6].map(j=>ds(new Date(pd(st).getFullYear(),pd(st).getMonth(),pd(st).getDate()+j)));
     const bw=b&&st>=b.start&&st<=b.end?Math.floor((pd(st)-pd(b.start))/(7*864e5)):-1;
